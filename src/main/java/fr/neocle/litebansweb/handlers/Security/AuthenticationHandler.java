@@ -5,7 +5,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import fr.neocle.litebansweb.handlers.*;
 import fr.neocle.litebansweb.handlers.Errors.*;
-import fr.neocle.litebansweb.handlers.PostActions.*;
+import fr.neocle.litebansweb.handlers.PostRequestHandlers.*;
 import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.utils.DatabaseUtils;
 

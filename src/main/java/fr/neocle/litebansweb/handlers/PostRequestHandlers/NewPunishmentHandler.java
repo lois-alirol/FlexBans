@@ -1,4 +1,4 @@
-package fr.neocle.litebansweb.handlers.PostActions;
+package fr.neocle.litebansweb.handlers.PostRequestHandlers;
 
 import java.io.BufferedReader;
 import java.io.IOException;
