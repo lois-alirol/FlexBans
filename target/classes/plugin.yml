@@ -1,0 +1,29 @@
+name: LitebansWeb
+api: 1.0.0
+api-version: 1.13
+main: fr.neocle.litebansweb.LitebansWebBukkit
+version: 1.0-SNAPSHOT
+author: Neocle
+
+commands:
+  litebansweb:
+    description: Main command for LitebansWeb plugin.
+    usage: "/litebansweb <subcommand>"
+    aliases: [lw, lbw]
+    permission: litebansweb.use
+    permission-message: You do not have permission to execute this command.
+
+permissions:
+  litebansweb.use:
+    description: Allows access to the LitebansWeb commands.
+    default: true
+
+  litebansweb.reload:
+    description: Allows reloading the LitebansWeb configuration.
+    default: op
+
+  litebansweb.verify:
+    description: Allows users to verify their access to the dashboard.
+    default: true
+
+folia-supported: true

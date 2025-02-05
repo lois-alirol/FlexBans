@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="{{server_name}} Punishments">
+    <meta property="og:description" content="{{server_description}}">
+    <meta property="og:image" content="{{server_icon}}">
+    <meta name="theme-color" content="{{server_color}}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" sizes="48x48" href="{{server_favicon}}">
+    <title>{{server_name}} Punishments</title>
+    <script src="https://cdn.tailwindcss.com/"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        tailwind.config = {
+          darkMode: 'class',
+        }
+    </script>
+    <style>
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        body.bg-light-bg {
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+    </style>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('darkMode');
+            const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (theme === 'enabled') {
+                document.documentElement.classList.add('dark');
+            } else if (theme === 'disabled') {
+                document.documentElement.classList.remove('dark');
+            } else if (prefersDarkScheme) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 100, 100, 0.7);
+            border-radius: 4px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(150, 150, 150, 0.8);
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: rgba(44, 44, 44, 0.3);
+            border-radius: 4px;
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(100, 100, 100, 0.7) rgba(44, 44, 44, 0.3);
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        th,
+        td {
+            border: 1px solid rgba(75, 75, 75, 0.5);
+            padding: 16px;
+        }
+
+        thead th {
+            border-bottom: 2px solid rgba(100, 100, 100, 0.6);
+        }
+
+        .pagination-controls a, .pagination-controls span {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px; /* Square size */
+            height: 50px; /* Square size */
+            text-align: center;
+        }
+
+        .pagination-controls a.disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .pagination-controls a:hover {
+            background-color: #555;
+        }
+
+        .pagination-controls .current-page {
+            padding: 0.5rem 1rem;
+            margin: 0.2rem;
+            background-color: #4097e7;
+            color: white;
+            border-radius: 0.25rem;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-[#333333] dark:text-[#e0e0e0] dark:bg-[#1c1c1c]">
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed inset-0 left-0 w-full lg:w-64 bg-[#c1c1c1] dark:bg-[#2c2c2c] text-[#333333] dark:text-[#e0e0e0] transform -translate-x-full transition-transform duration-300 lg:translate-x-0 lg:inset-y-0 lg:fixed lg:left-0 lg:flex lg:flex-col z-10">
+        <button id="close-sidebar" aria-label="Close menu" class="lg:hidden text-2xl absolute top-4 right-4">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="flex flex-col h-full">
+            <div class="flex items-center justify-center h-20 px-4">
+                <img src="{{server_logo}}" alt="Logo" class="h-8">
+            </div>
+            <nav class="flex-grow">
+                <a href="?type=bans" class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative" aria-label="View bans">
+                    <i class="fas fa-ban"></i> <span class="ml-4 text-lg">Bans</span>
+                    <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{bans_count}}</span>
+                </a>
+                <a href="?type=mutes" class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative" aria-label="View mutes">
+                    <i class="fas fa-microphone-slash"></i> <span class="ml-4 text-lg">Mutes</span>
+                    <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{mutes_count}}</span>
+                </a>
+                <a href="?type=kicks" class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative" aria-label="View kicks">
+                    <i class="fas fa-user-times"></i> <span class="ml-4 text-lg">Kicks</span>
+                    <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{kicks_count}}</span>
+                </a>
+                <a href="?type=warnings" class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative" aria-label="View warnings">
+                    <i class="fas fa-exclamation-circle"></i> <span class="ml-4 text-lg">Warnings</span>
+                    <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{warnings_count}}</span>
+                </a>
+
+                <!-- Separator -->
+                <hr class="border-gray-600 my-4 w-3/4 mx-auto">
+
+                <div class="flex flex-col items-left p-4">
+
+                    <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Users Details</h2>
+
+                    <!-- Search Player -->
+                    <div class="flex w-full max-w-md space-x-2">
+                        <input type="text" id="playerInput" placeholder="Search Player..." class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                        <button id="searchPlayerButton" class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </div>
+
+                    <!-- Search Moderator -->
+                    <div class="flex w-full max-w-md space-x-2 mt-4">
+                        <input type="text" id="moderatorInput" placeholder="Search Moderator..." class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                        <button id="searchModeratorButton" class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </div>
+                <!-- Separator -->
+                <hr class="border-gray-600 my-4 w-3/4 mx-auto">
+
+                    <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Punishments Details</h2>
+
+                        <!-- Search Punishment ID -->
+                        <div class="flex w-full max-w-md space-x-2">
+                            <input type="text" id="punishmentInput" placeholder="Search {{punishment_type_capitalized}} ID..." class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                            <button id="searchPunishmentButton" class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                                <i class="fa-solid fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                {{new_punishment_button}}
+            </nav>
+            <div class="pb-4 flex flex-col gap-4">
+                <button 
+                    id="dark-mode-toggle" 
+                    class="block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] w-55 text-left transition-all duration-500 ease-in-out"
+                >
+                    <i id="dark-mode-icon" class="fa-solid fa-moon"></i> 
+                    <span class="ml-4 text-lg">Dark Mode</span>
+                </button>
+                <a 
+                    href="/logout" 
+                    class="block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] w-55 text-left"
+                >
+                    <i class="fas fa-sign-out-alt"></i> 
+                    <span class="ml-4 text-lg">Logout</span>
+                </a>
+            </div>            
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex flex-col lg:ml-64">
+        <header class="flex items-center justify-between p-4 bg-[#f4f4f4] dark:bg-[#2c2c2c] lg:hidden">
+            <button id="menu-button" aria-label="Open menu" class="text-2xl">
+                <i class="fas fa-bars"></i>
+            </button>
+        </header>
+
+        <main class="p-4">
+            <h1 class="text-3xl font-bold mb-2">{{server_name}}'s Punishments</h1>
+            <p class="text-sm mb-2">Select a punishment type from the menu on the left.</p>
+        </main>
+
+        <!-- Search and Filter -->
+        <div class="search mb-6 mx-4 flex items-center">
+            <div class="relative w-full">
+                <input type="text" id="searchInput" placeholder="Search Player..." class="w-full p-3.5 pl-12 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] rounded-lg shadow-custom focus:outline-none">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 transform -translate-y-1/2 text-[#333333] dark:text-[#e0e0e0]"></i>
+            </div>
+            <button id="filterButton" class="bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] p-3.5 ml-2 rounded-lg text-[#333333] dark:text-[#e0e0e0] shadow-custom">Filter</button>
+        </div>
+
+        <!-- Punishments Table -->
+        <div class="punishments mx-4 overflow-x-auto">
+            <table id="punishmentTable" class="table-auto w-full bg-[#ffffffe6] dark:bg-[#2c2c2ce6] text-[#333333] dark:text-[#e0e0e0] rounded-lg overflow-hidden shadow-custom">
+                <thead>
+                    <tr class="bg-[#ccc] dark:bg-[#444] text-left text-slate-800 dark:text-slate-300">
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Player</th>
+                        <th class="p-4">Executor</th>
+                        <th class="p-4">Reason</th>
+                        <th class="p-4">Execution Date</th>
+                        <th class="p-4">Expiration Time</th>
+                        <th class="p-4">Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{punishment_rows}}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- pages  -->
+        <div class="pagination-controls flex justify-center my-4">
+            <a id="prevPage" href="#" class="pagination-btn prev-btn flex items-center justify-center bg-[#c1c1c1] dark:bg-[#444] text-white py-2 px-4 mx-2 rounded-lg">
+                <i class="fa-solid fa-angles-left"></i>
+            </a>
+        
+            <input id="pageInput" type="number" min="1" max="{{total_pages}}" value="{{current_page}}" class="text-center bg-[#c1c1c1] dark:bg-[#444] text-black dark:text-white py-2 px-4 mx-2 rounded-lg w-20" aria-label="Page Number">
+            
+            <a id="nextPage" href="#" class="pagination-btn next-btn flex items-center justify-center bg-[#c1c1c1] dark:bg-[#444] text-white py-2 px-4 mx-2 rounded-lg">
+                <i class="fa-solid fa-angles-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filterModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-[#f4f4f4] dark:bg-[#2c2c2c] p-6 rounded-lg shadow-lg relative">
+            <span class="close text-white text-2xl cursor-pointer absolute top-4 right-4">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Sort Punishments</h2>
+            <div>
+                <label class="block mb-2">
+                    <input type="radio" name="sortOption" value="name" class="mr-2"> Player Name (A-Z)
+                </label>
+                <label class="block mb-2">
+                    <input type="radio" name="sortOption" value="date" class="mr-2"> Execution Date
+                </label>
+                <label class="block mb-2">
+                    <input type="radio" name="sortOption" value="status" class="mr-2"> Status (Active/Expired/Removed)
+                </label>
+            </div>
+            <button id="applySort" class="bg-[#c1c1c1cc] dark:bg-[#3b3b3bcc] p-3.5 mt-4 w-full rounded-lg text-[#333333] dark:text-[#e0e0e0] shadow-custom">Apply Filter</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const darkModeIcon = document.getElementById('dark-mode-icon');
+
+            const toggleDarkMode = () => {
+                document.documentElement.classList.toggle('dark');
+
+                darkModeIcon.classList.toggle('fa-moon');
+                darkModeIcon.classList.toggle('fa-sun');
+
+                if (document.documentElement.classList.contains('dark')) {
+                    localStorage.setItem('darkMode', 'enabled');
+                } else {
+                    localStorage.setItem('darkMode', 'disabled');
+                }
+            };
+
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+
+            if (document.documentElement.classList.contains('dark')) {
+                darkModeIcon.classList.add('fa-sun');
+                darkModeIcon.classList.remove('fa-moon');
+            } else {
+                darkModeIcon.classList.add('fa-moon');
+                darkModeIcon.classList.remove('fa-sun');
+            }
+        });
+
+        $(document).ready(function () {
+            const currentPage = parseInt("{{current_page}}");
+            const totalPages = parseInt("{{total_pages}}");
+            const type = "{{punishment_type}}";
+
+            if (currentPage === 1) {
+                $('#prevPage').addClass('disabled').attr('href', '#').removeAttr('href');
+            } else {
+                $('#prevPage').attr('href', `/index?type=${type}&page=${currentPage - 1}`);
+            }
+
+            if (currentPage === totalPages) {
+                $('#nextPage').addClass('disabled').attr('href', '#').removeAttr('href');
+            } else {
+                $('#nextPage').attr('href', `/index?type=${type}&page=${currentPage + 1}`);
+            }
+
+            $('#pageInput').on('input', function () {
+                const inputPage = parseInt($(this).val());
+                if (inputPage >= 1 && inputPage <= totalPages) {
+                    window.location.href = `/index?type=${type}&page=${inputPage}`;
+                }
+            });
+
+            $('#pageInput').on('blur', function () {
+                const inputPage = parseInt($(this).val());
+                if (isNaN(inputPage) || inputPage < 1 || inputPage > totalPages) {
+                    $(this).val(currentPage);
+                }
+            });
+        });
+    
+        $(document).ready(function () {
+            // Sidebar Menu Toggle
+            $('#menu-button').click(function () {
+                $('#sidebar').removeClass('-translate-x-full');
+            });
+
+            $('#close-sidebar').click(function () {
+                $('#sidebar').addClass('-translate-x-full');
+            });
+
+            $('#sidebar nav a').click(function () {
+                if ($(window).width() < 1024) {
+                    $('#sidebar').addClass('-translate-x-full');
+                }
+            });
+
+            // Highlight Active Menu Item
+            const currentType = new URLSearchParams(window.location.search).get('type');
+            if (currentType) {
+                $(`.nav-item[href="?type=${currentType}"]`).addClass('bg-[#888888]');
+            } else {
+                $('.nav-item[href="?type=bans"]').addClass('bg-[#888888]');
+            }
+
+            // Search Filtering
+            $('#searchInput').on('input', function () {
+                const input = $(this).val().toLowerCase().trim();
+                $('#punishmentTable tbody tr').each(function () {
+                    const rowText = $(this).text().toLowerCase();
+                    $(this).toggle(rowText.includes(input));
+                });
+            });
+
+            // Filter Modal
+            const modal = $('#filterModal');
+            const closeModal = $('.close');
+
+            $('#filterButton').on('click', function () {
+                modal.removeClass('hidden');
+            });
+
+            closeModal.on('click', function () {
+                modal.addClass('hidden');
+            });
+
+            $(window).on('click', function (event) {
+                if ($(event.target).is(modal)) {
+                    modal.addClass('hidden');
+                }
+            });
+
+            // Apply Filter Sort
+            $('#applySort').on('click', function () {
+                const selectedOption = $('input[name="sortOption"]:checked').val();
+                if (selectedOption) {
+                    sortTable(selectedOption);
+                    modal.addClass('hidden');
+                }
+            });
+
+            // Sort Table Logic
+            function sortTable(sortBy) {
+                const rows = $('#punishmentTable tbody tr').get();
+
+                rows.sort(function (a, b) {
+                    let keyA, keyB;
+
+                    if (sortBy === 'name') {
+                        keyA = $(a).children('td').eq(1).text().toLowerCase();
+                        keyB = $(b).children('td').eq(1).text().toLowerCase();
+                    } else if (sortBy === 'date') {
+                        keyA = parseDate($(a).children('td').eq(4).text());
+                        keyB = parseDate($(b).children('td').eq(4).text());
+                    } else if (sortBy === 'status') {
+                        keyA = $(a).children('td').eq(0).text().toLowerCase();
+                        keyB = $(b).children('td').eq(0).text().toLowerCase();
+                    }
+
+                    return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
+                });
+
+                $.each(rows, function (index, row) {
+                    $('#punishmentTable tbody').append(row);
+                });
+            }
+
+            // Parse Date
+            function parseDate(dateStr) {
+                const parts = dateStr.split(' ');
+                const dateParts = parts[0].split('/');
+                const timeParts = parts[1].split(':');
+                return new Date(dateParts[2], dateParts[1] - 1, dateParts[0], timeParts[0], timeParts[1]);
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type');
+            if (type === 'kicks') {
+                $('#punishmentTable th:nth-child(1), #punishmentTable td:nth-child(1)').hide(); // Hide Status
+                $('#punishmentTable th:nth-child(6), #punishmentTable td:nth-child(6)').hide(); // Hide Expiration Time
+                $('#punishmentTable th:nth-child(7), #punishmentTable td:nth-child(7)').hide(); // Hide Duration
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('searchPlayerButton').addEventListener('click', function () {
+                const playerName = document.getElementById('playerInput').value.trim();
+                if (playerName) {
+                    window.location.href = `/player/${encodeURIComponent(playerName)}`;
+                } else {
+                    alert("Please enter a player name.");
+                }
+            });
+
+            document.getElementById('searchModeratorButton').addEventListener('click', function () {
+                const moderatorName = document.getElementById('moderatorInput').value.trim();
+                if (moderatorName) {
+                    window.location.href = `/moderator/${encodeURIComponent(moderatorName)}`;
+                } else {
+                    alert("Please enter a moderator name.");
+                }
+            });
+
+            document.getElementById('searchPunishmentButton').addEventListener('click', function () {
+                const punishmentID = document.getElementById('punishmentInput').value.trim();
+                if (punishmentID) {
+                    window.location.href = `/details/{{punishment_type}}/${encodeURIComponent(punishmentID)}`;
+                } else {
+                    alert("Please enter a Punishment ID");
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>

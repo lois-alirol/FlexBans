@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="{{server_name}} 2FA">
+    <meta property="og:description" content="Secure your account with 2FA on {{server_name}}.">
+    <meta property="og:image" content="{{server_icon}}">
+    <meta name="theme-color" content="{{server_color}}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" sizes="48x48" href="{{server_favicon}}">
+    <title>{{server_name}} Verify</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-[#2e2e2e] text-[#e4e4e7] flex items-center justify-center min-h-screen">
+    <div class="bg-[#1f1f1f] p-8 rounded-lg shadow-lg w-full max-w-lg text-center">
+        <img src="{{server_logo}}" alt="Server Logo" class="w-20 mx-auto mb-6">
+        <h1 class="text-3xl font-bold mb-4">Access Verification</h1>
+        <p class="mb-6">Use the following code to validate your account on {{server_name}}. You will only need to do it once.</p>
+
+        <!-- Code Blocks -->
+        <div class="flex justify-center gap-2 mb-6">
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{1}}
+            </div>
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{2}}
+            </div>
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{3}}
+            </div>
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{4}}
+            </div>
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{5}}
+            </div>
+            <div class="w-12 h-16 bg-[#2e2e2e] border border-[#4b5563] text-2xl font-bold text-center flex items-center justify-center rounded-lg">
+                {{6}}
+            </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <p class="text-sm text-[#a1a1aa]">
+            Join {{server_name}} and type the command: 
+            <code class="bg-[#2e2e2e] px-2 py-1 rounded-md text-[{{server_color}}] font-bold">/lbw verify {{code}}</code>
+            to verify the access to the punishment dashboard. Keep this code private and do not share it with anyone.
+        </p>
+    </div>
+
+    <script>
+        const pollVerification = async () => {
+            const response = await fetch('/check-verification');
+            const data = await response.json();
+            if (data.verified) {
+                window.location.href = '/index';
+            } else {
+                setTimeout(pollVerification, 5000);
+            }
+        };
+        pollVerification();
+    </script>    
+
+</body>
+
+</html>

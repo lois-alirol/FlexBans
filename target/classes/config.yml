@@ -1,0 +1,68 @@
+#    __    _ __       __                    _       __     __  
+#   / /   (_) /____  / /_  ____ _____  ____| |     / /__  / /_ 
+#  / /   / / __/ _ \/ __ \/ __ `/ __ \/ ___/ | /| / / _ \/ __ \
+# / /___/ / /_/  __/ /_/ / /_/ / / / (__  )| |/ |/ /  __/ /_/ /
+#/_____/_/\__/\___/_.___/\__,_/_/ /_/____/ |__/|__/\___/_.___/ 
+#                                                              
+#
+# The port that will host the web pages.
+# If you are using a hosting solution like Pterodactyl, 
+# make sure to allocate a new port in the "Network" tab of your panel.
+webserver:
+  port: 8080
+  url: "localhost"
+  https: true
+
+# The type of database you are using for Litebans, if it doesn't match it will not work.
+# If you are running a proxy (Velocity or Bungeecord), you will need to use MySQL
+database:
+  # Hostname or IP address of the database server.
+  host: "localhost"
+  
+  # Port used by the database server (3306 is default for MySQL).
+  port: 3306
+  
+  # Username for database authentication.
+  user: "username"
+  
+  # Password for the database user.
+  password: "password"
+  
+  # Name of the database to connect to.
+  name: "database"
+
+# Settings for how the server will appear on the web page.
+server_display_settings:
+  # The name of the server that will be displayed.
+  name: "Example"
+  # URL to the server's icon image.
+  icon: "https://i.imgur.com/iweixVA.png"
+  # URL to the server's favicon.
+  favicon: "https://i.imgur.com/iweixVA.png"
+  # Primary branding color for the server (in hexadecimal format).
+  color: "#4097e7"
+  # A darker shade of the primary branding color for accents.
+  darker_color: "#285577"
+  # A short description of the server.
+  description: "This is an example server"
+
+# Configuration for Discord OAuth2 login.
+discord_oauth:
+  # Set to true to enable Discord OAuth2 login.
+  enabled: false
+  # Client ID from your Discord application.
+  client_id: "your-discord-client-id"
+  # Client Secret from your Discord application.
+  client_secret: "your-discord-client-secret"
+  # URL to which Discord will redirect after successful login.
+  redirect_uri: "http://localhost:8080/callback"
+  # OAuth2 scope specifying the data to request (e.g., "identify" for basic user info).
+  scope: "identify"
+  # List of Discord user IDs allowed to access the application.
+  allowed_users:
+    - "user_id_1"
+    - "user_id_2"
+
+password_login:
+  enabled: true
+  allowed_players: []

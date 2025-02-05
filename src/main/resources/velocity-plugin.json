@@ -1,0 +1,24 @@
+{
+    "id": "litebansweb",
+    "name": "Litebans Web",
+    "version": "1.0-SNAPSHOT",
+    "authors": [
+      "Neocle"
+    ],
+    "main": "fr.neocle.litebansweb.LitebansWebVelocity",
+    "dependencies": [
+      {
+        "id": "velocity",
+        "optional": false
+      },
+      {
+        "id": "litebans",
+        "optional": false
+      },
+      {
+        "id": "floodgate",
+        "optional": true
+      }
+    ]
+  }
+  
