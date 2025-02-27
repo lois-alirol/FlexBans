@@ -1,0 +1,15 @@
+name: LitebansWeb
+main: fr.neocle.litebansweb.bungee.LitebansWebBungee
+version: 1.0-SNAPSHOT
+author: Neocle
+softDepends:
+  - Litebans
+commands:
+  litebansweb:
+    description: Reloads the LitebansWeb configuration.
+    aliases: [lw, lbw]
+    permission: litebansweb.reload
+permissions:
+  litebansweb.reload:
+    description: Allows reloading the LitebansWeb configuration.
+    default: admin

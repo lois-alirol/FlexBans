@@ -1,0 +1,42 @@
+commands:
+  unknown: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Commande inconnue, utilisez /litebansweb help pour obtenir la liste des commandes."
+  players-only: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Seuls les joueurs peuvent utiliser cette commande."
+  no-permission: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Vous n'avez pas la permission d'utiliser cette commande."
+  verify:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb verify <code>"
+    success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Vérification réussie ! Votre compte a été vérifié, vous pouvez désormais accéder au tableau de bord des sanctions."
+    unknown-code: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Le code de vérification %code% n'existe pas ou a déjà été utilisé."
+    fail: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Une erreur s'est produite lors de la vérification de votre compte. Veuillez réessayer plus tard."
+    error: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Une erreur inattendue s'est produite. Veuillez contacter un administrateur."
+  reload:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb reload"
+    success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Configuration de LiteBansWeb rechargée avec succès."
+    fail: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Échec du rechargement de la configuration."
+    error: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Une erreur inattendue s'est produite. Veuillez contacter un administrateur."
+  players-whitelist:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb players <add / remove> <player>"
+    add-player:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb players add <player>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Joueur ajouté avec succès."
+      already-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Le joueur est déjà dans la whitelist."
+      not-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Le joueur n'a pas pu être ajouté."
+    remove-player:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb players remove <player>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Joueur retiré avec succès."
+  discord-whitelist:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb discord <add / remove> <user-id>"
+    add-user:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb discord add <user-id>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisateur Discord ajouté avec succès."
+      already-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>L'utilisateur Discord est déjà dans la whitelist."
+      not-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>L'utilisateur Discord n'a pas pu être ajouté."
+    remove-user:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisation : /litebansweb discord remove <user-id>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Utilisateur Discord retiré avec succès."
+  logging:
+    verify:
+      sql-exception: "Erreur SQL lors de la vérification de l'utilisateur : %error%"
+      exception: "Erreur inattendue : %error%"
+    reload:
+      fail: "Échec du rechargement de la configuration."
+      success: "Configuration de LiteBansWeb rechargée avec succès."

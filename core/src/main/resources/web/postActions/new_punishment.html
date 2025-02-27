@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Punishment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com/"></script>
+    <meta property="og:title" content="New Punishment">
+    <meta property="og:description" content="Use this form to execute a new punishment on a player.">
+    <meta property="og:image" content="{{server_icon}}">
+    <meta name="theme-color" content="{{server_color}}">
+    <link rel="icon" type="image/x-icon" sizes="48x48" href="{{server_favicon}}">
+    <script src="/js/dark-mode-init.js"></script>
+    <style>
+        body {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        body.bg-light-bg {
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+
+        .disabled {
+            background-color: #d4d4d4 !important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-[#333333] dark:text-[#e0e0e0] dark:bg-[#1c1c1c] font-sans">
+
+    <div class="container mx-auto p-8 max-w-4xl">
+        <!-- Back Button -->
+        <a href="/index" class="absolute top-0 left-0 mt-2 ml-2 bg-[{{server_color}}] text-white py-2 px-4 rounded-lg hover:bg-[{{server_color_hover}}]">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Back to Index
+        </a>
+
+        <h1 class="text-center text-3xl font-bold mb-8">New Punishment</h1>
+
+        <form id="punishment-form" class="space-y-6">
+            <!-- Player Input -->
+            <div>
+                <label for="player" class="block text-lg font-medium">Player to Punish</label>
+                <input type="text" id="player" name="player" class="w-full p-2 border rounded-md text-[#333333]" required>
+            </div>
+
+            <!-- Executor Input -->
+            <div>
+                <label for="executor" class="block text-lg font-medium">Executor Name</label>
+                <input type="text" id="executor" name="executor" class="w-full p-2 border rounded-md text-[#333333] bg-gray-300 cursor-not-allowed" value="{{executor_name}}" readonly required>
+            </div>
+
+            <!-- Punishment Type -->
+            <div>
+                <label class="block text-lg font-medium mb-2">Punishment Type</label>
+                <div class="space-y-2">
+                    <label>
+                        <input type="radio" name="punishment-type" value="ban" required> Ban
+                    </label>
+                    <label>
+                        <input type="radio" name="punishment-type" value="mute"> Mute
+                    </label>
+                    <label>
+                        <input type="radio" name="punishment-type" value="kick"> Kick
+                    </label>
+                    <label>
+                        <input type="radio" name="punishment-type" value="warning"> Warning
+                    </label>
+                </div>
+            </div>
+
+            <!-- Silent Checkbox -->
+            <div>
+                <label>
+                    <input type="checkbox" name="silent"> Silent Mode
+                </label>
+            </div>
+
+            <!-- Reason Input -->
+            <div>
+                <label for="reason" class="block text-lg font-medium">Reason</label>
+                <input type="text" id="reason" name="reason" class="w-full p-2 border rounded-md text-[#333333]" required>
+            </div>
+
+            <!-- Duration and Permanent -->
+            <div id="duration-container" class="space-y-4">
+                <label for="duration" class="block text-lg font-medium">Duration</label>
+                <input type="text" id="duration" name="duration" class="w-full p-2 border rounded-md text-[#333333]" placeholder="e.g., 1h, 1d">
+                <label>
+                    <input type="checkbox" id="permanent" name="permanent"> Permanent
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg">
+                <i class="fa-solid fa-check"></i> Submit Punishment
+            </button>
+        </form>
+    </div>
+
+    <script src="/js/dark-mode-toggle.js"></script>
+    <script>
+
+        $(document).ready(function () {
+            $('#punishment-form').on('submit', function (e) {
+                e.preventDefault();
+
+                const data = {
+                    target: $('#player').val(),
+                    identity: '{{executor_name}}',
+                    punishmentType: $('input[name="punishment-type"]:checked').val(),
+                    silent: $('input[name="silent"]').is(':checked'),
+                    reason: $('#reason').val(),
+                    duration: $('#duration').val(),
+                    permanent: $('#permanent').is(':checked')
+                };
+
+                $.ajax({
+                    url: '/new-punishment/submit',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function (response) {
+                        alert(response.message || 'Punishment executed successfully!');
+                        $('#revoke-modal').addClass('hidden');
+                        location.reload();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error details:', xhr.status, xhr.responseText);
+                        alert('Error revoking punishment: ' + (xhr.responseText || 'Unknown error'));
+                    }
+                });
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const durationContainer = document.getElementById('duration-container');
+            const durationInput = document.getElementById('duration');
+            const permanentCheckbox = document.getElementById('permanent');
+            const punishmentTypeInputs = document.querySelectorAll('input[name="punishment-type"]');
+
+            punishmentTypeInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    if (input.value === 'kick') {
+                        durationContainer.classList.add('hidden');
+                        durationInput.value = '';
+                        permanentCheckbox.checked = false;
+                    } else {
+                        durationContainer.classList.remove('hidden');
+                    }
+                });
+            });
+
+            permanentCheckbox.addEventListener('change', () => {
+                if (permanentCheckbox.checked) {
+                    durationInput.classList.add('disabled');
+                    durationInput.value = '';
+                } else {
+                    durationInput.classList.remove('disabled');
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

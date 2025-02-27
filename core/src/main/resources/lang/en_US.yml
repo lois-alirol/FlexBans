@@ -1,0 +1,42 @@
+commands:
+  unknown: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Unknown command, use /litebansweb help for a list of commands."
+  players-only: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Only players can use this command."
+  no-permission: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>You do not have permission to use this command."
+  verify:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb verify <code>"
+    success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Verification successful! Your account has been verified, you can now access the punishments dashboard."
+    unknown-code: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>The verification code %code% does not exist or has already been used."
+    fail: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>An error occurred while verifying your account. Please try again later."
+    error: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>An unexpected error occurred. Please contact an administrator."
+  reload:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb reload"
+    success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>LiteBansWeb configuration reloaded successfully."
+    fail: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Failed to reload configuration."
+    error: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>An unexpected error occurred. Please contact an administrator."
+  players-whitelist:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb players <add / remove> <player>"
+    add-player:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb players add <player>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Player added successfully."
+      already-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Player is already whitelisted."
+      not-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Player could not be added."
+    remove-player:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb players remove <player>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Player removed successfully."
+  discord-whitelist:
+    usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb discord <add / remove> <user-id>"
+    add-user:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb discord add <user-id>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Discord user added successfully."
+      already-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Discord user is already whitelisted."
+      not-added: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Discord user could not be added."
+    remove-user:
+      usage: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Usage: /litebansweb discord remove <user-id>"
+      success: "<bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold><gray> » <white>Discord user removed successfully."
+  logging:
+    verify:
+      sql-exception: "SQL Error while verifying user: %error%"
+      exception: "Unexpected error: %error%"
+    reload:
+      fail: "Failed to reload configuration."
+      success: "LiteBansWeb configuration reloaded successfully."

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="{{server_name}} Login">
+    <meta property="og:description" content="Log in to access the {{server_name}} dashboard.">
+    <meta property="og:image" content="{{server_icon}}">
+    <meta name="theme-color" content="{{server_color}}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" sizes="48x48" href="{{server_favicon}}">
+    <title>{{server_name}} Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-[#2e2e2e] text-[#e4e4e7] flex items-center justify-center min-h-screen">
+    <div class="bg-[#1f1f1f] p-8 rounded-lg shadow-lg w-full max-w-md">
+        <img src="{{server_logo}}" alt="Server Logo" class="w-24 mx-auto mb-6">
+        <h1 class="text-3xl font-bold text-center mb-4">Login to {{server_name}}</h1>
+        <form action="/login" method="POST" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium mb-1">Username</label>
+                <input type="text" id="username" name="username" required
+                    class="w-full bg-[#2e2e2e] text-[#e4e4e7] border border-[#4b5563] rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[{{server_color}}]">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium mb-1">Password</label>
+                <div class="relative">
+                    <input type="password" id="password" name="password" required
+                        class="w-full bg-[#2e2e2e] text-[#e4e4e7] border border-[#4b5563] rounded-lg py-2 px-4 pr-12 focus:outline-none focus:ring-2 focus:ring-[{{server_color}}]">
+                    <button type="button" id="show-password-btn" 
+                        class="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-[#a1a1aa] hover:text-[#e4e4e7] focus:outline-none">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" id="stay-logged-in" name="stay_logged_in" class="mr-2">
+                <label for="stay-logged-in" class="text-sm text-[#a1a1aa]">Stay logged in</label>
+            </div>            
+            <button type="submit"
+                class="w-full bg-[{{server_color}}] hover:bg-[{{server_color_hover}}] text-white font-bold py-2 rounded-lg transition duration-300">
+                Log In
+            </button>
+
+            {{discord_button}}
+
+        </form>
+        <p class="mt-4 text-center text-sm text-[#a1a1aa]">Don't have an account? <a href="/register"
+                class="text-[{{server_color}}] hover:underline">Register here</a>.</p>
+    </div>
+
+    <script>
+        function togglePasswordVisibility(buttonId, inputId) {
+            const button = document.getElementById(buttonId);
+            const input = document.getElementById(inputId);
+
+            button.addEventListener('mousedown', () => {
+                input.type = 'text';
+            });
+
+            button.addEventListener('mouseup', () => {
+                input.type = 'password';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                input.type = 'password';
+            });
+        }
+
+        togglePasswordVisibility('show-password-btn', 'password');
+
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const stayLoggedIn = document.getElementById('stay-logged-in').checked;
+
+            const data = {
+                username,
+                password,
+                stayLoggedIn
+            };
+
+            $.ajax({
+                url: '/login/submit',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (response) {
+                    window.location.replace('/index');
+                },
+                error: function (xhr) {
+                    console.error('Error details:', xhr.status, xhr.responseText);
+                    alert('Error registering: ' + (xhr.responseText || 'Unknown error'));
+                    window.location.reload();
+                }
+            });
+        });
+
+    </script>
+
+</body>
+
+</html>

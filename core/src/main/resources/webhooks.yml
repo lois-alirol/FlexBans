@@ -1,0 +1,74 @@
+player-added-to-whitelist:
+  enabled: true
+  url: "https://discord.com/api/webhooks/your-webhook-url"
+  content: "**%player%** has been added to the whitelist!"
+  
+  embed:
+    enabled: true
+    color: "#ffcc00"
+    author:
+      name: "Whitelist Manager"
+      url: "https://example.com"
+      image-url: "https://example.com/icon.png"
+    thumbnail-url: "https://minotar.net/avatar/%player%"
+    title:
+      text: "New Whitelist Entry"
+      url: "https://example.com/player/%player%"
+    description: "Player **%player%** has been successfully added to the whitelist."
+    image-url: "https://example.com/whitelist-banner.png"
+    footer:
+      text: "Whitelist System"
+      icon-url: "https://example.com/footer-icon.png"
+    timestamp: true
+    fields:
+      - name: "Player"
+        value: "%player%"
+        inline: true
+      - name: "Whitelisted By"
+        value: "%whitelisted_by%"
+        inline: true
+      - name: "Reason"
+        value: "Manually approved"
+        inline: false
+
+player-removed-from-whitelist:
+  enabled: true
+  url: ''
+  content:
+    author: 'LiteBansWeb'
+    author-icon: 'https://mc-heads.net/avatar/Neocle'
+    title: 'Player Unwhitelisted from LiteBansWeb'
+    description: '```[-] Player %player% has removed from the whitelist, and now cannot access the LiteBansWeb dashboard.```'
+    color: '#96ff44'
+    thumbnail: 'https://mc-heads.net/avatar/%player%'
+    footer: 'LiteBansWeb'
+    footer-icon: 'https://mc-heads.net/avatar/Neocle'
+    timestamp: true
+
+discord-user-added-to-whitelist:
+  enabled: true
+  url: ''
+  content:
+    author: 'LiteBansWeb'
+    author-icon: 'https://mc-heads.net/avatar/Neocle'
+    title: 'Player Whitelisted to LiteBansWeb'
+    description: '```[+] User %player% has been whitelisted to access the LiteBansWeb dashboard.```'
+    color: '#96ff44'
+    thumbnail: 'https://static.vecteezy.com/system/resources/previews/023/986/880/non_2x/discord-logo-discord-logo-transparent-discord-icon-transparent-free-free-png.png'
+    footer: 'LiteBansWeb'
+    footer-icon: 'https://mc-heads.net/avatar/Neocle'
+    timestamp: true
+
+discord-user-removed-from-whitelist:
+  enabled: true
+  url: ''
+  content:
+    author: 'LiteBansWeb'
+    author-icon: 'https://mc-heads.net/avatar/Neocle'
+    title: 'Player Unwhitelisted from LiteBansWeb'
+    description: '```[-] User %player% has removed from the whitelist, and now cannot access the LiteBansWeb dashboard.```'
+    color: '#96ff44'
+    thumbnail: 'https://static.vecteezy.com/system/resources/previews/023/986/880/non_2x/discord-logo-discord-logo-transparent-discord-icon-transparent-free-free-png.png'
+    footer: 'LiteBansWeb'
+    footer-icon: 'https://mc-heads.net/avatar/Neocle'
+    timestamp: true
