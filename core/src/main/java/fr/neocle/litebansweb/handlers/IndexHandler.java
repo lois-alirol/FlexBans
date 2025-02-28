@@ -117,21 +117,21 @@ public class IndexHandler extends AbstractHandler {
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
             String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
             String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
             String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
             String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
             String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2"));
+            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
             String serverDescription = String.valueOf(serverDisplaySettings.getOrDefault("description", "ExampleServer: Punishments, view detailed records of every user sanction. Find and review all past bans, mutes, and kicks in one convenient place."));
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> oauth = (Map<String, Object>) config.get("discord_oauth");
+            Map<String, Object> oauth = (Map<String, Object>) config.get("discord-oauth");
             boolean oauthEnabled = Boolean.parseBoolean(String.valueOf(oauth.getOrDefault("enabled", false)));
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> login = (Map<String, Object>) config.get("password_login");
+            Map<String, Object> login = (Map<String, Object>) config.get("password-auth");
             boolean loginEnabled = Boolean.parseBoolean(String.valueOf(login.getOrDefault("enabled", false))); 
 
             String newPunishmentButton = "";

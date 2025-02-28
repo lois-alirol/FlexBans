@@ -145,9 +145,9 @@ public class PlayerHistoryHandler extends AbstractHandler {
         }
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
         String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2"));
+        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
         String totalPunishments = String.valueOf(totalRecords);
 
         String playerDescription = "Check all the punishments of " + capitalize(playerIdentifier) + " here. So far, they received a total of " + totalPunishments + " punishments.";

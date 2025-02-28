@@ -86,13 +86,13 @@ public class DiscordWhitelist {
     }
 
     private boolean isDiscordOAuthNode(NodeTuple tuple) {
-        return tuple.getKeyNode() instanceof ScalarNode keyNode && "discord_oauth".equals(keyNode.getValue());
+        return tuple.getKeyNode() instanceof ScalarNode keyNode && "discord-oauth".equals(keyNode.getValue());
     }
 
     private List<String> extractAllowedUsers(NodeTuple tuple) {
         if (tuple.getValueNode() instanceof MappingNode discordOAuthNode) {
             for (NodeTuple innerTuple : discordOAuthNode.getValue()) {
-                if (innerTuple.getKeyNode() instanceof ScalarNode keyNode && "allowed_users".equals(keyNode.getValue())) {
+                if (innerTuple.getKeyNode() instanceof ScalarNode keyNode && "allowed-users".equals(keyNode.getValue())) {
                     if (innerTuple.getValueNode() instanceof SequenceNode sequenceNode) {
                         return sequenceNode.getValue().stream()
                                 .filter(node -> node instanceof ScalarNode)
@@ -141,7 +141,7 @@ public class DiscordWhitelist {
 
     private boolean modifyAllowedUsersList(MappingNode root, String userId, boolean isAdding) {
         for (NodeTuple tuple : root.getValue()) {
-            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "discord_oauth".equals(keyNode.getValue())) {
+            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "discord-oauth".equals(keyNode.getValue())) {
                 if (tuple.getValueNode() instanceof MappingNode discordOAuthNode) {
                     return modifyUserList(discordOAuthNode, userId, isAdding);
                 }
@@ -152,7 +152,7 @@ public class DiscordWhitelist {
 
     private boolean modifyUserList(MappingNode discordOAuthNode, String userId, boolean isAdding) {
         for (NodeTuple tuple : discordOAuthNode.getValue()) {
-            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "allowed_users".equals(keyNode.getValue())) {
+            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "allowed-users".equals(keyNode.getValue())) {
                 if (tuple.getValueNode() instanceof SequenceNode sequenceNode) {
                     List<Node> userNodes = sequenceNode.getValue();
 

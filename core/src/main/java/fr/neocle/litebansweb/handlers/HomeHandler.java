@@ -28,7 +28,7 @@ public class HomeHandler extends AbstractHandler {
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
             String pageContent = htmlTemplate
                     .replace("{{server_name}}", String.valueOf(serverDisplaySettings.getOrDefault("name", "Example")))
                     .replace("{{server_description}}", String.valueOf(serverDisplaySettings.getOrDefault("description", "ExampleServer")))

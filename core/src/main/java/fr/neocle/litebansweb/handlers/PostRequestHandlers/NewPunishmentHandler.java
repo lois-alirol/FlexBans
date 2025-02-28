@@ -50,12 +50,12 @@ public class NewPunishmentHandler extends AbstractHandler {
         }
     
         @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
         String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
         String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
         String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
         String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2"));
+        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
         String userId = (String) request.getSession().getAttribute("userId");
         String playerName = (String) request.getSession().getAttribute("playerName");
         String identifier = "";

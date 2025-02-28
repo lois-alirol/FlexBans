@@ -38,7 +38,7 @@ public class Reload implements CommandExecutor {
             indexHandler.updateConfig(newConfig);
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord_oauth");
+            Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord-oauth");
             oauth2Handler.updateConfig(oauthConfig);
 
             sender.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));

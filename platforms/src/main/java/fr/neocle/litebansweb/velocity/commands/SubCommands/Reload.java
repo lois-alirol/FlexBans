@@ -41,7 +41,7 @@ public class Reload implements SimpleCommand {
             if (newConfig != null) {
                 indexHandler.updateConfig(newConfig);
                 @SuppressWarnings("unchecked")
-                Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord_oauth");
+                Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("disord-oauth");
                 oauth2Handler.updateConfig(oauthConfig);
 
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));

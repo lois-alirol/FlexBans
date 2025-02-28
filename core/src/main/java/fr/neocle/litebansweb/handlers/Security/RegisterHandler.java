@@ -49,13 +49,13 @@ public class RegisterHandler extends AbstractHandler {
             }
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
             String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
             String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
             String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
             String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
             String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2"));
+            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
 
             String pageContent = htmlTemplate
                     .replace("{{server_name}}", serverName)
@@ -145,8 +145,8 @@ public class RegisterHandler extends AbstractHandler {
 
     @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password_login");
-        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed_players");
+        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password-auth");
+        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed-players");
 
         if (allowedPlayers == null || allowedPlayers.isEmpty()) {
             return false;

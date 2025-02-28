@@ -164,17 +164,17 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                     }
 
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server_display_settings");
+                    Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
                     String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-                    String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2"));
+                    String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
                     String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
 
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> oauth = (Map<String, Object>) config.get("discord_oauth");
+                    Map<String, Object> oauth = (Map<String, Object>) config.get("discord-oauth");
                     boolean oauthEnabled = Boolean.parseBoolean(String.valueOf(oauth.getOrDefault("enabled", false)));
 
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> login = (Map<String, Object>) config.get("password_login");
+                    Map<String, Object> login = (Map<String, Object>) config.get("password-auth");
                     boolean loginEnabled = Boolean.parseBoolean(String.valueOf(login.getOrDefault("enabled", false))); 
 
                     String revokeButton = "";

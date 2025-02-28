@@ -35,8 +35,8 @@ public class DiscordOAuthHandler {
             return;
         }
 
-        String redirectUri = encodeUri((String) oauthConfig.get("redirect_uri"));
-        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + oauthConfig.get("client_id") +
+        String redirectUri = encodeUri((String) oauthConfig.get("redirect-uri"));
+        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + oauthConfig.get("client-id") +
                 "&redirect_uri=" + redirectUri +
                 "&response_type=code&scope=" + oauthConfig.get("scope");
         response.sendRedirect(authUrl);
@@ -93,9 +93,9 @@ public class DiscordOAuthHandler {
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
 
-        String redirectUri = encodeUri((String) oauthConfig.get("redirect_uri"));
-        String params = "client_id=" + oauthConfig.get("client_id") +
-                "&client_secret=" + oauthConfig.get("client_secret") +
+        String redirectUri = encodeUri((String) oauthConfig.get("redirect-uri"));
+        String params = "client_id=" + oauthConfig.get("client-id") +
+                "&client_secret=" + oauthConfig.get("client-secret") +
                 "&grant_type=authorization_code" +
                 "&code=" + code +
                 "&redirect_uri=" + redirectUri;
@@ -136,7 +136,7 @@ public class DiscordOAuthHandler {
 
     public boolean isUserAllowed(String userId) {
         @SuppressWarnings("unchecked")
-        String allowedUsers = String.join(",", (Iterable<String>) oauthConfig.get("allowed_users"));
+        String allowedUsers = String.join(",", (Iterable<String>) oauthConfig.get("allowed-users"));
         return allowedUsers.contains(userId);
     }
     

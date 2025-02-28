@@ -106,13 +106,13 @@ public class PlayersWhitelist {
     }
 
     private boolean isPasswordLoginNode(NodeTuple tuple) {
-        return tuple.getKeyNode() instanceof ScalarNode keyNode && "password_login".equals(keyNode.getValue());
+        return tuple.getKeyNode() instanceof ScalarNode keyNode && "password-auth".equals(keyNode.getValue());
     }
 
     private List<String> extractAllowedPlayers(NodeTuple tuple) {
         if (tuple.getValueNode() instanceof MappingNode passwordLoginNode) {
             for (NodeTuple innerTuple : passwordLoginNode.getValue()) {
-                if (innerTuple.getKeyNode() instanceof ScalarNode keyNode && "allowed_players".equals(keyNode.getValue())) {
+                if (innerTuple.getKeyNode() instanceof ScalarNode keyNode && "allowed-players".equals(keyNode.getValue())) {
                     if (innerTuple.getValueNode() instanceof SequenceNode sequenceNode) {
                         return sequenceNode.getValue().stream()
                                 .filter(node -> node instanceof ScalarNode)
@@ -168,7 +168,7 @@ public class PlayersWhitelist {
 
     private boolean modifyAllowedPlayersList(MappingNode root, String playerName, boolean isAdding) {
         for (NodeTuple tuple : root.getValue()) {
-            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "password_login".equals(keyNode.getValue())) {
+            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "password-auth".equals(keyNode.getValue())) {
                 if (tuple.getValueNode() instanceof MappingNode passwordLoginNode) {
                     return modifyPlayerList(passwordLoginNode, playerName, isAdding);
                 }
@@ -179,7 +179,7 @@ public class PlayersWhitelist {
 
     private boolean modifyPlayerList(MappingNode passwordLoginNode, String playerName, boolean isAdding) {
         for (NodeTuple tuple : passwordLoginNode.getValue()) {
-            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "allowed_players".equals(keyNode.getValue())) {
+            if (tuple.getKeyNode() instanceof ScalarNode keyNode && "allowed-players".equals(keyNode.getValue())) {
                 if (tuple.getValueNode() instanceof SequenceNode sequenceNode) {
                     List<Node> playerNodes = sequenceNode.getValue();
 

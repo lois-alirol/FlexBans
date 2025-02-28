@@ -300,7 +300,7 @@ public class AuthenticationHandler extends AbstractHandler {
 
     @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed_players");
+        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed-players");
 
         if (allowedPlayers == null || allowedPlayers.isEmpty()) {
             return false;

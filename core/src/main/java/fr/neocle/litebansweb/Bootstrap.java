@@ -165,10 +165,10 @@ public class Bootstrap {
         }
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> oauthConfig = (Map<String, Object>) config.get("discord_oauth");
+        Map<String, Object> oauthConfig = (Map<String, Object>) config.get("discord-oauth");
 
         @SuppressWarnings("unchecked")
-        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password_login");
+        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password-auth");
 
         revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution);
         codeGenerator = new CodeGenerator();
