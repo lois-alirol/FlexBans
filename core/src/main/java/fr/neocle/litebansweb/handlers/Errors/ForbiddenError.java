@@ -1,10 +1,9 @@
 package fr.neocle.litebansweb.handlers.Errors;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import fr.neocle.litebansweb.utils.ResourceLoader;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Logger;

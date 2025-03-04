@@ -46,6 +46,20 @@ public class LoginHandler extends AbstractHandler {
                 return;
             }
 
+            HttpSession session = request.getSession(true);
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("session_id".equals(cookie.getName())) {
+                        session.setAttribute("playerName", databaseUtils.getPlayerFromSessionId(cookie.getValue()));
+                        if (session.getAttribute("playerName") != null) {
+                            response.sendRedirect("/index");
+                            return;
+                        }
+                    }
+                }
+            }
+
             @SuppressWarnings("unchecked")
             Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
             String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
@@ -113,8 +127,8 @@ public class LoginHandler extends AbstractHandler {
 
                 String username = requestData.optString("username");
                 String password = requestData.optString("password");
-                boolean stayLogggedIn = Boolean.parseBoolean(requestData.optString("stayLoggedIn"));
 
+                boolean stayLogggedIn = Boolean.parseBoolean(requestData.optString("stayLoggedIn"));
                 if (username.isEmpty() || password.isEmpty()) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     response.getWriter().write("{\"error\":\"All fields are required.\"}");
@@ -138,7 +152,8 @@ public class LoginHandler extends AbstractHandler {
                 HttpSession session = request.getSession(true);
                 session.setAttribute("playerName", username);
 
-                logger.info(String.valueOf(stayLogggedIn));
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.getWriter().write("{\"message\":\"Login successful.\"}");
 
                 if (stayLogggedIn) {
                     Cookie sessionCookie = new Cookie("session_id", session.getId());
@@ -148,9 +163,6 @@ public class LoginHandler extends AbstractHandler {
                     response.addCookie(sessionCookie);
                     databaseUtils.insertSessionData(session.getId(), username);
                 }
-                
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.getWriter().write("{\"message\":\"Login successful.\"}");
             } catch (Exception e) {
                 logger.severe("Error processing login: " + e.getMessage());
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

@@ -1,20 +1,20 @@
 package fr.neocle.litebansweb.handlers.Security;
 
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
 import fr.neocle.litebansweb.api.events.EventDispatcher;
+import fr.neocle.litebansweb.handlers.Errors.ForbiddenError;
+import fr.neocle.litebansweb.handlers.Errors.NotFoundError;
 import fr.neocle.litebansweb.handlers.*;
-import fr.neocle.litebansweb.handlers.Errors.*;
-import fr.neocle.litebansweb.handlers.PostRequestHandlers.*;
+import fr.neocle.litebansweb.handlers.PostRequestHandlers.NewPunishmentHandler;
+import fr.neocle.litebansweb.handlers.PostRequestHandlers.RevokePunishmentHandler;
 import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.utils.DatabaseUtils;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +85,7 @@ public class AuthenticationHandler extends AbstractHandler {
         this.loginHandler = loginHandler;
         this.discordOAuthHandler = discordOAuthHandler;
         this.eventDispatcher = eventDispatcher;
-        
+
         this.oauthEnabled = Boolean.parseBoolean(oauthConfig.getOrDefault("enabled", "false").toString());
         this.loginEnabled = Boolean.parseBoolean(loginConfig.getOrDefault("enabled", "false").toString());
     }
@@ -93,7 +93,7 @@ public class AuthenticationHandler extends AbstractHandler {
     @Override
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         String uri = request.getRequestURI();
-
+        System.out.println(uri + request.getSession().getAttribute("playerName"));
         switch (uri) {
             case "/":
                 handleRootPage(request, response);
@@ -162,18 +162,6 @@ public class AuthenticationHandler extends AbstractHandler {
                 response.sendRedirect("/index");
                 return;
             }
-    
-            Cookie[] cookies = request.getCookies();
-            if (cookies != null) {
-                for (Cookie cookie : cookies) {
-                    if ("session_id".equals(cookie.getName())) {
-                        session = request.getSession(true);
-                        session.setAttribute("playerName", databaseUtils.getPlayerFromSessionId(cookie.getValue()));
-                        response.sendRedirect("/index");
-                        return;
-                    }
-                }
-            }
 
             loginHandler.handle("/login", baseRequest, request, response);
             return;
@@ -181,9 +169,9 @@ public class AuthenticationHandler extends AbstractHandler {
             discordOAuthHandler.initiateOAuthFlow(response);
             return;
         }
-    
-        forbiddenError.handle(request, response);
-    }    
+
+        forbiddenError.handle(baseRequest, response);
+    }
 
     private void handleLogout(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String userId = (String) request.getSession().getAttribute("userId");
@@ -194,7 +182,25 @@ public class AuthenticationHandler extends AbstractHandler {
         if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
             ipAddress = request.getRemoteAddr();
         }
+
         eventDispatcher.logoutEvent(playerName, userId, userAgent, ipAddress);
+
+        boolean isPersistentSession = false;
+
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("session_id".equals(cookie.getName())) {
+                    if (databaseUtils.getPlayerFromSessionId(cookie.getValue()) != null && databaseUtils.getPlayerFromSessionId(cookie.getValue()).equalsIgnoreCase(playerName)) {
+                        isPersistentSession = true;
+                    }
+                }
+            }
+        }
+
+        if (isPersistentSession) {
+            databaseUtils.deleteSessionByPlayerName(playerName);
+        }
 
         request.getSession().invalidate();
         response.sendRedirect("/");
@@ -205,6 +211,8 @@ public class AuthenticationHandler extends AbstractHandler {
         String playerName = (String) request.getSession().getAttribute("playerName");
 
         String uri = request.getRequestURI();
+
+        System.out.println("protected page " + uri + " " + userId + " " + playerName);
 
         if ((oauthEnabled || loginEnabled) && ("/code-verification".equals(uri) || "/check-verification".equals(uri))) {
             if (userId != null || playerName != null) {
@@ -219,6 +227,12 @@ public class AuthenticationHandler extends AbstractHandler {
         boolean isVerified = (userId != null) ? databaseUtils.isUserVerified(userId) : databaseUtils.isPlayerVerified(playerName);
         boolean isAllowed = (userId != null) ? discordOAuthHandler.isUserAllowed(userId) : isPlayerAllowed(playerName);
 
+        if (!oauthEnabled && !loginEnabled) {
+            handlePage(request, response, baseRequest);
+            return;
+        }
+
+        System.out.println(identifier);
         if (identifier != null) {
             if (!isVerified) {
                 response.sendRedirect("/code-verification");
@@ -228,7 +242,9 @@ public class AuthenticationHandler extends AbstractHandler {
                 return;
             }
         } else {
+            System.out.println(loginEnabled);
             if (loginEnabled) {
+                System.out.println("going to login page");
                 loginHandler.handle("/login", baseRequest, request, response);
                 return;
             } else if (oauthEnabled) {
@@ -236,7 +252,7 @@ public class AuthenticationHandler extends AbstractHandler {
                 return;
             }
         }
-    }    
+    }
 
     public void handlePage(HttpServletRequest request, HttpServletResponse response, Request baseRequest) throws IOException {
         boolean pageHandled = false;
@@ -276,13 +292,13 @@ public class AuthenticationHandler extends AbstractHandler {
             newPunishmentHandler.handle(uri, baseRequest, request, response);
             pageHandled = true;
             return;
-            
+
         } else if ("/index".equals(uri) || uri.startsWith("/index")) {
             indexHandler.handle(uri, baseRequest, request, response);
             pageHandled = true;
             return;
         }
-    
+
         if (!pageHandled) {
             notFoundError.handle(request, response);
             return;

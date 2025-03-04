@@ -5,8 +5,6 @@ import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.event.EventHandler;
 
-import org.bstats.bungeecord.Metrics;
-
 import fr.neocle.litebansweb.bungee.commands.BaseCommandBungee;
 import fr.neocle.litebansweb.utils.DatabaseUtils;
 import fr.neocle.litebansweb.Bootstrap;

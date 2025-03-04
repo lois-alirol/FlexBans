@@ -61,27 +61,6 @@
             <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
-            <version>3.0.2</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bungeecord</artifactId>
-            <version>3.0.2</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-velocity</artifactId>
-            <version>3.0.2</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -121,7 +100,7 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <finalName>LiteBansWeb-${project.version}</finalName>
-                            <outputDirectory>${project.parent.basedir}/target</outputDirectory>
+                            <!--<outputDirectory>${project.parent.basedir}/target</outputDirectory>-->
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

@@ -1,6 +1,5 @@
 package fr.neocle.litebansweb.bukkit;
 
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

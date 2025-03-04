@@ -15,8 +15,13 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -27,7 +32,6 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     private final PlayerHeadImage playerHeadImage;
     private final DurationCalculator durationCalculator;
 
-    private static final String CONSOLE_UUID = "[Console]";
     private static final int PAGE_SIZE = 20;
     private int totalRecords;
 
@@ -50,21 +54,15 @@ public class ModeratorHistoryHandler extends AbstractHandler {
 
         String moderatorIdentifier = target.replace("/moderator/", "").trim();
         if (moderatorIdentifier.isEmpty()) {
-            response.getWriter().write("Error: Moderator UUID or Username is required.");
+            response.sendRedirect("/index");;
             return;
         }
 
-        String uuid;
-        if ("console".equalsIgnoreCase(moderatorIdentifier)) {
-            uuid = CONSOLE_UUID;
-        } else if (moderatorIdentifier.length() == 36) {
-            uuid = moderatorIdentifier;
-        } else {
-            uuid = usernameUUIDConverters.usernameToUUID(moderatorIdentifier);
-            if (uuid == null) {
-                response.getWriter().write("Error: Could not find UUID for the given username.");
-                return;
-            }
+        String moderatorUsername = moderatorIdentifier;
+        if (moderatorIdentifier != null && moderatorIdentifier.equalsIgnoreCase("[console]")) {
+            moderatorUsername = "Console";
+        } else if (moderatorIdentifier != null && (moderatorIdentifier.matches("^[0-9a-fA-F]{32}$") || moderatorIdentifier.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
+            moderatorUsername = usernameUUIDConverters.UUIDtoUsername(moderatorIdentifier);
         }
 
         String htmlTemplate = ResourceLoader.loadHtmlTemplate("web/moderator_history.html");
@@ -84,69 +82,39 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             }
         }
 
+        String player = request.getParameter("player");
+        if (player != null && (!player.matches("^[0-9a-fA-F]{32}$") || !player.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
+            player = usernameUUIDConverters.usernameToUUID(player);
+        }
+
+        String type = request.getParameter("type");
+        if (type == null || type.isEmpty()) {
+            type = "all";
+        }
+
+        String status = request.getParameter("status");
+        String on = request.getParameter("on");
+        String before = request.getParameter("before");
+        String after = request.getParameter("after");
+
         StringBuilder punishmentRows = new StringBuilder();
-        int totalPages = 0;
+        int totalPages;
 
-        String countQuery = "SELECT COUNT(*) FROM (" +
-                "SELECT uuid FROM litebans_bans WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT uuid FROM litebans_mutes WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT uuid FROM litebans_warnings WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT uuid FROM litebans_kicks WHERE banned_by_uuid = ? " +
-                ") AS t";
+        try {
+            totalPages = getTotalPages(moderatorUsername, player, type, status, on, before, after);
 
-        try (PreparedStatement countStmt = Database.get().prepareStatement(countQuery)) {
-            countStmt.setString(1, uuid);
-            countStmt.setString(2, uuid);
-            countStmt.setString(3, uuid);
-            countStmt.setString(4, uuid);
-
-            try (ResultSet rs = countStmt.executeQuery()) {
-                if (rs.next()) {
-                    totalRecords = rs.getInt(1);
-                    totalPages = (int) Math.ceil((double) totalRecords / PAGE_SIZE);
-                }
+            if (page > totalPages && totalPages > 0) {
+                page = totalPages;
             }
+
+            int offset = (page - 1) * PAGE_SIZE;
+
+            String query = buildQuery(player, type, status, on, before, after, offset);
+            fetchAndAddPunishments(query, punishmentRows, moderatorUsername, player, status, on, before, after);
+
         } catch (SQLException e) {
             e.printStackTrace();
-            logger.severe("SQL Exception: " + e.getMessage());
-            response.getWriter().write("Error: Unable to fetch moderator history.");
-            return;
-        }
-
-        if (page > totalPages && totalPages > 0) {
-            page = totalPages;
-        }
-
-        int offset = (page - 1) * PAGE_SIZE;
-
-        String query = "SELECT id, uuid, reason, banned_by_uuid, time, until, type, ipban, removed_by_name, removed_by_date FROM (" +
-                "SELECT id, uuid, reason, banned_by_uuid, time, until, 'Ban' AS type, ipban, removed_by_name, removed_by_date FROM litebans_bans WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT id, uuid, reason, banned_by_uuid, time, until, 'Mute' AS type, ipban, removed_by_name, removed_by_date FROM litebans_mutes WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT id, uuid, reason, banned_by_uuid, time, NULL AS until, 'Warning' AS type, 0 AS ipban, NULL AS removed_by_name, NULL AS removed_by_date FROM litebans_warnings WHERE banned_by_uuid = ? " +
-                "UNION ALL " +
-                "SELECT id, uuid, reason, banned_by_uuid, time, NULL AS until, 'Kick' AS type, 0 AS ipban, NULL AS removed_by_name, NULL AS removed_by_date FROM litebans_kicks WHERE banned_by_uuid = ? " +
-                ") AS t ORDER BY time DESC LIMIT " + PAGE_SIZE + " OFFSET " + offset;
-
-        try (PreparedStatement stmt = Database.get().prepareStatement(query)) {
-            stmt.setString(1, uuid);
-            stmt.setString(2, uuid);
-            stmt.setString(3, uuid);
-            stmt.setString(4, uuid);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    addPunishmentRow(rs, punishmentRows);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            logger.severe("SQL Exception: " + e.getMessage());
-            response.getWriter().write("Error: Unable to fetch moderator history.");
+            response.getWriter().write("Error: Unable to fetch punishments.");
             return;
         }
 
@@ -176,25 +144,250 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         response.getWriter().write(pageContent);
     }
 
+    private int getTotalPages(String executor, String player, String type, String status, String on, String before, String after) throws SQLException {
+        StringBuilder baseQuery = new StringBuilder("SELECT COUNT(*) FROM (");
+        List<String> queries = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("ban")) {
+            queries.add("SELECT uuid FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
+            parameters.add(executor);
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("mute")) {
+            queries.add("SELECT uuid FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
+            parameters.add(executor);
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("warning")) {
+            queries.add("SELECT uuid FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
+            parameters.add(executor);
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("kick")) {
+            queries.add("SELECT uuid FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
+            parameters.add(executor);
+        }
+
+        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t");
+
+        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+            int paramIndex = 1;
+            for (Object param : parameters) {
+                stmt.setString(paramIndex++, (String) param);
+            }
+
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            if (status != null && !status.isEmpty()) {
+                switch (status.toLowerCase()) {
+                    case "active":
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        break;
+                    case "expired":
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        break;
+                }
+            }
+
+            if (on != null && !on.isEmpty()) {
+                LocalDate date = LocalDate.parse(on);
+                long startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                long endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                stmt.setLong(paramIndex++, startOfDay);
+                stmt.setLong(paramIndex++, endOfDay);
+            }
+
+            if (before != null && !before.isEmpty()) {
+                long beforeTimestamp = LocalDate.parse(before).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                stmt.setLong(paramIndex++, beforeTimestamp);
+            }
+
+            if (after != null && !after.isEmpty()) {
+                long afterTimestamp = LocalDate.parse(after).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                stmt.setLong(paramIndex++, afterTimestamp);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int totalRecords = rs.getInt(1);
+                    return (int) Math.ceil((double) totalRecords / PAGE_SIZE);
+                }
+            }
+        }
+        return 0;
+    }
+
+    private String buildQuery(String player, String type, String status, String on, String before, String after, int offset) {
+        String baseQuery = "SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (";
+
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("ban")) {
+            baseQuery += "SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ?";
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("mute")) {
+            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ?";
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("warning")) {
+            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ?";
+        }
+        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("kick")) {
+            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ?";
+        }
+
+        baseQuery += ") AS t ORDER BY time DESC LIMIT " + PAGE_SIZE + " OFFSET " + offset;
+        return baseQuery;
+    }
+
+    private String buildWhereClause(String player, String status, String on, String before, String after) {
+        StringBuilder whereClause = new StringBuilder();
+    
+        if (player != null && !player.isEmpty()) {
+            whereClause.append(" AND uuid = ?");
+        }
+    
+        if (status != null && !status.isEmpty()) {
+            switch (status.toLowerCase()) {
+                case "active":
+                    whereClause.append(" AND (removed_by_name IS NULL OR removed_by_name = '')")
+                               .append(" AND (until = -1 OR until = 0 OR until > ?)");
+                    break;
+                case "expired":
+                    whereClause.append(" AND (removed_by_name = '#expired' OR (until > 0 AND until < ?))");
+                    break;
+                case "removed":
+                    whereClause.append(" AND (removed_by_name IS NOT NULL AND removed_by_name <> '#expired')");
+                    break;
+            }
+        }
+        
+        if (on != null && !on.isEmpty()) {
+            whereClause.append(" AND time >= ? AND time < ?");
+        }
+
+        if (before != null && !before.isEmpty()) {
+            whereClause.append(" AND time < ?");
+        }
+    
+        if (after != null && !after.isEmpty()) {
+            whereClause.append(" AND time > ?");
+        }
+
+        return whereClause.toString();
+    }    
+
+    private void fetchAndAddPunishments(String query, StringBuilder punishmentRows, String executor, String player,
+                                        String status, String on, String before, String after) throws SQLException {
+        
+        try (PreparedStatement stmt = Database.get().prepareStatement(query)) {
+            int paramIndex = 1;
+            
+            stmt.setString(paramIndex++, executor);
+            stmt.setString(paramIndex++, executor);
+            stmt.setString(paramIndex++, executor);
+            stmt.setString(paramIndex++, executor);
+
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+                stmt.setString(paramIndex++, player);
+                stmt.setString(paramIndex++, player);
+                stmt.setString(paramIndex++, player);
+            }
+            
+            if (status != null && !status.isEmpty()) {
+                switch (status.toLowerCase()) {
+                    case "active":
+                    case "expired":
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        stmt.setLong(paramIndex++, System.currentTimeMillis());
+                        break;
+                }
+            }
+
+            if (on != null && !on.isEmpty()) {
+                LocalDate date = LocalDate.parse(on);
+                long startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                long endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+            
+                stmt.setLong(paramIndex++, startOfDay);
+                stmt.setLong(paramIndex++, startOfDay);
+                stmt.setLong(paramIndex++, startOfDay);
+                stmt.setLong(paramIndex++, startOfDay);
+
+                stmt.setLong(paramIndex++, endOfDay);
+                stmt.setLong(paramIndex++, endOfDay);
+                stmt.setLong(paramIndex++, endOfDay);
+                stmt.setLong(paramIndex++, endOfDay);
+            }
+            
+            if (before != null && !before.isEmpty()) {
+                long beforeTimestamp = LocalDate.parse(before).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+                stmt.setLong(paramIndex++, beforeTimestamp);
+                stmt.setLong(paramIndex++, beforeTimestamp);
+                stmt.setLong(paramIndex++, beforeTimestamp);
+                stmt.setLong(paramIndex++, beforeTimestamp);
+            }
+            
+            if (after != null && !after.isEmpty()) {
+                long afterTimestamp = LocalDate.parse(after).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                stmt.setLong(paramIndex++, afterTimestamp);
+                stmt.setLong(paramIndex++, afterTimestamp);
+                stmt.setLong(paramIndex++, afterTimestamp);
+                stmt.setLong(paramIndex++, afterTimestamp);
+            }            
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    addPunishmentRow(rs, punishmentRows);
+                }
+            }
+        }
+    }
+
     private void addPunishmentRow(ResultSet rs, StringBuilder punishmentRows) throws SQLException {
         String type = rs.getString("type").toLowerCase();
         String playerUUID = rs.getString("uuid");
         String reason = rs.getString("reason");
-        String moderatorUUID = rs.getString("banned_by_uuid");
+        String moderatorName = rs.getString("banned_by_name");
         long time = rs.getLong("time");
         long until = rs.getLong("until");
         boolean isIpBan = rs.getInt("ipban") == 1;
         int punishmentID = rs.getInt("id");
-        
-        String removedByName = rs.getString("removed_by_name");
-        Timestamp removedByDate = rs.getTimestamp("removed_by_date");
-    
+
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        boolean hasRemovedByName = false;
+        boolean hasRemovedByDate = false;
+
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i);
+            if (columnName.equalsIgnoreCase("removed_by_name")) {
+                hasRemovedByName = true;
+            } else if (columnName.equalsIgnoreCase("removed_by_date")) {
+                hasRemovedByDate = true;
+            }
+        }
+
+        String removedByName = " ";
+        if (hasRemovedByName) {
+            removedByName = rs.getString("removed_by_name");
+            if (removedByName == null) {
+                removedByName = " ";
+            }
+        }
+
+        Timestamp removedByDate = null;
+        if (hasRemovedByDate) {
+            removedByDate = rs.getTimestamp("removed_by_date");
+        }
+
         String date = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(time));
         String expirationDate = (until == 0 || until == -1) ? "Never" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(until));
-    
-        String moderatorName = moderatorUUID.equals(CONSOLE_UUID) ? "Console" : usernameUUIDConverters.UUIDtoUsername(moderatorUUID);
+
         String playerName = usernameUUIDConverters.UUIDtoUsername(playerUUID);
-    
+
         if (isIpBan) {
             if (type.equals("ban")) {
                 type = "IP-Ban";

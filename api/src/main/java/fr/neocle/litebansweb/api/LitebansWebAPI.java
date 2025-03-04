@@ -9,9 +9,9 @@ import fr.neocle.litebansweb.api.whitelist.PlayersWhitelist;
 public interface LitebansWebAPI {    
 
     /**
-     * Gets the singleton instance of the LitebansWeb API.
+     * Gets the singleton instance of the LiteBansWeb API.
      *
-     * @return The instance of LitebansWebAPI.
+     * @return The instance of LiteBansWebAPI.
      */
     static LitebansWebAPI getInstance() {
         return LitebansWebAPIImpl.getSingletonInstance();

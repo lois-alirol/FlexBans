@@ -1,6 +1,10 @@
 package fr.neocle.litebansweb.webhooks;
 
-import java.awt.Color;
+import java.awt.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +17,7 @@ public class EmbedObject {
     private Thumbnail thumbnail;
     private Image image;
     private Author author;
+    private String timestamp;
     private final List<Field> fields = new ArrayList<>();
 
     public EmbedObject setTitle(String title) {
@@ -68,6 +73,11 @@ public class EmbedObject {
         return this;
     }
 
+    public EmbedObject setTimestamp() {
+        this.timestamp = Instant.now().toString();
+        return this;
+    }
+
     public String getTitle() {
         return title;
     }
@@ -102,5 +112,9 @@ public class EmbedObject {
 
     public List<Field> getFields() {
         return fields;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
     }
 }

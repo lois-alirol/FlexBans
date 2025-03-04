@@ -1,8 +1,7 @@
 package fr.neocle.litebansweb.utils;
 
 import java.sql.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +21,7 @@ public class DatabaseUtils {
     public void startSessionCleanupTask(Connection connection) {
         scheduler.scheduleAtFixedRate(() -> {
             deleteOldSessions();
-        }, 0, 24, TimeUnit.HOURS);
+        }, 0, 30, TimeUnit.MINUTES);
     }
 
     public DatabaseUtils(String pluginFolderPath, Logger logger) {
@@ -40,6 +39,7 @@ public class DatabaseUtils {
         try (Connection connection = DriverManager.getConnection(jdbcUrl, USERNAME, PASSWORD)) {
             logger.info("Connected to H2 database!");
             initializeDatabase(connection);
+            startSessionCleanupTask(connection);
         } catch (SQLException e) {
             logger.severe("Failed to initialize database connection: " + e.getMessage());
         }
@@ -59,6 +59,7 @@ public class DatabaseUtils {
                 CREATE TABLE IF NOT EXISTS sessions (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     session_id VARCHAR(255) UNIQUE NOT NULL,
+                    session_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     user_id INT NOT NULL,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 );
@@ -311,31 +312,6 @@ public class DatabaseUtils {
         return false;
     }
 
-    public void printEntireDatabase() {
-        String selectSQL = "SELECT * FROM users;";
-        
-        try (Connection connection = getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL);
-             ResultSet resultSet = preparedStatement.executeQuery()) {
-    
-            logger.info("=== Printing Entire Database ===");
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String username = resultSet.getString("username");
-                String discordId = resultSet.getString("discord_id");
-                String verificationCode = resultSet.getString("verification_code");
-                String password = resultSet.getString("password");
-                String isVerified = resultSet.getBoolean("is_verified") ? "true" : "false";
-                
-                logger.info(String.format("ID: %d, Username: %s, Discord ID: %s, Verification Code: %s, Password: %s, Verified: %s",
-                    id, username, discordId, verificationCode, password, isVerified));
-            }
-            logger.info("=== End of Database ===");
-        } catch (SQLException e) {
-            logger.severe("Error printing database: " + e.getMessage());
-        }
-    }
-
     public void insertSessionData(String sessionId, String username) {
         String insertSQL = "INSERT INTO sessions (session_id, user_id) VALUES (?, (SELECT id FROM users WHERE username = ?))";
     
@@ -368,17 +344,78 @@ public class DatabaseUtils {
         return null;
     }    
 
-    public void deleteOldSessions() {
-        String sql = "DELETE FROM sessions WHERE session_date < ?";
-        LocalDate thresholdDate = LocalDate.now().minusDays(14);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
+    public void deleteSessionByPlayerName(String username) {
+        String sql = "DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE username = ?)";
+    
         try (Connection connection = getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setString(1, thresholdDate.format(formatter));
+            preparedStatement.setString(1, username);
+            int affectedRows = preparedStatement.executeUpdate();
+
+            if (affectedRows > 0) {
+                logger.info("Deleted session for user: " + username);
+            } else {
+                logger.warning("No session found for user: " + username);
+            }
+
+        } catch (SQLException e) {
+            logger.severe("Error deleting session for user " + username + ": " + e.getMessage());
+        }
+    }
+    
+    public void deleteAllSessions() {
+        String sql = "DELETE FROM sessions";
+    
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            logger.severe("Error deleting all sessions: " + e.getMessage());
+        }
+    }
+    
+    public void deleteOldSessions() {
+        String sql = "DELETE FROM sessions WHERE session_date < ?";
+        LocalDateTime thresholdDate = LocalDateTime.now().minusDays(14);
+        
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            
+            Timestamp thresholdTimestamp = Timestamp.valueOf(thresholdDate);
+            
+            preparedStatement.setTimestamp(1, thresholdTimestamp);
+            preparedStatement.executeUpdate();
+            
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+    
+
+    // for debug only, never used in production
+    public void printEntireDatabase() {
+        String selectSQL = "SELECT * FROM users;";
+        
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL);
+             ResultSet resultSet = preparedStatement.executeQuery()) {
+    
+            logger.info("=== Printing Entire Database ===");
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String username = resultSet.getString("username");
+                String discordId = resultSet.getString("discord_id");
+                String verificationCode = resultSet.getString("verification_code");
+                String password = resultSet.getString("password");
+                String isVerified = resultSet.getBoolean("is_verified") ? "true" : "false";
+                
+                logger.info(String.format("ID: %d, Username: %s, Discord ID: %s, Verification Code: %s, Password: %s, Verified: %s",
+                    id, username, discordId, verificationCode, password, isVerified));
+            }
+            logger.info("=== End of Database ===");
+        } catch (SQLException e) {
+            logger.severe("Error printing database: " + e.getMessage());
+        }
+    }
+
 }

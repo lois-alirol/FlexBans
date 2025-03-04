@@ -17,8 +17,6 @@ import fr.neocle.litebansweb.api.events.EventDispatcher;
 import fr.neocle.litebansweb.api.events.velocity.VelocityEventDispatcher;
 import fr.neocle.litebansweb.api.impl.LitebansWebAPIImpl;
 
-import org.bstats.velocity.Metrics;
-
 import javax.inject.Inject;
 
 import java.nio.file.Paths;
@@ -86,7 +84,7 @@ public class LitebansWebVelocity {
         EventManager eventManager = proxyServer.getEventManager();
         
         eventManager.register(this, new WhitelistEvents(bootstrap.getWebhooksConfig(), logger));
-        eventManager.register(this, new DashboardEvents(logger));
+        eventManager.register(this, new DashboardEvents(bootstrap.getWebhooksConfig(), logger));
     }
 
     private String getAddressFromConfig() {

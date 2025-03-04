@@ -187,7 +187,7 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                     }
 
                     String userId = (String) request.getSession().getAttribute("userId");
-                    String identifier = "";
+                    String identifier = "None";
                     if (userId == null) {
                         identifier = (String) request.getSession().getAttribute("playerName");
                     } else if (playerName == null) {
@@ -205,8 +205,8 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                         .replace("{{expiration_date}}", expirationDate)
                         .replace("{{duration}}", duration)
                         .replace("{{origin_server}}", serverOrigin != null && serverOrigin.equals("litebans") ? "Proxy" : (serverOrigin != null ? serverOrigin : "Global")                        )
-                        .replace("{{remover_name}}", identifier)
-                        .replace("{{removal_reason}}", removalReason)
+                        .replace("{{remover_name}}", identifier != null ? identifier : "Unknown")
+                        .replace("{{removal_reason}}", removalReason != null ? removalReason : "N/A")
                         .replace("{{revoke_button}}", revokeButton)
                         .replace("{{punishment_id}}", punishmentId)
                         .replace("{{punishment_type}}", modifiedPunishmentType)

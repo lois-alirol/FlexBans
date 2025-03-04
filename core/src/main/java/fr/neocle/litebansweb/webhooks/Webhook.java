@@ -97,6 +97,10 @@ public class Webhook {
                     }
                     jsonEmbed.put("fields", fieldsArray);
                 }
+
+                if (embed.getTimestamp() != null) {
+                    jsonEmbed.put("timestamp", embed.getTimestamp());
+                }
     
                 embedArray.put(jsonEmbed);
             }

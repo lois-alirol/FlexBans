@@ -35,7 +35,7 @@ public class HomeHandler extends AbstractHandler {
                     .replace("{{server_icon}}", String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png")))
                     .replace("{{server_favicon}}", String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png")))
                     .replace("{{server_color}}", String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7")))
-                    .replace("{{server_color_hover}}", String.valueOf(serverDisplaySettings.getOrDefault("darker_color", "#207dd2")))
+                    .replace("{{server_color_hover}}", String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2")))
                     .replace("{{server_logo}}", String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png")));
 
             response.setContentType("text/html;charset=utf-8");

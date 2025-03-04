@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<!DOCTYPE xml>
+<project name="LiteBansWeb" default="Build">
+    <target name="Build">
+        <jar jarfile="C:/Users/loisa/Downloads/TestServers/Velocity Server Setup/plugins/LiteBansWeb-1.0-SNAPSHOT.jar"
+             basedir="./target/classes/"
+             includes="**/*">
+
+            <fileset dir="../core/target/classes/"/>
+            <fileset dir="../api/target/classes/"/>
+
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/eclipse/jetty/jetty-server/9.4.56.v20240826/jetty-server-9.4.56.v20240826.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/eclipse/jetty/jetty-util/9.4.56.v20240826/jetty-util-9.4.56.v20240826.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/eclipse/jetty/jetty-http/9.4.56.v20240826/jetty-http-9.4.56.v20240826.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/eclipse/jetty/jetty-io/9.4.56.v20240826/jetty-io-9.4.56.v20240826.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/mindrot/jbcrypt/0.4/jbcrypt-0.4.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/com/h2database/h2/2.3.232/h2-2.3.232.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/yaml/snakeyaml/2.0/snakeyaml-2.0.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/snakeyaml/snakeyaml-engine/2.2/snakeyaml-engine-2.2.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/org/json/json/20240303/json-20240303.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/net/kyori/adventure-api/4.19.0/adventure-api-4.19.0.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/net/kyori/adventure-text-minimessage/4.19.0/adventure-text-minimessage-4.19.0.jar"/>
+            <zipfileset
+                    src="C:/Users/loisa/.m2/repository/net/kyori/adventure-platform-bungeecord/4.3.4/adventure-platform-bungeecord-4.3.4.jar"/>
+        </jar>
+    </target>
+</project>

@@ -2,20 +2,20 @@ package fr.neocle.litebansweb.webhooks;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class WebhookService {
-    
+
     private final Logger logger;
 
     public WebhookService(Logger logger) {
         this.logger = logger;
     }
 
-    public void sendWebhook(String url, String content, boolean embedEnabled, String color, String authorName, 
-                            String authorUrl, String authorIcon, String thumbnailUrl, String title, String titleUrl, 
-                            String description, List<Map<String, Object>> fields, String imageUrl, String footerText, 
+    public void sendWebhook(String url, String content, boolean embedEnabled, String color, String authorName,
+                            String authorUrl, String authorIcon, String thumbnailUrl, String title, String titleUrl,
+                            String description, List<Map<String, Object>> fields, String imageUrl, String footerText,
                             String footerIcon, boolean timestamp) {
         if (url == null || url.isEmpty()) {
             logger.warning("Webhook URL is not set.");
@@ -30,9 +30,9 @@ public class WebhookService {
 
         if (embedEnabled) {
             EmbedObject embed = new EmbedObject()
-                .setTitle(title)
-                .setUrl(titleUrl)
-                .setDescription(description);
+                    .setTitle(title)
+                    .setUrl(titleUrl)
+                    .setDescription(description);
 
             if (color != null && !color.isEmpty()) {
                 try {
@@ -69,7 +69,7 @@ public class WebhookService {
             }
 
             if (timestamp) {
-                embed.setFooter(footerText + " | " + java.time.Instant.now(), footerIcon);
+                embed.setTimestamp();
             }
 
             webhook.addEmbed(embed);
