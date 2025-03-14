@@ -49,6 +49,8 @@ public class LitebansWebVelocity {
 
         bootstrap = new Bootstrap();
         bootstrap.initialize(Paths.get("plugins", "LitebansWeb"), logger, "velocity", proxyServer, eventDispatcher);
+        bootstrap.startWebServer(getPortFromConfig());
+        bootstrap.logServerStartupInfo(getAddressFromConfig(), getPortFromConfig(), "Velocity", proxyServer.getVersion().getVersion());
 
         int pluginId = 23869;
         @SuppressWarnings("unused")
@@ -56,8 +58,6 @@ public class LitebansWebVelocity {
 
         registerCommands();
         registerListeners();
-        bootstrap.startWebServer(getPortFromConfig());
-        bootstrap.logServerStartupInfo(getAddressFromConfig(), getPortFromConfig(), "Velocity", proxyServer.getVersion().getVersion());
     }
 
     @Subscribe
@@ -73,9 +73,12 @@ public class LitebansWebVelocity {
             proxyServer,
             bootstrap.getDataFolder(),
             bootstrap.getAuthenticatorHandler(),
+            bootstrap.getDiscordOAuthHandler(),
             bootstrap.getIndexHandler(),
+            bootstrap.getJettyReloader(),
             new DatabaseUtils("./plugins/LitebansWeb", logger),
-            logger
+            logger,
+            bootstrap.getConfig()
         ));
     }
 

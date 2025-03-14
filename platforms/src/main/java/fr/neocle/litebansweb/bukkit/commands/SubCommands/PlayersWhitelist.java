@@ -1,5 +1,6 @@
 package fr.neocle.litebansweb.bukkit.commands.SubCommands;
 
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,9 +21,9 @@ import fr.neocle.litebansweb.locale.LanguageManager;
 public class PlayersWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(LitebansWebAPI api, Path dataFolder, Logger logger) {
-        subCommands.put("add", new AddPlayer(api, dataFolder, logger));
-        subCommands.put("remove", new RemovePlayer(api, dataFolder, logger));
+    public PlayersWhitelist(LitebansWebAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
+        subCommands.put("add", new AddPlayer(api, authenticationHandler, config));
+        subCommands.put("remove", new RemovePlayer(api, authenticationHandler, config));
     }
 
     @Override

@@ -12,6 +12,7 @@ import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 import fr.neocle.litebansweb.velocity.commands.SubCommands.DiscordWhitelistSubArgs.AddUser;
 import fr.neocle.litebansweb.velocity.commands.SubCommands.DiscordWhitelistSubArgs.RemoveUser;
@@ -19,9 +20,9 @@ import fr.neocle.litebansweb.velocity.commands.SubCommands.DiscordWhitelistSubAr
 public class DiscordWhitelist implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(LitebansWebAPI api, ProxyServer proxyServer, Path dataFolder, Logger logger) {
-        subCommands.put("add", new AddUser(api, dataFolder, logger));
-        subCommands.put("remove", new RemoveUser(api, dataFolder, logger));
+    public DiscordWhitelist(LitebansWebAPI api, ProxyServer proxyServer, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
+        subCommands.put("add", new AddUser(api, discordOAuthHandler, config));
+        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler, config));
     }
 
     @Override

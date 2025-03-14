@@ -2,6 +2,7 @@ package fr.neocle.litebansweb.bukkit.commands.SubCommands.PlayersWhitelistSubArg
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
 import fr.neocle.litebansweb.commands.PlayersWhitelistCommand;
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 
 import org.bukkit.command.Command;
@@ -9,13 +10,14 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class AddPlayer implements CommandExecutor {
     private final PlayersWhitelistCommand whitelistMethods;
 
-    public AddPlayer(LitebansWebAPI api, Path dataFolder, Logger logger) {
-        this.whitelistMethods = new PlayersWhitelistCommand(api, dataFolder.resolve("config.yml"), logger) {
+    public AddPlayer(LitebansWebAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
+        this.whitelistMethods = new PlayersWhitelistCommand(api, config, authenticationHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

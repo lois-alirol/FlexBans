@@ -54,7 +54,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
 
         String moderatorIdentifier = target.replace("/moderator/", "").trim();
         if (moderatorIdentifier.isEmpty()) {
-            response.sendRedirect("/index");;
+            response.sendRedirect("/index");
             return;
         }
 
@@ -87,21 +87,11 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             player = usernameUUIDConverters.usernameToUUID(player);
         }
 
-        String type = request.getParameter("type");
-        if (type == null || type.isEmpty()) {
-            type = "all";
-        }
-
-        String status = request.getParameter("status");
-        String on = request.getParameter("on");
-        String before = request.getParameter("before");
-        String after = request.getParameter("after");
-
         StringBuilder punishmentRows = new StringBuilder();
         int totalPages;
 
         try {
-            totalPages = getTotalPages(moderatorUsername, player, type, status, on, before, after);
+            totalPages = getTotalPages(moderatorUsername, player);
 
             if (page > totalPages && totalPages > 0) {
                 page = totalPages;
@@ -109,8 +99,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
 
             int offset = (page - 1) * PAGE_SIZE;
 
-            String query = buildQuery(player, type, status, on, before, after, offset);
-            fetchAndAddPunishments(query, punishmentRows, moderatorUsername, player, status, on, before, after);
+            fetchAndAddPunishments(punishmentRows, moderatorUsername, player, offset);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -129,14 +118,14 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         String pageContent = "";
         try {
             pageContent = htmlTemplate.replace("{{punishment_rows}}", punishmentRows.toString())
-                .replace("{{moderator_username}}", capitalize(moderatorIdentifier))
-                .replace("{{current_page}}", String.valueOf(page))
-                .replace("{{total_pages}}", String.valueOf(totalPages))
-                .replace("{{favicon}}", (playerHeadImage.getPlayerHeadUrl(moderatorIdentifier, "32")))
-                .replace("{{moderator_description}}", moderatorDescription)
-                .replace("{{moderator_icon}}", (playerHeadImage.getPlayerHeadUrl(moderatorIdentifier, "512")))
-                .replace("{{server_color}}", serverColor)
-                .replace("{{server_color_hover}}", serverColorDarker);
+                    .replace("{{moderator_username}}", capitalize(moderatorIdentifier))
+                    .replace("{{current_page}}", String.valueOf(page))
+                    .replace("{{total_pages}}", String.valueOf(totalPages))
+                    .replace("{{favicon}}", (playerHeadImage.getPlayerHeadUrl(moderatorIdentifier, "32")))
+                    .replace("{{moderator_description}}", moderatorDescription)
+                    .replace("{{moderator_icon}}", (playerHeadImage.getPlayerHeadUrl(moderatorIdentifier, "512")))
+                    .replace("{{server_color}}", serverColor)
+                    .replace("{{server_color_hover}}", serverColorDarker);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -144,26 +133,33 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         response.getWriter().write(pageContent);
     }
 
-    private int getTotalPages(String executor, String player, String type, String status, String on, String before, String after) throws SQLException {
+    private int getTotalPages(String executor, String player) throws SQLException {
         StringBuilder baseQuery = new StringBuilder("SELECT COUNT(*) FROM (");
         List<String> queries = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
 
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("ban")) {
-            queries.add("SELECT uuid FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
-            parameters.add(executor);
+        queries.add("SELECT uuid FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
         }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("mute")) {
-            queries.add("SELECT uuid FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
-            parameters.add(executor);
+
+        queries.add("SELECT uuid FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
         }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("warning")) {
-            queries.add("SELECT uuid FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
-            parameters.add(executor);
+
+        queries.add("SELECT uuid FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
         }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("kick")) {
-            queries.add("SELECT uuid FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player, status, on, before, after));
-            parameters.add(executor);
+
+        queries.add("SELECT uuid FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
         }
 
         baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t");
@@ -172,40 +168,6 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             int paramIndex = 1;
             for (Object param : parameters) {
                 stmt.setString(paramIndex++, (String) param);
-            }
-
-            if (player != null && !player.isEmpty()) {
-                stmt.setString(paramIndex++, player);
-            }
-
-            if (status != null && !status.isEmpty()) {
-                switch (status.toLowerCase()) {
-                    case "active":
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        break;
-                    case "expired":
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        break;
-                }
-            }
-
-            if (on != null && !on.isEmpty()) {
-                LocalDate date = LocalDate.parse(on);
-                long startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                long endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-
-                stmt.setLong(paramIndex++, startOfDay);
-                stmt.setLong(paramIndex++, endOfDay);
-            }
-
-            if (before != null && !before.isEmpty()) {
-                long beforeTimestamp = LocalDate.parse(before).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                stmt.setLong(paramIndex++, beforeTimestamp);
-            }
-
-            if (after != null && !after.isEmpty()) {
-                long afterTimestamp = LocalDate.parse(after).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                stmt.setLong(paramIndex++, afterTimestamp);
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -218,125 +180,52 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         return 0;
     }
 
-    private String buildQuery(String player, String type, String status, String on, String before, String after, int offset) {
-        String baseQuery = "SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (";
-
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("ban")) {
-            baseQuery += "SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ?";
-        }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("mute")) {
-            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ?";
-        }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("warning")) {
-            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ?";
-        }
-        if (type == null || type.equalsIgnoreCase("all") || type.equalsIgnoreCase("kick")) {
-            baseQuery += " UNION ALL SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ?";
-        }
-
-        baseQuery += ") AS t ORDER BY time DESC LIMIT " + PAGE_SIZE + " OFFSET " + offset;
-        return baseQuery;
-    }
-
-    private String buildWhereClause(String player, String status, String on, String before, String after) {
+    private String buildWhereClause(String player) {
         StringBuilder whereClause = new StringBuilder();
-    
+
         if (player != null && !player.isEmpty()) {
             whereClause.append(" AND uuid = ?");
         }
-    
-        if (status != null && !status.isEmpty()) {
-            switch (status.toLowerCase()) {
-                case "active":
-                    whereClause.append(" AND (removed_by_name IS NULL OR removed_by_name = '')")
-                               .append(" AND (until = -1 OR until = 0 OR until > ?)");
-                    break;
-                case "expired":
-                    whereClause.append(" AND (removed_by_name = '#expired' OR (until > 0 AND until < ?))");
-                    break;
-                case "removed":
-                    whereClause.append(" AND (removed_by_name IS NOT NULL AND removed_by_name <> '#expired')");
-                    break;
-            }
-        }
-        
-        if (on != null && !on.isEmpty()) {
-            whereClause.append(" AND time >= ? AND time < ?");
-        }
-
-        if (before != null && !before.isEmpty()) {
-            whereClause.append(" AND time < ?");
-        }
-    
-        if (after != null && !after.isEmpty()) {
-            whereClause.append(" AND time > ?");
-        }
 
         return whereClause.toString();
-    }    
+    }
 
-    private void fetchAndAddPunishments(String query, StringBuilder punishmentRows, String executor, String player,
-                                        String status, String on, String before, String after) throws SQLException {
-        
-        try (PreparedStatement stmt = Database.get().prepareStatement(query)) {
+    private void fetchAndAddPunishments(StringBuilder punishmentRows, String executor, String player, int offset) throws SQLException {
+        StringBuilder baseQuery = new StringBuilder("SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (");
+        List<String> queries = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player));
+        parameters.add(executor);
+        if (player != null && !player.isEmpty()) {
+            parameters.add(player);
+        }
+
+        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t ORDER BY time DESC LIMIT ").append(PAGE_SIZE).append(" OFFSET ").append(offset);
+
+        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
             int paramIndex = 1;
-            
-            stmt.setString(paramIndex++, executor);
-            stmt.setString(paramIndex++, executor);
-            stmt.setString(paramIndex++, executor);
-            stmt.setString(paramIndex++, executor);
-
-            if (player != null && !player.isEmpty()) {
-                stmt.setString(paramIndex++, player);
-                stmt.setString(paramIndex++, player);
-                stmt.setString(paramIndex++, player);
-                stmt.setString(paramIndex++, player);
+            for (Object param : parameters) {
+                stmt.setString(paramIndex++, (String) param);
             }
-            
-            if (status != null && !status.isEmpty()) {
-                switch (status.toLowerCase()) {
-                    case "active":
-                    case "expired":
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        stmt.setLong(paramIndex++, System.currentTimeMillis());
-                        break;
-                }
-            }
-
-            if (on != null && !on.isEmpty()) {
-                LocalDate date = LocalDate.parse(on);
-                long startOfDay = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                long endOfDay = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-            
-                stmt.setLong(paramIndex++, startOfDay);
-                stmt.setLong(paramIndex++, startOfDay);
-                stmt.setLong(paramIndex++, startOfDay);
-                stmt.setLong(paramIndex++, startOfDay);
-
-                stmt.setLong(paramIndex++, endOfDay);
-                stmt.setLong(paramIndex++, endOfDay);
-                stmt.setLong(paramIndex++, endOfDay);
-                stmt.setLong(paramIndex++, endOfDay);
-            }
-            
-            if (before != null && !before.isEmpty()) {
-                long beforeTimestamp = LocalDate.parse(before).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-
-                stmt.setLong(paramIndex++, beforeTimestamp);
-                stmt.setLong(paramIndex++, beforeTimestamp);
-                stmt.setLong(paramIndex++, beforeTimestamp);
-                stmt.setLong(paramIndex++, beforeTimestamp);
-            }
-            
-            if (after != null && !after.isEmpty()) {
-                long afterTimestamp = LocalDate.parse(after).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
-                stmt.setLong(paramIndex++, afterTimestamp);
-                stmt.setLong(paramIndex++, afterTimestamp);
-                stmt.setLong(paramIndex++, afterTimestamp);
-                stmt.setLong(paramIndex++, afterTimestamp);
-            }            
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -431,7 +320,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         }
     
         try {
-            punishmentRows.append("<tr onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("/").append(punishmentID).append("';\">")
+            punishmentRows.append("<tr onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("s/").append(punishmentID).append("';\">")
                         .append("<td class='px-6 py-4 whitespace-nowrap'>")
                         .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
                         .append(typeColorClass).append("'>").append(type).append("</span>")

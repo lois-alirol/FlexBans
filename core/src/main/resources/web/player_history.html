@@ -91,11 +91,14 @@
         </a>    
 
         <h1 class="text-center text-black dark:text-white text-3xl font-bold">{{player_name}} Recent Punishments</h1>
-    
+
         <!-- Search and Filter -->
-        <div class="flex flex-col sm:flex-row justify-center my-8 gap-4">
-            <input type="text" id="searchInput" placeholder="Search Player..." class="w-full sm:w-2/3 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded-lg p-3 outline-none focus:ring focus:ring-[{{server_color_hover}}]">
-            <button id="filterButton" class="w-full sm:w-32 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded-lg py-2">Filter</button>
+        <div class="search mb-2 mt-5 flex items-center">
+            <div class="relative w-full">
+                <input type="text" id="moderatorSearchInput" placeholder="Search Moderator..."
+                       class="w-full p-3.5 pl-12 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] rounded-lg shadow-custom focus:outline-none">
+                <i class="fa-solid fa-gavel absolute left-4 top-1/2 transform -translate-y-1/2 text-[#333333] dark:text-[#e0e0e0]"></i>
+            </div>
         </div>
     
         <!-- Actions Table -->
@@ -130,126 +133,42 @@
             </a>
         </div>
 
-        <!-- Modal -->
-        <div id="filterModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-[#f4f4f4] dark:bg-[#2c2c2c] p-6 rounded-lg shadow-lg">
-                <button class="close absolute top-4 right-4 text-white text-2xl">&times;</button>
-                <h2 class="text-xl font-bold mb-4">Sort Punishments</h2>
-                <div>
-                    <label class="block mb-2">
-                        <input type="radio" name="sortOption" value="name" class="mr-2"> Player Name (A-Z)
-                    </label>
-                    <label class="block mb-2">
-                        <input type="radio" name="sortOption" value="date" class="mr-2"> Execution Date
-                    </label>
-                    <label class="block mb-2">
-                        <input type="radio" name="sortOption" value="status" class="mr-2"> Status (Active/Expired/Removed)
-                    </label>
-                    <label class="block mb-2">
-                        <input type="radio" name="sortOption" value="type" class="mr-2"> Type (Bans/Mutes/Warnings/Kicks)
-                    </label>
-                </div>
-                <button id="applySort" class="bg-[#c1c1c1cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] p-4 mt-4 w-full rounded-lg">Apply Filter</button>
-            </div>
-        </div>
-
     </div>
 
     <script src="/js/dark-mode-toggle.js"></script>
+    <script src="/js/mod-search-clear.js"></script>
+    <script src="/js/search-filters.js"></script>
     <script>
         $(document).ready(function () {
             const currentPage = parseInt("{{current_page}}");
             const totalPages = parseInt("{{total_pages}}");
-            const player = "{{player_name}}";
+            const moderator = "{{moderator_username}}";
 
             if (currentPage === 1) {
                 $('#prevPage').addClass('disabled').attr('href', '#').removeAttr('href');
             } else {
-                $('#prevPage').attr('href', `/player/${player}?page=${currentPage - 1}`);
+                $('#prevPage').attr('href', `/moderator/${moderator}?page=${currentPage - 1}`);
             }
 
             if (currentPage === totalPages) {
                 $('#nextPage').addClass('disabled').attr('href', '#').removeAttr('href');
             } else {
-                $('#nextPage').attr('href', `/player/${player}?page=${currentPage + 1}`);
+                $('#nextPage').attr('href', `/moderator/${moderator}?page=${currentPage + 1}`);
             }
 
             $('#pageInput').on('input', function () {
                 const inputPage = parseInt($(this).val());
                 if (inputPage >= 1 && inputPage <= totalPages) {
-                    window.location.href = `/player/${player}?page=${inputPage}`;
+                    window.location.href = `/moderator/${moderator}?page=${inputPage}`;
                 }
             });
 
-            // Search Filtering
-            $('#searchInput').on('input', function () {
-                const input = $(this).val().toLowerCase().trim();
-                $('#punishmentTable tbody tr').each(function () {
-                    const rowText = $(this).text().toLowerCase();
-                    $(this).toggle(rowText.includes(input));
-                });
-            });
-
-            // Filter Modal
-            const modal = $('#filterModal');
-            const closeModal = $('.close');
-
-            $('#filterButton').on('click', function () {
-                modal.removeClass('hidden');
-            });
-
-            closeModal.on('click', function () {
-                modal.addClass('hidden');
-            });
-
-            $(window).on('click', function (event) {
-                if ($(event.target).is(modal)) {
-                    modal.addClass('hidden');
+            $('#pageInput').on('blur', function () {
+                const inputPage = parseInt($(this).val());
+                if (isNaN(inputPage) || inputPage < 1 || inputPage > totalPages) {
+                    $(this).val(currentPage);
                 }
             });
-
-            // Apply Filter Sort
-            $('#applySort').on('click', function () {
-                const selectedOption = $('input[name="sortOption"]:checked').val();
-                if (selectedOption) {
-                    sortTable(selectedOption);
-                    modal.addClass('hidden');
-                }
-            });
-
-            // Sort Table Logic
-            function sortTable(sortBy) {
-                const rows = $('#punishmentTable tbody tr').get();
-                
-                const typeOrder = ["IP-Ban", "Ban", "IP-Mute", "Mute", "Warning", "Kick"];
-
-                rows.sort(function (a, b) {
-                    let keyA, keyB;
-
-                    if (sortBy === 'name') {
-                        keyA = $(a).children('td').eq(1).text().toLowerCase();
-                        keyB = $(b).children('td').eq(1).text().toLowerCase();
-                    } else if (sortBy === 'date') {
-                        keyA = new Date($(a).children('td').eq(4).text());
-                        keyB = new Date($(b).children('td').eq(4).text());
-                    } else if (sortBy === 'status') {
-                        keyA = $(a).children('td').eq(7).text().toLowerCase();
-                        keyB = $(b).children('td').eq(7).text().toLowerCase();
-                    } else if (sortBy === 'type') {
-                        keyA = $(a).children('td').eq(0).text();
-                        keyB = $(b).children('td').eq(0).text();
-                        
-                        keyA = typeOrder.indexOf(keyA);
-                        keyB = typeOrder.indexOf(keyB);
-                    }
-
-                    return keyA < keyB ? -1 : keyA > keyB ? 1 : 0;
-                });
-
-                $.each(rows, function (index, row) {
-                    $('#punishmentTable').children('tbody').append(row);
-                });
-            }
         });
     </script>
 

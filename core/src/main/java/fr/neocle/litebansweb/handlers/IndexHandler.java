@@ -398,7 +398,6 @@ public class IndexHandler extends AbstractHandler {
     
             punishmentRows.append("<tr class='cursor-pointer ").append(rowClass).append("' onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("/").append(punishmentID).append("';\">");
     
-            // Status Column
             punishmentRows.append("<td class='px-6 py-4 whitespace-nowrap'>")
                     .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
                     .append(badgeColorClass).append("'>")
@@ -406,7 +405,6 @@ public class IndexHandler extends AbstractHandler {
                     .append("</span>")
                     .append("</td>");
             
-            // Player Name Column
             try {
                 punishmentRows.append("<td class='px-6 py-4 whitespace-nowrap'>")
                         .append("<img src='").append(playerHeadImage.getPlayerHeadUrl(playerName, "32")).append("' alt='Player Head' class='inline-block'> ")
@@ -427,17 +425,14 @@ public class IndexHandler extends AbstractHandler {
                 e.printStackTrace();
             }
                     
-            // Reason Column
             punishmentRows.append("<td class='px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis'>")
                     .append(reason)
                     .append("</td>");
             
-            // Execution Date Column
             punishmentRows.append("<td class='px-6 py-4'>")
                     .append(executionDate)
                     .append("</td>");
             
-            // Expiration Date and Duration Columns (if not a "kick" type)
             if (!type.equals("kicks")) {
                 punishmentRows.append("<td class='px-6 py-4'>")
                         .append(expirationDate)

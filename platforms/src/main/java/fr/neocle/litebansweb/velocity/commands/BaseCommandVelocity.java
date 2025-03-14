@@ -5,10 +5,9 @@ import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
-import fr.neocle.litebansweb.velocity.commands.SubCommands.DiscordWhitelist;
-import fr.neocle.litebansweb.velocity.commands.SubCommands.PlayersWhitelist;
-import fr.neocle.litebansweb.velocity.commands.SubCommands.Reload;
-import fr.neocle.litebansweb.velocity.commands.SubCommands.Verify;
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
+import fr.neocle.litebansweb.utils.JettyReloader;
+import fr.neocle.litebansweb.velocity.commands.SubCommands.*;
 import fr.neocle.litebansweb.handlers.IndexHandler;
 import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
@@ -24,12 +23,13 @@ import java.util.logging.Logger;
 public class BaseCommandVelocity implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
-    public BaseCommandVelocity(LitebansWebAPI api, ProxyServer proxyServer, Path dataFolder, AuthenticationHandler oauth2Handler, 
-                                IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger) {
-        subCommands.put("reload", new Reload(dataFolder, oauth2Handler, indexHandler, logger));
+    public BaseCommandVelocity(LitebansWebAPI api, ProxyServer proxyServer, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler,
+                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils, Logger logger, Map<String,Object> config) {
+        subCommands.put("help", new Help(logger));
+        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, jettyReloader, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, proxyServer, dataFolder, logger));
-        subCommands.put("discord", new DiscordWhitelist(api, proxyServer, dataFolder, logger));
+        subCommands.put("players", new PlayersWhitelist(api, proxyServer, authenticationHandler, config));
+        subCommands.put("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler, config));
     }
 
     @Override
@@ -57,7 +57,7 @@ public class BaseCommandVelocity implements SimpleCommand {
         String[] args = invocation.arguments();
     
         if (args.length == 0) {
-            return List.of("verify", "reload", "players", "discord");
+            return List.of("help", "verify", "reload", "players", "discord");
         }
     
         if (args.length == 1) {

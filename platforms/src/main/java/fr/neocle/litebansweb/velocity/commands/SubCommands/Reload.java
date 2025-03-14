@@ -1,29 +1,30 @@
 package fr.neocle.litebansweb.velocity.commands.SubCommands;
 
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.logging.Logger;
-
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
-
 import fr.neocle.litebansweb.handlers.IndexHandler;
 import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
+import fr.neocle.litebansweb.utils.JettyReloader;
 import fr.neocle.litebansweb.utils.ResourceLoader;
+import org.checkerframework.checker.nullness.qual.NonNull;
+
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.logging.Logger;
 
 public class Reload implements SimpleCommand {
     private final Path dataFolder;
     private final AuthenticationHandler oauth2Handler;
     private final IndexHandler indexHandler;
+    private final JettyReloader jettyReloader;
     private final Logger logger;
 
-    public Reload(Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler, Logger logger) {
+    public Reload(Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler, JettyReloader jettyReloader, Logger logger) {
         this.dataFolder = dataFolder;
         this.oauth2Handler = oauth2Handler;
         this.indexHandler = indexHandler;
+        this.jettyReloader = jettyReloader;
         this.logger = logger;
     }
 
@@ -41,8 +42,11 @@ public class Reload implements SimpleCommand {
             if (newConfig != null) {
                 indexHandler.updateConfig(newConfig);
                 @SuppressWarnings("unchecked")
-                Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("disord-oauth");
-                oauth2Handler.updateConfig(oauthConfig);
+                Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord-oauth");
+
+                if (oauthConfig != null) {
+                    oauth2Handler.updateConfig();
+                }
 
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));
                 logger.info(LanguageManager.getMessageString("commands.logging.reload.success"));
@@ -50,6 +54,8 @@ public class Reload implements SimpleCommand {
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload.fail"));
                 logger.severe(LanguageManager.getMessageString("commands.logging.reload.fail"));
             }
+
+            jettyReloader.reload();
         } else {
             source.sendMessage(LanguageManager.getMessageComponent("commands.reload.usage"));
         }

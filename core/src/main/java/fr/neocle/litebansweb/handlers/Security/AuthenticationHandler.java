@@ -8,6 +8,7 @@ import fr.neocle.litebansweb.handlers.PostRequestHandlers.NewPunishmentHandler;
 import fr.neocle.litebansweb.handlers.PostRequestHandlers.RevokePunishmentHandler;
 import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.utils.DatabaseUtils;
+import fr.neocle.litebansweb.utils.ResourceLoader;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
@@ -16,8 +17,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class AuthenticationHandler extends AbstractHandler {
 
@@ -44,6 +48,8 @@ public class AuthenticationHandler extends AbstractHandler {
 
     private final EventDispatcher eventDispatcher;
 
+    private final Logger logger;
+
     private final boolean oauthEnabled;
     private final boolean loginEnabled;
 
@@ -65,7 +71,8 @@ public class AuthenticationHandler extends AbstractHandler {
             RegisterHandler registerHandler,
             LoginHandler loginHandler,
             DiscordOAuthHandler discordOAuthHandler,
-            EventDispatcher eventDispatcher) {
+            EventDispatcher eventDispatcher,
+            Logger logger) {
 
         this.oauthConfig = oauthConfig;
         this.loginConfig = loginConfig;
@@ -85,6 +92,7 @@ public class AuthenticationHandler extends AbstractHandler {
         this.loginHandler = loginHandler;
         this.discordOAuthHandler = discordOAuthHandler;
         this.eventDispatcher = eventDispatcher;
+        this.logger = logger;
 
         this.oauthEnabled = Boolean.parseBoolean(oauthConfig.getOrDefault("enabled", "false").toString());
         this.loginEnabled = Boolean.parseBoolean(loginConfig.getOrDefault("enabled", "false").toString());
@@ -93,7 +101,6 @@ public class AuthenticationHandler extends AbstractHandler {
     @Override
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         String uri = request.getRequestURI();
-        System.out.println(uri + request.getSession().getAttribute("playerName"));
         switch (uri) {
             case "/":
                 handleRootPage(request, response);
@@ -170,7 +177,7 @@ public class AuthenticationHandler extends AbstractHandler {
             return;
         }
 
-        forbiddenError.handle(baseRequest, response);
+        response.sendRedirect("/index");
     }
 
     private void handleLogout(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -212,8 +219,6 @@ public class AuthenticationHandler extends AbstractHandler {
 
         String uri = request.getRequestURI();
 
-        System.out.println("protected page " + uri + " " + userId + " " + playerName);
-
         if ((oauthEnabled || loginEnabled) && ("/code-verification".equals(uri) || "/check-verification".equals(uri))) {
             if (userId != null || playerName != null) {
                 codeVerificationHandler.handle(uri, baseRequest, request, response);
@@ -232,7 +237,6 @@ public class AuthenticationHandler extends AbstractHandler {
             return;
         }
 
-        System.out.println(identifier);
         if (identifier != null) {
             if (!isVerified) {
                 response.sendRedirect("/code-verification");
@@ -242,9 +246,7 @@ public class AuthenticationHandler extends AbstractHandler {
                 return;
             }
         } else {
-            System.out.println(loginEnabled);
             if (loginEnabled) {
-                System.out.println("going to login page");
                 loginHandler.handle("/login", baseRequest, request, response);
                 return;
             } else if (oauthEnabled) {
@@ -305,9 +307,23 @@ public class AuthenticationHandler extends AbstractHandler {
         }
     }
 
-    public void updateConfig(Map<String, Object> newConfig) {
-        oauthConfig.clear();
-        oauthConfig.putAll(newConfig);
+    public void updateConfig() {
+        Path dataFolder = Paths.get("plugins", "LitebansWeb");
+        Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
+
+        if (newConfig != null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> authNewConfig = (Map<String, Object>) newConfig.get("password-auth");
+
+            if (authNewConfig != null) {
+                loginConfig.clear();
+                loginConfig.putAll(authNewConfig);
+            }
+
+            logger.info("OAuth configuration successfully reloaded.");
+        } else {
+            logger.severe("Failed to reload OAuth configuration.");
+        }
     }
 
     public void setNewPunishmentHandler(NewPunishmentHandler newPunishmentHandler) {

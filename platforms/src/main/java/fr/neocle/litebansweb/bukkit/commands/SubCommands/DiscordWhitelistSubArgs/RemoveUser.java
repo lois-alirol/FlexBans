@@ -2,6 +2,7 @@ package fr.neocle.litebansweb.bukkit.commands.SubCommands.DiscordWhitelistSubArg
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
 import fr.neocle.litebansweb.commands.DiscordWhitelistCommand;
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 
 import org.bukkit.command.Command;
@@ -9,13 +10,14 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class RemoveUser implements CommandExecutor {
     private final DiscordWhitelistCommand whitelistMethods;
 
-    public RemoveUser(LitebansWebAPI api, Path dataFolder, Logger logger) {
-        this.whitelistMethods = new DiscordWhitelistCommand(api, dataFolder.resolve("config.yml"), logger) {
+    public RemoveUser(LitebansWebAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
+        this.whitelistMethods = new DiscordWhitelistCommand(api, config, discordOAuthHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

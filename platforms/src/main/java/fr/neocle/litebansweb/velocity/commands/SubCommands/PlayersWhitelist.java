@@ -12,6 +12,7 @@ import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 import fr.neocle.litebansweb.velocity.commands.SubCommands.PlayersWhitelistSubArgs.AddPlayer;
 import fr.neocle.litebansweb.velocity.commands.SubCommands.PlayersWhitelistSubArgs.RemovePlayer;
@@ -19,9 +20,9 @@ import fr.neocle.litebansweb.velocity.commands.SubCommands.PlayersWhitelistSubAr
 public class PlayersWhitelist implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(LitebansWebAPI api, ProxyServer proxyServer, Path dataFolder, Logger logger) {
-        subCommands.put("add", new AddPlayer(api, dataFolder, logger));
-        subCommands.put("remove", new RemovePlayer(api, dataFolder, logger));
+    public PlayersWhitelist(LitebansWebAPI api, ProxyServer proxyServer, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
+        subCommands.put("add", new AddPlayer(api, authenticationHandler, config));
+        subCommands.put("remove", new RemovePlayer(api, authenticationHandler, config));
     }
 
     @Override

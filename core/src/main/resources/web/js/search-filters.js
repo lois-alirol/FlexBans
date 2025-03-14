@@ -30,6 +30,23 @@ $(document).ready(function () {
         }, typingDelay);
     });
 
+    $('#moderatorSearchInput').on('input', function () {
+        clearTimeout(typingTimer);
+
+        const input = $(this).val().toLowerCase().trim();
+        const url = new URL(window.location);
+
+        if (input) {
+            url.searchParams.set('executor', input);
+        } else {
+            url.searchParams.delete('executor');
+        }
+
+        typingTimer = setTimeout(() => {
+            window.location.href = url.toString();
+        }, typingDelay);
+    });
+
 
 
     // Filter Modal

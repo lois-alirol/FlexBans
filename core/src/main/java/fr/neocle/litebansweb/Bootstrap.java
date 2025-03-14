@@ -1,46 +1,46 @@
 package fr.neocle.litebansweb;
 
+import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.litebansweb.api.LitebansWebAPI;
 import fr.neocle.litebansweb.api.events.EventDispatcher;
-import fr.neocle.litebansweb.handlers.HomeHandler;
-import fr.neocle.litebansweb.handlers.IndexHandler;
-import fr.neocle.litebansweb.handlers.PlayerHistoryHandler;
-import fr.neocle.litebansweb.handlers.ModeratorHistoryHandler;
-import fr.neocle.litebansweb.handlers.PunishmentDetailsHandler;
-import fr.neocle.litebansweb.handlers.ScriptsHandler;
-import fr.neocle.litebansweb.handlers.PlayerHeadHandler;
 import fr.neocle.litebansweb.handlers.Errors.ForbiddenError;
 import fr.neocle.litebansweb.handlers.Errors.InternalServerError;
 import fr.neocle.litebansweb.handlers.Errors.NotFoundError;
+import fr.neocle.litebansweb.handlers.*;
 import fr.neocle.litebansweb.handlers.PostRequestHandlers.NewPunishmentHandler;
 import fr.neocle.litebansweb.handlers.PostRequestHandlers.RevokePunishmentHandler;
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.handlers.Security.CodeVerificationHandler;
 import fr.neocle.litebansweb.handlers.Security.LoginHandler;
-import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
-import fr.neocle.litebansweb.handlers.Security.RegisterHandler;
 import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
+import fr.neocle.litebansweb.handlers.Security.RegisterHandler;
 import fr.neocle.litebansweb.handlers.Security.Utils.DomainFilter;
 import fr.neocle.litebansweb.handlers.Security.Utils.HttpsEnforcementHandler;
-import fr.neocle.litebansweb.utils.DatabaseUtils;
-import fr.neocle.litebansweb.utils.ResourceLoader;
-import fr.neocle.litebansweb.utils.DurationCalculator;
+import fr.neocle.litebansweb.locale.LanguageManager;
 import fr.neocle.litebansweb.utils.CommandsExecution.CommandsExecution;
-import fr.neocle.litebansweb.utils.CommandsExecution.CommandsExecutionBungee;
 import fr.neocle.litebansweb.utils.CommandsExecution.CommandsExecutionBukkit;
+import fr.neocle.litebansweb.utils.CommandsExecution.CommandsExecutionBungee;
 import fr.neocle.litebansweb.utils.CommandsExecution.CommandsExecutionVelocity;
+import fr.neocle.litebansweb.utils.DatabaseUtils;
+import fr.neocle.litebansweb.utils.DurationCalculator;
+import fr.neocle.litebansweb.utils.JettyReloader;
 import fr.neocle.litebansweb.utils.Player.PlayerHeadImage;
 import fr.neocle.litebansweb.utils.Player.UsernameUUIDConverters;
+import fr.neocle.litebansweb.utils.ResourceLoader;
 import fr.neocle.litebansweb.utils.Security.CodeGenerator;
-import fr.neocle.litebansweb.locale.LanguageManager;
-
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.*;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.DefaultHandler;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.server.session.SessionHandler;
-import com.velocitypowered.api.proxy.ProxyServer;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -72,6 +72,8 @@ public class Bootstrap {
     protected DiscordOAuthHandler discordOAuthHandler;
     protected EventDispatcher eventDispatcher;
     protected LitebansWebAPI api;
+    protected JettyReloader jettyReloader;
+    protected PlayerHeadImage playerHeadImage;
 
     public void initialize(Path dataFolder, Logger logger, String platform, ProxyServer proxyServer, EventDispatcher eventDispatcher) {
         this.dataFolder = dataFolder;
@@ -80,7 +82,7 @@ public class Bootstrap {
         this.platform = platform;
         this.proxyServer = proxyServer;
         this.eventDispatcher = eventDispatcher;
-        
+
         try {
             databaseUtils = new DatabaseUtils("./plugins/LitebansWeb", logger);
             databaseUtils.initializeConnection();
@@ -140,7 +142,7 @@ public class Bootstrap {
         notFoundError = new NotFoundError(config, logger);
 
         UsernameUUIDConverters usernameUUIDConverters = new UsernameUUIDConverters();
-        PlayerHeadImage playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
+        playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
         DurationCalculator durationCalculator = new DurationCalculator();
 
         indexHandler = new IndexHandler(config, usernameUUIDConverters, durationCalculator, playerHeadImage);
@@ -174,33 +176,34 @@ public class Bootstrap {
         codeGenerator = new CodeGenerator();
         codeVerificationHandler = new CodeVerificationHandler(logger, config, codeGenerator, databaseUtils);
         registerHandler = new RegisterHandler(logger, config, databaseUtils, eventDispatcher);
-        loginHandler = new LoginHandler(logger, config,  databaseUtils, eventDispatcher);
-        discordOAuthHandler = new DiscordOAuthHandler(oauthConfig, databaseUtils, eventDispatcher);
+        loginHandler = new LoginHandler(logger, config, databaseUtils, eventDispatcher);
+        discordOAuthHandler = new DiscordOAuthHandler(oauthConfig, databaseUtils, forbiddenError, eventDispatcher, logger);
         newPunishmentHandler = new NewPunishmentHandler(config, commandsExecution, databaseUtils);
 
         authHandler = new AuthenticationHandler(
-            oauthConfig,
-            loginConfig,
-            indexHandler,
-            playerHistoryHandler,
-            moderatorHistoryHandler,
-            punishmentDetailsHandler,
-            playerHeadHandler,
-            scriptsHandler,
-            revokePunishmentHandler,
-            null,
-            forbiddenError,
-            notFoundError,
-            databaseUtils,
-            codeVerificationHandler,
-            registerHandler,
-            loginHandler,
-            discordOAuthHandler,
-            eventDispatcher
+                oauthConfig,
+                loginConfig,
+                indexHandler,
+                playerHistoryHandler,
+                moderatorHistoryHandler,
+                punishmentDetailsHandler,
+                playerHeadHandler,
+                scriptsHandler,
+                revokePunishmentHandler,
+                null,
+                forbiddenError,
+                notFoundError,
+                databaseUtils,
+                codeVerificationHandler,
+                registerHandler,
+                loginHandler,
+                discordOAuthHandler,
+                eventDispatcher,
+                logger
         );
-        
+
         authHandler.setNewPunishmentHandler(newPunishmentHandler);
-        
+
     }
 
     public void initializeLanguage() {
@@ -228,6 +231,8 @@ public class Bootstrap {
         DomainFilter domainFilter = new DomainFilter(config, logger);
         HomeHandler homeHandler = new HomeHandler(config);
 
+        jettyReloader = new JettyReloader(server, logger);
+
         resourceHandler.setDirectoriesListed(false);
         resourceHandler.setWelcomeFiles(new String[]{"home.html"});
         resourceHandler.setResourceBase(getClass().getClassLoader().getResource("web").toExternalForm());
@@ -247,12 +252,11 @@ public class Bootstrap {
         SessionHandler sessionHandler = new SessionHandler();
         sessionHandler.setHandler(handlerList);
         sessionHandler.getSessionCookieConfig().setHttpOnly(true);
-        sessionHandler.getSessionCookieConfig().setSecure(true);
+        sessionHandler.getSessionCookieConfig().setSecure(false);
         server.setHandler(sessionHandler);
 
         try {
             server.start();
-            logger.info("Web server started on port " + port);
             new Thread(() -> {
                 try {
                     server.join();
@@ -301,11 +305,27 @@ public class Bootstrap {
         return authHandler;
     }
 
+    public DiscordOAuthHandler getDiscordOAuthHandler() {
+        return discordOAuthHandler;
+    }
+
     public IndexHandler getIndexHandler() {
         return indexHandler;
     }
 
+    public JettyReloader getJettyReloader() {
+        return jettyReloader;
+    }
+
     public LitebansWebAPI getAPI() {
         return api;
+    }
+
+    public DatabaseUtils getDatabaseUtils() {
+        return databaseUtils;
+    }
+
+    public PlayerHeadImage getPlayerHeadImage() {
+        return playerHeadImage;
     }
 }

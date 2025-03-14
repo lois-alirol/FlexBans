@@ -26,20 +26,26 @@ public class LanguageManager {
     private static MiniMessage miniMessage;
     private static Map<String, String> languageData = new HashMap<>();
 
+    private static final String DEFAULT_LANGUAGE = "en_US.yml";
     private static final String[] AVAILABLE_LANGUAGES = {"en_US.yml", "fr_FR.yml", "de_DE.yml"};
 
     public static void initialize(Logger logger, Path dataFolder) {
         LanguageManager.logger = logger;
         langFolder = new File(dataFolder.toFile(), "lang");
-        yaml = new Yaml(new DumperOptions());
+
+        DumperOptions dumperOptions = new DumperOptions();
+        dumperOptions.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        dumperOptions.setPrettyFlow(true);
+        dumperOptions.setWidth(Integer.MAX_VALUE);
+        yaml = new Yaml(dumperOptions);
+
         miniMessage = MiniMessage.miniMessage();
 
         ensureLanguageFilesExist();
     }
 
     private static void ensureLanguageFilesExist() {
-        if (!langFolder.exists() && langFolder.mkdirs()) {
-        }
+        if (!langFolder.exists() && langFolder.mkdirs()) {}
 
         for (String langFile : AVAILABLE_LANGUAGES) {
             File targetFile = new File(langFolder, langFile);
@@ -60,13 +66,14 @@ public class LanguageManager {
     public static void loadLanguage(String lang) {
         File langFile = new File(langFolder, lang + ".yml");
         if (!langFile.exists()) {
-            logger.warning("Language file not found: " + langFile + ".yml");
-            return;
+            logger.warning("Language file not found: " + lang + ".yml. Defaulting to " + DEFAULT_LANGUAGE);
+            langFile = new File(langFolder, DEFAULT_LANGUAGE);
         }
 
         try (InputStream inputStream = new FileInputStream(langFile)) {
             Map<String, Object> loadedData = yaml.load(inputStream);
             if (loadedData != null) {
+                ensureDefaults(langFile, loadedData);
                 flattenMap("", loadedData);
                 logger.info("Loaded language: " + lang);
             }
@@ -87,6 +94,47 @@ public class LanguageManager {
         }
     }
 
+    private static void ensureDefaults(File langFile, Map<String, Object> loadedData) {
+        try (InputStream defaultStream = LanguageManager.class.getClassLoader().getResourceAsStream("lang/" + DEFAULT_LANGUAGE)) {
+            if (defaultStream != null) {
+                Map<String, Object> defaultData = yaml.load(defaultStream);
+                if (defaultData != null) {
+                    boolean updated = mergeDefaults(loadedData, defaultData);
+                    if (updated) {
+                        try (Writer writer = new FileWriter(langFile)) {
+                            yaml.dump(loadedData, writer);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.severe("Failed to check or update missing language keys: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean mergeDefaults(Map<String, Object> target, Map<String, Object> defaults) {
+        boolean updated = false;
+        for (Map.Entry<String, Object> entry : defaults.entrySet()) {
+            String key = entry.getKey();
+            Object defaultValue = entry.getValue();
+
+            if (!target.containsKey(key)) {
+                target.put(key, defaultValue);
+                updated = true;
+            } else if (defaultValue instanceof Map && target.get(key) instanceof Map) {
+                updated |= mergeDefaults((Map<String, Object>) target.get(key), (Map<String, Object>) defaultValue);
+            } else if (!(target.get(key) instanceof Map) && defaultValue instanceof Map) {
+                Map<String, Object> nestedMap = new HashMap<>();
+                nestedMap.put("value", target.get(key));
+                target.put(key, nestedMap);
+                updated = true;
+            }
+        }
+        return updated;
+    }
+
+
     public static Component getMessageComponent(String key) {
         String message = languageData.getOrDefault(key, key);
         return miniMessage.deserialize(message);
@@ -106,5 +154,4 @@ public class LanguageManager {
             return new BaseComponent[]{ new TextComponent(legacyMessage) };
         }
     }
-
 }

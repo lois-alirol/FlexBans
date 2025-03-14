@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const url = new URL(window.location);
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = document.getElementById('moderatorSearchInput');
     const clearButton = document.createElement('button');
     clearButton.innerHTML = '×';
     clearButton.className = 'clear-button text-xl text-gray-500 absolute right-4 top-1/2 transform -translate-y-1/2';
@@ -8,14 +8,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     searchInput.parentElement.appendChild(clearButton);
 
-    const savedQuery = localStorage.getItem('searchQuery');
+    const savedQuery = localStorage.getItem('moderatorSearchQuery');
     if (savedQuery) {
         searchInput.value = savedQuery;
         clearButton.style.display = 'inline';
     }
 
     searchInput.addEventListener('input', function() {
-        localStorage.setItem('searchQuery', searchInput.value);
+        localStorage.setItem('moderatorSearchQuery', searchInput.value);
         if (searchInput.value) {
             clearButton.style.display = 'inline';
         } else {
@@ -25,9 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     clearButton.addEventListener('click', function() {
         searchInput.value = '';
-        localStorage.removeItem('searchQuery');
+        localStorage.removeItem('moderatorSearchQuery');
         clearButton.style.display = 'none';
-        url.searchParams.delete('player');
+        url.searchParams.delete('executor');
         window.location.href = url.toString();
     });
 });

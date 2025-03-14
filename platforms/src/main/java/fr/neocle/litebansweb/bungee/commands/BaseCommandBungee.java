@@ -1,5 +1,6 @@
 package fr.neocle.litebansweb.bungee.commands;
 
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
@@ -24,13 +25,13 @@ import java.util.logging.Logger;
 public class BaseCommandBungee extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public BaseCommandBungee(LitebansWebAPI api, Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger) {
+    public BaseCommandBungee(LitebansWebAPI api, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger, Map<String, Object> config) {
         super("litebansweb", "litebansweb.verify", "lw", "lbw");
 
-        subCommands.put("reload", new Reload(dataFolder, oauth2Handler, indexHandler, logger));
+        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, dataFolder, logger));
-        subCommands.put("discord", new DiscordWhitelist(api, dataFolder, logger));
+        subCommands.put("players", new PlayersWhitelist(api, config, authenticationHandler));
+        subCommands.put("discord", new DiscordWhitelist(api, config, discordOAuthHandler));
     }
 
     @Override

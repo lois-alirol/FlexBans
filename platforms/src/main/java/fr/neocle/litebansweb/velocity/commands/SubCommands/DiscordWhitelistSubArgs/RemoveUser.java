@@ -2,18 +2,20 @@ package fr.neocle.litebansweb.velocity.commands.SubCommands.DiscordWhitelistSubA
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
 import fr.neocle.litebansweb.commands.DiscordWhitelistCommand;
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class RemoveUser extends DiscordWhitelistCommand implements SimpleCommand {
     
-    public RemoveUser(LitebansWebAPI api, Path dataFolder, Logger logger) {
-        super(api, dataFolder.resolve("config.yml"), logger);
+    public RemoveUser(LitebansWebAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
+        super(api, config, discordOAuthHandler);
     }
 
     @Override

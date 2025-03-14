@@ -7,11 +7,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import fr.neocle.litebansweb.handlers.Errors.ForbiddenError;
+import fr.neocle.litebansweb.utils.ResourceLoader;
 import org.json.JSONObject;
 
 import fr.neocle.litebansweb.api.events.EventDispatcher;
@@ -21,12 +26,16 @@ public class DiscordOAuthHandler {
     private final Map<String, Object> oauthConfig;
     private final DatabaseUtils databaseUtils;
     private final EventDispatcher eventDispatcher;
+    private final ForbiddenError forbiddenError;
+    private final Logger logger;
     private final boolean oauthEnabled;
 
-    public DiscordOAuthHandler(Map<String, Object> oauthConfig, DatabaseUtils databaseUtils, EventDispatcher eventDispatcher) {
+    public DiscordOAuthHandler(Map<String, Object> oauthConfig, DatabaseUtils databaseUtils, ForbiddenError forbiddenError, EventDispatcher eventDispatcher, Logger logger) {
         this.oauthConfig = oauthConfig;
         this.databaseUtils = databaseUtils;
+        this.forbiddenError = forbiddenError;
         this.eventDispatcher = eventDispatcher;
+        this.logger = logger;
         this.oauthEnabled = Boolean.parseBoolean(oauthConfig.getOrDefault("enabled", "false").toString());
     }
 
@@ -47,7 +56,7 @@ public class DiscordOAuthHandler {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "OAuth is not enabled.");
             return;
         }
-    
+
         String userAgent = request.getHeader("User-Agent");
         String ipAddress = request.getHeader("X-Forwarded-For");
         if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
@@ -59,28 +68,28 @@ public class DiscordOAuthHandler {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing OAuth code parameter.");
             return;
         }
-    
+
         try {
             String accessToken = getAccessToken(code);
             String userId = getUserId(accessToken);
-    
+
             if (!isUserAllowed(userId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Unauthorized: You do not have access.");
+                forbiddenError.handle(request, response);
                 return;
             }
-            
+
             request.getSession().setAttribute("userId", userId);
             request.getSession().setAttribute("accessToken", accessToken);
-            
-            databaseUtils.insertDiscordId(userId);
-            eventDispatcher.discordUserLoginEvent(userId, ipAddress, userAgent);
 
-            response.sendRedirect("/index");    
+            databaseUtils.insertDiscordId(userId);
+            eventDispatcher.discordUserLoginEvent(userId, userAgent, ipAddress);
+
+            response.sendRedirect("/index");
         } catch (Exception e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error processing OAuth callback.");
             e.printStackTrace();
         }
-    }    
+    }
 
     public String encodeUri(String uri) throws IOException {
         return URLEncoder.encode(uri, StandardCharsets.UTF_8.toString());
@@ -139,5 +148,23 @@ public class DiscordOAuthHandler {
         String allowedUsers = String.join(",", (Iterable<String>) oauthConfig.get("allowed-users"));
         return allowedUsers.contains(userId);
     }
-    
+
+    public void updateConfig() {
+        Path dataFolder = Paths.get("plugins", "LitebansWeb");
+        Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
+
+        if (newConfig != null) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> oauthNewConfig = (Map<String, Object>) newConfig.get("discord-oauth");
+
+            if (oauthNewConfig != null) {
+                oauthConfig.clear();
+                oauthConfig.putAll(oauthNewConfig);
+            }
+
+            logger.info("OAuth configuration successfully reloaded.");
+        } else {
+            logger.severe("Failed to reload OAuth configuration.");
+        }
+    }
 }

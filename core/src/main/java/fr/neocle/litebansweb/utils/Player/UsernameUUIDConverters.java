@@ -150,7 +150,7 @@ public class UsernameUUIDConverters {
                     return "UUID not found";
                 }
             } else {
-                logger.warning("Failed to retrieve UUID. HTTP response code: " + status);
+                //logger.warning("Failed to retrieve UUID. HTTP response code: " + status);
                 return "Error retrieving player data";
             }
 

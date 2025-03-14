@@ -1,5 +1,6 @@
 package fr.neocle.litebansweb.bukkit.commands;
 
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,11 +26,11 @@ import java.util.logging.Logger;
 public class BaseCommandBukkit implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public BaseCommandBukkit(LitebansWebAPI api, Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger) {
-        subCommands.put("reload", new Reload(dataFolder, oauth2Handler, indexHandler, logger));
+    public BaseCommandBukkit(LitebansWebAPI api, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger, Map<String, Object> config) {
+        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, dataFolder, logger));
-        subCommands.put("discord", new DiscordWhitelist(api, dataFolder, logger));
+        subCommands.put("players", new PlayersWhitelist(api, authenticationHandler, config));
+        subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler, config));
     }
 
     @Override

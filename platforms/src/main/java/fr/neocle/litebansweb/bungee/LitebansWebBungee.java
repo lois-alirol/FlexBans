@@ -78,9 +78,11 @@ public class LitebansWebBungee extends Plugin implements Listener {
             bootstrap.getAPI(),
             bootstrap.getDataFolder(),
             bootstrap.getAuthenticatorHandler(),
+            bootstrap.getDiscordOAuthHandler(),
             bootstrap.getIndexHandler(),
             new DatabaseUtils("./plugins/LitebansWeb", getLogger()),
-            getLogger()
+            getLogger(),
+            bootstrap.getConfig()
         );
     
         getProxy().getPluginManager().registerCommand(this, baseCommand);

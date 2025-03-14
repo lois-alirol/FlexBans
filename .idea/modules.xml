@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/api/LitebansWebAPI.iml" filepath="$PROJECT_DIR$/api/LitebansWebAPI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/core/LitebansWebCore.iml" filepath="$PROJECT_DIR$/core/LitebansWebCore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/platforms/LitebansWebPlatforms.iml" filepath="$PROJECT_DIR$/platforms/LitebansWebPlatforms.iml" />
+    </modules>
+  </component>
+</project>

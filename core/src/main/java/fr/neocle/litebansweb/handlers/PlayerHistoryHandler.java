@@ -12,10 +12,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -80,33 +79,16 @@ public class PlayerHistoryHandler extends AbstractHandler {
             }
         }
 
+        String executor = request.getParameter("executor");
+        if (executor != null && (executor.matches("^[0-9a-fA-F]{32}$") || executor.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
+            executor = usernameUUIDConverters.UUIDtoUsername(executor);
+        }
+
         StringBuilder punishmentRows = new StringBuilder();
-        int totalPages = 0;
+        int totalPages;
 
         try {
-            String countQuery = "SELECT COUNT(*) FROM (" +
-                    "SELECT uuid FROM {bans} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT uuid FROM {mutes} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT uuid FROM {warnings} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT uuid FROM {kicks} WHERE uuid = ? " +
-                    ") AS t";
-
-            try (PreparedStatement countStmt = Database.get().prepareStatement(countQuery)) {
-                countStmt.setString(1, uuid);
-                countStmt.setString(2, uuid);
-                countStmt.setString(3, uuid);
-                countStmt.setString(4, uuid);
-
-                try (ResultSet rs = countStmt.executeQuery()) {
-                    if (rs.next()) {
-                        totalRecords = rs.getInt(1);
-                        totalPages = (int) Math.ceil((double) totalRecords / PAGE_SIZE);
-                    }
-                }
-            }
+            totalPages = getTotalPages(executor, uuid);
 
             if (page > totalPages && totalPages > 0) {
                 page = totalPages;
@@ -114,33 +96,11 @@ public class PlayerHistoryHandler extends AbstractHandler {
 
             int offset = (page - 1) * PAGE_SIZE;
 
-            String query = "SELECT id, uuid, reason, banned_by_name, time, until, type, ipban, removed_by_name, removed_by_date FROM (" +
-                    "SELECT id, uuid, reason, banned_by_name, time, until, 'Ban' AS type, ipban, removed_by_name, removed_by_date FROM {bans} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT id, uuid, reason, banned_by_name, time, until, 'Mute' AS type, ipban, removed_by_name, removed_by_date FROM {mutes} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT id, uuid, reason, banned_by_name, time, NULL AS until, 'Warning' AS type, 0 AS ipban, NULL AS removed_by_name, NULL AS removed_by_date FROM {warnings} WHERE uuid = ? " +
-                    "UNION ALL " +
-                    "SELECT id, uuid, reason, banned_by_name, time, NULL AS until, 'Kick' AS type, 0 AS ipban, NULL AS removed_by_name, NULL AS removed_by_date FROM {kicks} WHERE uuid = ? " +
-                    ") AS t ORDER BY time DESC LIMIT " + PAGE_SIZE + " OFFSET " + offset;
-
-            try (PreparedStatement stmt = Database.get().prepareStatement(query)) {
-                stmt.setString(1, uuid);
-                stmt.setString(2, uuid);
-                stmt.setString(3, uuid);
-                stmt.setString(4, uuid);
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        addPunishmentRow(rs, punishmentRows);
-                    }
-                }
-            }
+            fetchAndAddPunishments(punishmentRows, executor, uuid, offset);
 
         } catch (SQLException e) {
             e.printStackTrace();
-            logger.severe("SQL Exception: " + e.getMessage());
-            response.getWriter().write("Error: Unable to fetch player history.");
+            response.getWriter().write("Error: Unable to fetch punishments.");
             return;
         }
 
@@ -154,20 +114,122 @@ public class PlayerHistoryHandler extends AbstractHandler {
         String pageContent;
         try {
             pageContent = htmlTemplate.replace("{{punishment_rows}}", punishmentRows.toString())
-                                             .replace("{{player_name}}", capitalize(playerIdentifier))
-                                             .replace("{{current_page}}", String.valueOf(page))
-                                             .replace("{{total_pages}}", String.valueOf(totalPages))
-                                             .replace("{{favicon}}", (playerHeadImage.getPlayerHeadUrl(playerIdentifier, "32")))
-                                             .replace("{{player_description}}", playerDescription)
-                                             .replace("{{player_icon}}", (playerHeadImage.getPlayerHeadUrl(playerIdentifier, "512")))
-                                             .replace("{{server_color}}", serverColor)
-                                             .replace("{{server_color_hover}}", serverColorDarker);
+                    .replace("{{player_name}}", capitalize(playerIdentifier))
+                    .replace("{{current_page}}", String.valueOf(page))
+                    .replace("{{total_pages}}", String.valueOf(totalPages))
+                    .replace("{{favicon}}", (playerHeadImage.getPlayerHeadUrl(playerIdentifier, "32")))
+                    .replace("{{player_description}}", playerDescription)
+                    .replace("{{player_icon}}", (playerHeadImage.getPlayerHeadUrl(playerIdentifier, "512")))
+                    .replace("{{server_color}}", serverColor)
+                    .replace("{{server_color_hover}}", serverColorDarker);
         } catch (Exception e) {
             pageContent = "Error: Unable to generate player history page.";
             e.printStackTrace();
         }
 
         response.getWriter().write(pageContent);
+    }
+
+    private int getTotalPages(String player, String executor) throws SQLException {
+        StringBuilder baseQuery = new StringBuilder("SELECT COUNT(*) FROM (");
+        List<String> queries = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+
+        queries.add("SELECT uuid FROM litebans_bans WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT uuid FROM litebans_mutes WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT uuid FROM litebans_warnings WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT uuid FROM litebans_kicks WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t");
+
+        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+            int paramIndex = 1;
+            for (Object param : parameters) {
+                stmt.setString(paramIndex++, (String) param);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int totalRecords = rs.getInt(1);
+                    return (int) Math.ceil((double) totalRecords / PAGE_SIZE);
+                }
+            }
+        }
+        return 0;
+    }
+
+    private String buildWhereClause(String player) {
+        StringBuilder whereClause = new StringBuilder();
+
+        if (player != null && !player.isEmpty()) {
+            whereClause.append(" AND banned_by_name = ?");
+        }
+
+        return whereClause.toString();
+    }
+
+    private void fetchAndAddPunishments(StringBuilder punishmentRows, String executor, String player, int offset) throws SQLException {
+        StringBuilder baseQuery = new StringBuilder("SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (");
+        List<String> queries = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Ban' AS type FROM litebans_bans WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Mute' AS type FROM litebans_mutes WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Warning' AS type FROM litebans_warnings WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Kick' AS type FROM litebans_kicks WHERE uuid = ? " + buildWhereClause(executor));
+        parameters.add(player);
+        if (executor != null && !executor.isEmpty()) {
+            parameters.add(executor);
+        }
+
+        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t ORDER BY time DESC LIMIT ").append(PAGE_SIZE).append(" OFFSET ").append(offset);
+
+        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+            int paramIndex = 1;
+            for (Object param : parameters) {
+                stmt.setString(paramIndex++, (String) param);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    addPunishmentRow(rs, punishmentRows);
+                }
+            }
+        }
     }
 
     private void addPunishmentRow(ResultSet rs, StringBuilder punishmentRows) throws SQLException {
@@ -180,8 +242,32 @@ public class PlayerHistoryHandler extends AbstractHandler {
         boolean isIpBan = rs.getInt("ipban") == 1;
         int punishmentID = rs.getInt("id");
 
-        String removedByName = rs.getString("removed_by_name");
-        Timestamp removedByDate = rs.getTimestamp("removed_by_date");
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        boolean hasRemovedByName = false;
+        boolean hasRemovedByDate = false;
+
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i);
+            if (columnName.equalsIgnoreCase("removed_by_name")) {
+                hasRemovedByName = true;
+            } else if (columnName.equalsIgnoreCase("removed_by_date")) {
+                hasRemovedByDate = true;
+            }
+        }
+
+        String removedByName = " ";
+        if (hasRemovedByName) {
+            removedByName = rs.getString("removed_by_name");
+            if (removedByName == null) {
+                removedByName = " ";
+            }
+        }
+
+        Timestamp removedByDate = null;
+        if (hasRemovedByDate) {
+            removedByDate = rs.getTimestamp("removed_by_date");
+        }
 
         String date = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(time));
         String expirationDate = (until == 0 || until == -1) ? "Never" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(until));
@@ -233,44 +319,44 @@ public class PlayerHistoryHandler extends AbstractHandler {
         }
 
         try {
-            punishmentRows.append("<tr onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("/").append(punishmentID).append("';\">")
-                        // Type Column with Badge
-                        .append("<td>").append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
-                        .append(typeColorClass).append("'>").append(type).append("</span>").append("</td>")
+            punishmentRows.append("<tr onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("s/").append(punishmentID).append("';\">")
+                    // Type Column with Badge
+                    .append("<td>").append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
+                    .append(typeColorClass).append("'>").append(type).append("</span>").append("</td>")
 
-                        // Player Name Column
-                        .append("<td>").append("<img src='").append(playerHeadImage.getPlayerHeadUrl(playerName, "32")).append("' alt='Player Head' class='inline-block'> ")
-                        .append("<a href='/player/").append(playerName != null ? playerName : playerUUID).append("' onclick='event.stopPropagation();' class='hover:underline'>")
-                        .append(playerName != null ? playerName : playerUUID).append("</a>")
-                        .append("</td>")
+                    // Player Name Column
+                    .append("<td>").append("<img src='").append(playerHeadImage.getPlayerHeadUrl(playerName, "32")).append("' alt='Player Head' class='inline-block'> ")
+                    .append("<a href='/player/").append(playerName != null ? playerName : playerUUID).append("' onclick='event.stopPropagation();' class='hover:underline'>")
+                    .append(playerName != null ? playerName : playerUUID).append("</a>")
+                    .append("</td>")
 
-                        // Executor Name Column
-                        .append("<td>").append("<img src='").append(playerHeadImage.getPlayerHeadUrl(executor, "32")).append("' alt='Executor Head' class='inline-block'> ")
-                        .append("<a href='/moderator/").append(executor).append("' onclick='event.stopPropagation();' class='hover:underline'>")
-                        .append(executor).append("</a>")
-                        .append("</td>")
+                    // Executor Name Column
+                    .append("<td>").append("<img src='").append(playerHeadImage.getPlayerHeadUrl(executor, "32")).append("' alt='Executor Head' class='inline-block'> ")
+                    .append("<a href='/moderator/").append(executor).append("' onclick='event.stopPropagation();' class='hover:underline'>")
+                    .append(executor).append("</a>")
+                    .append("</td>")
 
-                        // Reason Column
-                        .append("<td class='px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis'>")
-                        .append(reason)
-                        .append("</td>")
+                    // Reason Column
+                    .append("<td class='px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis'>")
+                    .append(reason)
+                    .append("</td>")
 
-                        // Date Column
-                        .append("<td>").append(date).append("</td>")
+                    // Date Column
+                    .append("<td>").append(date).append("</td>")
 
-                        // Expiration Date Column
-                        .append("<td>").append(expirationDate).append("</td>")
+                    // Expiration Date Column
+                    .append("<td>").append(expirationDate).append("</td>")
 
-                        // Duration Column
-                        .append("<td>").append(duration).append("</td>")
+                    // Duration Column
+                    .append("<td>").append(duration).append("</td>")
 
-                        // Status Column with Badge
-                        .append("<td>")
-                        .append("<span class='flex items-center justify-center px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
-                        .append(badgeColorClass).append("'>").append(status).append("</span>")
-                        .append("</td>")
+                    // Status Column with Badge
+                    .append("<td>")
+                    .append("<span class='flex items-center justify-center px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
+                    .append(badgeColorClass).append("'>").append(status).append("</span>")
+                    .append("</td>")
 
-                        .append("</tr>");
+                    .append("</tr>");
         } catch (Exception e) {
             e.printStackTrace();
         }

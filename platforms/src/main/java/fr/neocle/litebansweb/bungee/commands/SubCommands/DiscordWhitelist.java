@@ -1,5 +1,6 @@
 package fr.neocle.litebansweb.bungee.commands.SubCommands;
 
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
@@ -19,10 +20,10 @@ import fr.neocle.litebansweb.locale.LanguageManager;
 public class DiscordWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(LitebansWebAPI api, Path dataFolder, Logger logger) {
+    public DiscordWhitelist(LitebansWebAPI api, Map<String, Object> config, DiscordOAuthHandler discordOAuthHandler) {
         super("discordwhitelist");
-        subCommands.put("add", new AddUser(api, dataFolder, logger));
-        subCommands.put("remove", new RemoveUser(api, dataFolder, logger));
+        subCommands.put("add", new AddUser(api, config, discordOAuthHandler));
+        subCommands.put("remove", new RemoveUser(api, config, discordOAuthHandler));
     }
 
     @Override

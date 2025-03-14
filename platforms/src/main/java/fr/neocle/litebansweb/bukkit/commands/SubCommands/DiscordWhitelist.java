@@ -1,5 +1,6 @@
 package fr.neocle.litebansweb.bukkit.commands.SubCommands;
 
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,9 +21,9 @@ import fr.neocle.litebansweb.locale.LanguageManager;
 public class DiscordWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(LitebansWebAPI api, Path dataFolder, Logger logger) {
-        subCommands.put("add", new AddUser(api, dataFolder, logger));
-        subCommands.put("remove", new RemoveUser(api, dataFolder, logger));
+    public DiscordWhitelist(LitebansWebAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
+        subCommands.put("add", new AddUser(api, discordOAuthHandler, config));
+        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler, config));
     }
 
     @Override

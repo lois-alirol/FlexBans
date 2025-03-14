@@ -1,5 +1,7 @@
 package fr.neocle.litebansweb.bungee.commands.SubCommands;
 
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
+import fr.neocle.litebansweb.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
@@ -19,10 +21,10 @@ import fr.neocle.litebansweb.locale.LanguageManager;
 public class PlayersWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(LitebansWebAPI api, Path dataFolder, Logger logger) {
+    public PlayersWhitelist(LitebansWebAPI api, Map<String, Object> config, AuthenticationHandler authenticationHandler) {
         super("players");
-        subCommands.put("add", new AddPlayer(api, dataFolder, logger));
-        subCommands.put("remove", new RemovePlayer(api, dataFolder, logger));
+        subCommands.put("add", new AddPlayer(api, authenticationHandler, config));
+        subCommands.put("remove", new RemovePlayer(api, authenticationHandler, config));
     }
 
     @Override

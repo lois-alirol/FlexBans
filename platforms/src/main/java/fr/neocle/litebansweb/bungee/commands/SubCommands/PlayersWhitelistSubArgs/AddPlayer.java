@@ -2,19 +2,21 @@ package fr.neocle.litebansweb.bungee.commands.SubCommands.PlayersWhitelistSubArg
 
 import fr.neocle.litebansweb.api.LitebansWebAPI;
 import fr.neocle.litebansweb.commands.PlayersWhitelistCommand;
+import fr.neocle.litebansweb.handlers.Security.AuthenticationHandler;
 import fr.neocle.litebansweb.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class AddPlayer extends Command {
     private final PlayersWhitelistCommand whitelistMethods;
 
-    public AddPlayer(LitebansWebAPI api, Path dataFolder, Logger logger) {
+    public AddPlayer(LitebansWebAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
         super("add");
-        this.whitelistMethods = new PlayersWhitelistCommand(api, dataFolder.resolve("config.yml"), logger) {
+        this.whitelistMethods = new PlayersWhitelistCommand(api, config, authenticationHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

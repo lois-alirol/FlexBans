@@ -18,15 +18,26 @@ public class DatabaseUtils {
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+    public DatabaseUtils(String pluginFolderPath, Logger logger) {
+        this.logger = logger;
+        this.jdbcUrl = "jdbc:h2:" + pluginFolderPath.toString() + "/database";
+    }
+
     public void startSessionCleanupTask(Connection connection) {
         scheduler.scheduleAtFixedRate(() -> {
             deleteOldSessions();
         }, 0, 30, TimeUnit.MINUTES);
     }
 
-    public DatabaseUtils(String pluginFolderPath, Logger logger) {
-        this.logger = logger;
-        this.jdbcUrl = "jdbc:h2:" + pluginFolderPath.toString() + "/database";
+    public void shutdown() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+        }
     }
 
     public void initializeConnection() {

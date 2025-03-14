@@ -65,6 +65,12 @@ public class LitebansWebBukkit extends JavaPlugin implements Listener {
         getServer().getPluginManager().disablePlugin(this);
     }
 
+    @Override
+    public void onDisable() {
+        bootstrap.getDatabaseUtils().shutdown();
+        bootstrap.getPlayerHeadImage().shutdown();
+    }
+
     private String getAddressFromConfig() {
         @SuppressWarnings("unchecked")
         Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
@@ -82,18 +88,14 @@ public class LitebansWebBukkit extends JavaPlugin implements Listener {
             bootstrap.getAPI(),
             bootstrap.getDataFolder(),
             bootstrap.getAuthenticatorHandler(),
+            bootstrap.getDiscordOAuthHandler(),
             bootstrap.getIndexHandler(),
             new DatabaseUtils("./plugins/LitebansWeb", getLogger()),
-            getLogger()
+            getLogger(),
+            bootstrap.getConfig()
         );
     
         getCommand("litebansweb").setExecutor(baseCommand);
         getCommand("litebansweb").setTabCompleter(baseCommand);
     }
-
-    @EventHandler
-    public void onPlayerWhitelisted(BukkitUserWhitelistedEvent event) {
-        getLogger().info("User " + event.getUserId() + " was whitelisted!");
-    }
-
 }

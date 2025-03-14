@@ -40,3 +40,12 @@ commands:
     reload:
       fail: "Failed to reload configuration."
       success: "LiteBansWeb configuration reloaded successfully."
+  help:
+    message: |
+      <gradient:#ffa600:#ffd04e>---==========≡≡≡≡<dark_gray>[ <bold><gradient:#ffa600:#ffd04e>LiteBansWeb</gradient></bold> ]</dark_gray>≡≡≡≡==========---
+      <#ffa600>> /lbw help</#ffa600> <gray>- shows this menu</gray>
+      <#ffa600>> /lbw reload <gray>- reloads configuration
+      <#ffa600>> /lbw verify <code> <gray>- verify your access to the dashboard (if https enabled)
+      <#ffa600>> /lbw players <add/remove> <player> <gray>- add a player to the dashboard whitelist
+      <#ffa600>> /lbw discord <add/remove> <user-id> <gray>- add a discord user to the dashboard whitelist
+      <gradient:#ffa600:#ffd04e>---============≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡============---
