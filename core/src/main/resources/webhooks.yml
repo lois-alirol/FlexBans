@@ -11,13 +11,13 @@ player-added-to-whitelist:
       url: ""
     thumbnail-url: "https://mc-heads.net/avatar/%player%"
     title:
-      text: "Player Whitelisted to LiteBansWeb"
+      text: "Player Whitelisted to FlexBans"
       url: "http://localhost/"
-    description: "```[+] Player %player% has been whitelisted to access the LiteBansWeb dashboard.```"
+    description: "```[+] Player %player% has been whitelisted to access the FlexBans dashboard.```"
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -34,13 +34,13 @@ player-removed-from-whitelist:
       url: ""
     thumbnail-url: "https://mc-heads.net/avatar/%player%"
     title:
-      text: "Player removed from LiteBansWeb"
+      text: "Player removed from FlexBans"
       url: "http://localhost/"
-    description: "```[-] Player %player% access has been revoked from the LiteBansWeb dashboard.```"
+    description: "```[-] Player %player% access has been revoked from the FlexBans dashboard.```"
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -57,13 +57,13 @@ discord-user-added-to-whitelist:
       url: ""
     thumbnail-url: "https://static.vecteezy.com/system/resources/previews/023/986/880/non_2x/discord-logo-discord-logo-transparent-discord-icon-transparent-free-free-png.png"
     title:
-      text: "User Whitelisted to LiteBansWeb"
+      text: "User Whitelisted to FlexBans"
       url: "http://localhost/"
-    description: "```[+] User %user% has been whitelisted to access the LiteBansWeb dashboard.```"
+    description: "```[+] User %user% has been whitelisted to access the FlexBans dashboard.```"
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -80,13 +80,13 @@ discord-user-removed-from-whitelist:
       url: ""
     thumbnail-url: "https://static.vecteezy.com/system/resources/previews/023/986/880/non_2x/discord-logo-discord-logo-transparent-discord-icon-transparent-free-free-png.png"
     title:
-      text: "User removed from LiteBansWeb"
+      text: "User removed from FlexBans"
       url: "http://localhost/"
-    description: "```[+] User %user% access has been revoked from the LiteBansWeb dashboard.```"
+    description: "```[+] User %user% access has been revoked from the FlexBans dashboard.```"
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -109,7 +109,7 @@ player-login:
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -132,7 +132,7 @@ player-register:
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -155,7 +155,7 @@ discord-user-login:
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true
 
@@ -178,6 +178,6 @@ user-logout:
     fields: [ ]
     image-url: ""
     footer:
-      text: "LitebansWeb"
+      text: "FlexBans"
       icon-url: "https://mc-heads.net/avatar/Neocle"
     timestamp: true

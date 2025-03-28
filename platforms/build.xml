@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <!DOCTYPE xml>
-<project name="LiteBansWeb" default="Build">
+<project name="FlexBans" default="Build">
     <target name="Build">
-        <jar jarfile="C:/Users/loisa/Downloads/TestServers/Velocity Server Setup/plugins/LiteBansWeb-1.0-SNAPSHOT.jar"
+        <jar jarfile="C:/Users/loisa/Downloads/TestServers/Velocity Server Setup/plugins/FlexBans-1.0-SNAPSHOT.jar"
              basedir="./target/classes/"
              includes="**/*">
 

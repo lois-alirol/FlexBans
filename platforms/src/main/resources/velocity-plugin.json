@@ -1,11 +1,11 @@
 {
-    "id": "litebansweb",
-    "name": "Litebans Web",
+    "id": "flexbans",
+    "name": "FlexBans",
     "version": "1.0-SNAPSHOT",
     "authors": [
       "Neocle"
     ],
-    "main": "fr.neocle.litebansweb.LitebansWebVelocity",
+    "main": "fr.neocle.flexbans.FlexBansVelocity",
     "dependencies": [
       {
         "id": "velocity",
@@ -13,7 +13,7 @@
       },
       {
         "id": "litebans",
-        "optional": false
+        "optional": true
       },
       {
         "id": "floodgate",

@@ -1,28 +1,28 @@
-name: LitebansWeb
+name: FlexBans
 api: 1.0.0
 api-version: 1.13
-main: fr.neocle.litebansweb.bukkit.LitebansWebBukkit
+main: fr.neocle.flexbans.bukkit.FlexBansBukkit
 version: 1.0-SNAPSHOT
 author: Neocle
 
 commands:
-  litebansweb:
-    description: Main command for LitebansWeb plugin.
-    usage: "/litebansweb <subcommand>"
-    aliases: [lw, lbw]
-    permission: litebansweb.use
+  flexbans:
+    description: Main command for FlexBans plugin.
+    usage: "/flexbans <subcommand>"
+    aliases: [ lw, lbw ]
+    permission: flexbans.use
     permission-message: You do not have permission to execute this command.
 
 permissions:
-  litebansweb.use:
-    description: Allows access to the LitebansWeb commands.
+  flexbans.use:
+    description: Allows access to the FlexBans commands.
     default: true
 
-  litebansweb.reload:
-    description: Allows reloading the LitebansWeb configuration.
+  flexbans.reload:
+    description: Allows reloading the FlexBans configuration.
     default: op
 
-  litebansweb.verify:
+  flexbans.verify:
     description: Allows users to verify their access to the dashboard.
     default: true
 

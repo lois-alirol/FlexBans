@@ -1,22 +1,40 @@
-#    __    _ __       __                    _       __     __  
-#   / /   (_) /____  / /_  ____ _____  ____| |     / /__  / /_ 
-#  / /   / / __/ _ \/ __ \/ __ `/ __ \/ ___/ | /| / / _ \/ __ \
-# / /___/ / /_/  __/ /_/ / /_/ / / / (__  )| |/ |/ /  __/ /_/ /
-#/_____/_/\__/\___/_.___/\__,_/_/ /_/____/ |__/|__/\___/_.___/ 
-#                                                              
+#     ________          ____
+#    / ____/ /__  _  __/ __ )____ _____  _____
+#   / /_  / / _ \| |/_/ __  / __ `/ __ \/ ___/
+#  / __/ / /  __/>  </ /_/ / /_/ / / / (__  )
+# /_/   /_/\___/_/|_/_____/\__,_/_/ /_/____/
+#
+# Developed and actively maintained by Neocle
+# Support server at https://discord.gg/zN5kfrW2UQ
+#
 #
 # The port that will host the web pages.
 # If you are using a hosting solution like Pterodactyl, 
 # make sure to allocate a new port in the "Network" tab of your panel.
 license-key: "X"
 
-#'locale' will set the language to the same as the system language
-language: "en_EN"
+# 'locale' will set the language to the same as the system language
+language: "en_US"
 
 webserver:
+  enabled: true
   port: 8080
   url: "localhost"
   https: true
+
+database:
+  #H2, SQLITE or MYSQL are supported. You will most likely need MySQL if you run a multi-proxy instance.
+  type: "H2"
+  hostname: "example.com"
+  port: 3306
+  database: "flexbans"
+  username: "root"
+  password: "mypassword"
+
+
+punishments-system:
+  enabled: true
+
 
 # Settings for how the server will appear on the web page.
 server-display:
@@ -52,7 +70,7 @@ discord-oauth:
 
 password-auth:
   enabled: true
-  allowed-players: []
+  allowed-players: [ ]
 
 
 # DO NOT TOUCH

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>fr.neocle</groupId>
-    <artifactId>LitebansWeb</artifactId>
+    <artifactId>FlexBans</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -24,7 +24,7 @@
                     <relocations>
                         <relocation>
                         <pattern>org.bstats</pattern>
-                        <shadedPattern>fr.neocle.litebansweb</shadedPattern>
+                        <shadedPattern>fr.neocle.flexbans</shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>

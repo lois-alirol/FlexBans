@@ -1,15 +1,15 @@
-name: LitebansWeb
-main: fr.neocle.litebansweb.bungee.LitebansWebBungee
+name: FlexBans
+main: fr.neocle.flexbans.bungee.FlexBansBungee
 version: 1.0-SNAPSHOT
 author: Neocle
 softDepends:
   - Litebans
 commands:
-  litebansweb:
-    description: Reloads the LitebansWeb configuration.
-    aliases: [lw, lbw]
-    permission: litebansweb.reload
+  flexbans:
+    description: Reloads the FlexBans configuration.
+    aliases: [ lw, lbw ]
+    permission: flexbans.reload
 permissions:
-  litebansweb.reload:
-    description: Allows reloading the LitebansWeb configuration.
+  flexbans.reload:
+    description: Allows reloading the FlexBans configuration.
     default: admin

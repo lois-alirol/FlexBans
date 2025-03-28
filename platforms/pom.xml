@@ -5,13 +5,13 @@
 
     <parent>
         <groupId>fr.neocle</groupId>
-        <artifactId>LitebansWeb</artifactId>
+        <artifactId>FlexBans</artifactId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>fr.neocle</groupId>
-    <artifactId>LitebansWebPlatforms</artifactId>
+    <artifactId>FlexBansPlatforms</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
@@ -31,13 +31,13 @@
 
         <dependency>
             <groupId>fr.neocle</groupId>
-            <artifactId>LitebansWebCore</artifactId>
+            <artifactId>FlexBansCore</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>fr.neocle</groupId>
-            <artifactId>LitebansWebAPI</artifactId>
+            <artifactId>FlexBansAPI</artifactId>
             <version>1.0.13</version>
         </dependency>
 
@@ -99,8 +99,8 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <finalName>LiteBansWeb-${project.version}</finalName>
-                            <!--<outputDirectory>${project.parent.basedir}/target</outputDirectory>-->
+                            <finalName>FlexBans-${project.version}</finalName>
+                            <outputDirectory>${project.parent.basedir}/target</outputDirectory>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

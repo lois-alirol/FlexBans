@@ -6,9 +6,9 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="LitebansWebCore" />
-        <module name="LitebansWebAPI" />
-        <module name="LitebansWebPlatforms" />
+        <module name="FlexBansCore" />
+        <module name="FlexBansPlatforms" />
+        <module name="FlexBansAPI" />
       </profile>
     </annotationProcessing>
   </component>
