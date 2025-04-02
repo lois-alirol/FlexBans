@@ -12,9 +12,9 @@ import java.util.Map;
 public class RemoveUser extends Command {
     private final DiscordWhitelistCommand whitelistMethods;
 
-    public RemoveUser(FlexBansAPI api, Map<String, Object> config, DiscordOAuthHandler discordOAuthHandler) {
+    public RemoveUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
         super("remove");
-        this.whitelistMethods = new DiscordWhitelistCommand(api, config, discordOAuthHandler) {
+        this.whitelistMethods = new DiscordWhitelistCommand(api, discordOAuthHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.handlers.Security;
 
 import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.utils.ResourceLoader;
@@ -12,18 +13,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class RegisterHandler extends AbstractHandler {
     private final Logger logger;
-    private final Map<String, Object> config;
     private final EventDispatcher eventDispatcher;
     private final UserManager userManager;
 
-    public RegisterHandler(Logger logger, Map<String, Object> config, DatabaseUtils databaseUtils, EventDispatcher eventDispatcher) {
+    public RegisterHandler(Logger logger, DatabaseUtils databaseUtils, EventDispatcher eventDispatcher) {
         this.logger = logger;
-        this.config = config;
         this.eventDispatcher = eventDispatcher;
         this.userManager = databaseUtils.getUserManager();
     }
@@ -47,14 +45,12 @@ public class RegisterHandler extends AbstractHandler {
                 return;
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-            String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
-            String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-            String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-            String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-            String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
+            String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+            String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+            String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+            String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+            String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+            String serverName = (String) ConfigManager.getConfigValue("server-display.name");
 
             String pageContent = htmlTemplate
                     .replace("{{server_name}}", serverName)
@@ -144,13 +140,15 @@ public class RegisterHandler extends AbstractHandler {
 
     @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password-auth");
-        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed-players");
+        Object rawValue = ConfigManager.getConfigValue("password-auth.allowed-players");
 
-        if (allowedPlayers == null || allowedPlayers.isEmpty()) {
-            return false;
+        if (rawValue instanceof List<?> list) {
+            List<String> allowedPlayers = list.stream()
+                    .map(Object::toString)
+                    .toList();
+            return allowedPlayers.contains(playerName);
         }
 
-        return allowedPlayers.contains(playerName);
+        return false;
     }
 }

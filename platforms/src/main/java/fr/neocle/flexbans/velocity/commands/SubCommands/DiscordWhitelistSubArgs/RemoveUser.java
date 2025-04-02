@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class RemoveUser extends DiscordWhitelistCommand implements SimpleCommand {
 
-    public RemoveUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
-        super(api, config, discordOAuthHandler);
+    public RemoveUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
+        super(api, discordOAuthHandler);
     }
 
     @Override

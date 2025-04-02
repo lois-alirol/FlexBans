@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.bungee.commands.SubCommands;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.handlers.IndexHandler;
 import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
@@ -33,7 +34,7 @@ public class Reload extends Command {
             return;
         }
 
-        Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
+        Map<String, Object> newConfig = ConfigManager.getConfig();
 
         if (newConfig != null) {
             indexHandler.updateConfig(newConfig);

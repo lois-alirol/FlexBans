@@ -18,10 +18,10 @@ import fr.neocle.flexbans.locale.LanguageManager;
 public class PlayersWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(FlexBansAPI api, Map<String, Object> config, AuthenticationHandler authenticationHandler) {
+    public PlayersWhitelist(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
         super("players");
-        subCommands.put("add", new AddPlayer(api, authenticationHandler, config));
-        subCommands.put("remove", new RemovePlayer(api, authenticationHandler, config));
+        subCommands.put("add", new AddPlayer(api, authenticationHandler));
+        subCommands.put("remove", new RemovePlayer(api, authenticationHandler));
     }
 
     @Override

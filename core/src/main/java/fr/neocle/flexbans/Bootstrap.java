@@ -6,6 +6,9 @@ import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.ban.BanExecutor;
 import fr.neocle.flexbans.commands.punishments.ban.BanPlatformHandler;
 import fr.neocle.flexbans.commands.punishments.ban.platforms.VelocityBan;
+import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
+import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.configs.WebhooksConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handlers.Errors.ForbiddenError;
 import fr.neocle.flexbans.handlers.Errors.InternalServerError;
@@ -82,6 +85,7 @@ public class Bootstrap {
     protected JettyReloader jettyReloader;
     protected PlayerHeadImage playerHeadImage;
     protected BanExecutor banExecutor;
+    protected UnbanExecutor unbanExecutor;
     protected BanPlatformHandler banPlatformHandler;
     protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
@@ -105,42 +109,8 @@ public class Bootstrap {
                 logger.info("Created FlexBans directory.");
             }
 
-            Path configFilePath = dataFolder.resolve("config.yml");
-            Path webhooksConfigFilePath = dataFolder.resolve("webhooks.yml");
-
-            if (!Files.exists(configFilePath)) {
-                try (InputStream defaultConfig = getClass().getClassLoader().getResourceAsStream("config.yml")) {
-                    if (defaultConfig != null) {
-                        Files.copy(defaultConfig, configFilePath);
-                        logger.info("Created default config.yml.");
-                    } else {
-                        logger.severe("Default config.yml not found in plugin resources.");
-                    }
-                }
-            }
-
-            if (!Files.exists(webhooksConfigFilePath)) {
-                try (InputStream defaultWebHooksConfig = getClass().getClassLoader().getResourceAsStream("webhooks.yml")) {
-                    if (defaultWebHooksConfig != null) {
-                        Files.copy(defaultWebHooksConfig, webhooksConfigFilePath);
-                        logger.info("Created default webhooks.yml.");
-                    } else {
-                        logger.severe("Default webhooks.yml not found in plugin resources.");
-                    }
-                }
-            }
-
-            config = ResourceLoader.loadConfig(dataFolder, logger);
-            if (config == null) {
-                logger.severe("Failed to load the config. Web server not started.");
-                return;
-            }
-
-            webhooksConfig = ResourceLoader.loadWebhooksConfig(dataFolder, logger);
-            if (webhooksConfig == null) {
-                logger.severe("Failed to load webhooks config. Those will not work.");
-                return;
-            }
+            ConfigManager.initialize(logger, dataFolder);
+            WebhooksConfigManager.initialize(logger, dataFolder);
 
             initializeDatabase(config);
             initializeHandlers(platform);
@@ -153,17 +123,17 @@ public class Bootstrap {
     }
 
     private void initializeHandlers(String platform) throws URISyntaxException {
-        forbiddenError = new ForbiddenError(config, logger);
-        notFoundError = new NotFoundError(config, logger);
+        forbiddenError = new ForbiddenError(logger);
+        notFoundError = new NotFoundError(logger);
 
         usernameUUIDConverters = new UsernameUUIDConverters();
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
         DurationCalculator durationCalculator = new DurationCalculator();
 
-        indexHandler = new IndexHandler(config, usernameUUIDConverters, durationCalculator, playerHeadImage);
-        playerHistoryHandler = new PlayerHistoryHandler(config, usernameUUIDConverters, durationCalculator, playerHeadImage);
-        moderatorHistoryHandler = new ModeratorHistoryHandler(config, usernameUUIDConverters, durationCalculator, playerHeadImage);
-        punishmentDetailsHandler = new PunishmentDetailsHandler(config, usernameUUIDConverters, durationCalculator, playerHeadImage, databaseUtils);
+        indexHandler = new IndexHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
+        playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
+        moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
+        punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, durationCalculator, playerHeadImage, databaseUtils);
         playerHeadHandler = new PlayerHeadHandler(dataFolder, notFoundError);
 
         scriptsHandler = new ScriptsHandler(notFoundError);
@@ -188,23 +158,15 @@ public class Bootstrap {
                 return;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> oauthConfig = (Map<String, Object>) config.get("discord-oauth");
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> loginConfig = (Map<String, Object>) config.get("password-auth");
-
         revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution);
         codeGenerator = new CodeGenerator();
-        codeVerificationHandler = new CodeVerificationHandler(logger, config, codeGenerator, databaseUtils);
-        registerHandler = new RegisterHandler(logger, config, databaseUtils, eventDispatcher);
-        loginHandler = new LoginHandler(logger, config, databaseUtils, eventDispatcher);
-        discordOAuthHandler = new DiscordOAuthHandler(oauthConfig, databaseUtils, forbiddenError, eventDispatcher, logger);
-        newPunishmentHandler = new NewPunishmentHandler(config, commandsExecution, databaseUtils);
+        codeVerificationHandler = new CodeVerificationHandler(logger, codeGenerator, databaseUtils);
+        registerHandler = new RegisterHandler(logger, databaseUtils, eventDispatcher);
+        loginHandler = new LoginHandler(logger, databaseUtils, eventDispatcher);
+        discordOAuthHandler = new DiscordOAuthHandler(databaseUtils, forbiddenError, eventDispatcher, logger);
+        newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils);
 
         authHandler = new AuthenticationHandler(
-                oauthConfig,
-                loginConfig,
                 indexHandler,
                 playerHistoryHandler,
                 moderatorHistoryHandler,
@@ -229,7 +191,7 @@ public class Bootstrap {
     }
 
     public void initializeLanguage() {
-        String lang = (String) config.get("language");
+        String lang = (String) ConfigManager.getConfigValue("language");
 
         if ("locale".equalsIgnoreCase(lang)) {
             Locale defaultLocale = Locale.getDefault();
@@ -243,6 +205,7 @@ public class Bootstrap {
 
     public void initializeCommands() {
         banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
+        unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils);
     }
 
     public void initializeAPI(EventDispatcher eventDispatcher) {
@@ -250,15 +213,12 @@ public class Bootstrap {
     }
 
     public void initializeDatabase(Map<String, Object> config) throws SQLException {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> databaseConfig = (Map<String, Object>) config.get("database");
-
-        String type = (String) databaseConfig.getOrDefault("type", "h2");
-        String host = (String) databaseConfig.getOrDefault("hostname", "localhost");
-        Integer port = databaseConfig.containsKey("port") ? (Integer) databaseConfig.get("port") : 3306;
-        String database = (String) databaseConfig.getOrDefault("database", "default_db");
-        String username = (String) databaseConfig.getOrDefault("username", "root");
-        String password = (String) databaseConfig.getOrDefault("password", "");
+        String type = (String) ConfigManager.getConfigValue("database.type");
+        String host = (String) ConfigManager.getConfigValue("database.hostname");
+        int port = Integer.parseInt((String) ConfigManager.getConfigValue("database.port"));
+        String database = (String) ConfigManager.getConfigValue("database.database");
+        String username = (String) ConfigManager.getConfigValue("database.username");
+        String password = (String) ConfigManager.getConfigValue("database.password");
 
         databaseUtils = new DatabaseUtils("./plugins/FlexBans", type, host, port, database, username, password, logger);
         databaseUtils.initialize();
@@ -269,8 +229,8 @@ public class Bootstrap {
 
         AbstractHandler securityHandler = new HttpsEnforcementHandler(config, logger);
         ResourceHandler resourceHandler = new ResourceHandler();
-        DomainFilter domainFilter = new DomainFilter(config, logger);
-        HomeHandler homeHandler = new HomeHandler(config);
+        DomainFilter domainFilter = new DomainFilter(logger);
+        HomeHandler homeHandler = new HomeHandler();
 
         jettyReloader = new JettyReloader(server, logger);
 
@@ -278,7 +238,7 @@ public class Bootstrap {
         resourceHandler.setWelcomeFiles(new String[]{"home.html"});
         resourceHandler.setResourceBase(getClass().getClassLoader().getResource("web").toExternalForm());
 
-        InternalServerError errorHandler = new InternalServerError(this.config, this.logger);
+        InternalServerError errorHandler = new InternalServerError(logger);
         server.setErrorHandler(errorHandler);
 
         HandlerList handlerList = new HandlerList();
@@ -324,21 +284,12 @@ public class Bootstrap {
         if (isWebServerEnabled) {
             logger.info(yellow + "Webserver is running on " + lightYellow + address + ":" + port + reset);
         }
-        ;
         logger.info(yellow + "Running on platform: " + lightYellow + platform + " " + version + reset);
         logger.info(yellow + "=======================================================================" + reset);
     }
 
     public Path getDataFolder() {
         return dataFolder;
-    }
-
-    public Map<String, Object> getConfig() {
-        return config;
-    }
-
-    public Map<String, Object> getWebhooksConfig() {
-        return webhooksConfig;
     }
 
     public Logger getLogger() {
@@ -375,5 +326,9 @@ public class Bootstrap {
 
     public BanExecutor getBanExecutor() {
         return banExecutor;
+    }
+
+    public UnbanExecutor getUnbanExecutor() {
+        return unbanExecutor;
     }
 }

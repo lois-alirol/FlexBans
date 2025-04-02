@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.handlers.Security;
 
 import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.Dashboard.SessionManager;
 import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
@@ -26,10 +27,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class AuthenticationHandler extends AbstractHandler {
-
-    private final Map<String, Object> oauthConfig;
-    private final Map<String, Object> loginConfig;
-
     private final IndexHandler indexHandler;
     private final PlayerHistoryHandler playerHistoryHandler;
     private final ModeratorHistoryHandler moderatorHistoryHandler;
@@ -58,8 +55,6 @@ public class AuthenticationHandler extends AbstractHandler {
     private final boolean loginEnabled;
 
     public AuthenticationHandler(
-            Map<String, Object> oauthConfig,
-            Map<String, Object> loginConfig,
             IndexHandler indexHandler,
             PlayerHistoryHandler playerHistoryHandler,
             ModeratorHistoryHandler moderatorHistoryHandler,
@@ -78,8 +73,6 @@ public class AuthenticationHandler extends AbstractHandler {
             EventDispatcher eventDispatcher,
             Logger logger) {
 
-        this.oauthConfig = oauthConfig;
-        this.loginConfig = loginConfig;
         this.indexHandler = indexHandler;
         this.playerHistoryHandler = playerHistoryHandler;
         this.moderatorHistoryHandler = moderatorHistoryHandler;
@@ -98,8 +91,8 @@ public class AuthenticationHandler extends AbstractHandler {
         this.eventDispatcher = eventDispatcher;
         this.logger = logger;
 
-        this.oauthEnabled = Boolean.parseBoolean(oauthConfig.getOrDefault("enabled", "false").toString());
-        this.loginEnabled = Boolean.parseBoolean(loginConfig.getOrDefault("enabled", "false").toString());
+        this.oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
+        this.loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
 
         this.sessionManager = databaseUtils.getSessionManager();
         this.userManager = databaseUtils.getUserManager();
@@ -315,22 +308,7 @@ public class AuthenticationHandler extends AbstractHandler {
     }
 
     public void updateConfig() {
-        Path dataFolder = Paths.get("plugins", "FlexBans");
-        Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
-
-        if (newConfig != null) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> authNewConfig = (Map<String, Object>) newConfig.get("password-auth");
-
-            if (authNewConfig != null) {
-                loginConfig.clear();
-                loginConfig.putAll(authNewConfig);
-            }
-
-            logger.info("OAuth configuration successfully reloaded.");
-        } else {
-            logger.severe("Failed to reload OAuth configuration.");
-        }
+        // TO DO
     }
 
     public void setNewPunishmentHandler(NewPunishmentHandler newPunishmentHandler) {
@@ -339,13 +317,17 @@ public class AuthenticationHandler extends AbstractHandler {
 
     @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        List<String> allowedPlayers = (List<String>) loginConfig.get("allowed-players");
+        Object rawValue = ConfigManager.getConfigValue("password-auth.allowed-players");
 
-        if (allowedPlayers == null || allowedPlayers.isEmpty()) {
-            return false;
+        logger.info(rawValue.toString());
+
+        if (rawValue instanceof List<?> list) {
+            List<String> allowedPlayers = list.stream()
+                    .map(Object::toString)
+                    .toList();
+            return allowedPlayers.contains(playerName);
         }
 
-        return allowedPlayers.contains(playerName);
+        return false;
     }
-
 }

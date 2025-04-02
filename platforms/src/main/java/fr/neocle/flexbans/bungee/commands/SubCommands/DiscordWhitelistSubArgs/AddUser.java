@@ -12,9 +12,9 @@ import java.util.Map;
 public class AddUser extends Command {
     private final DiscordWhitelistCommand whitelistMethods;
 
-    public AddUser(FlexBansAPI api, Map<String, Object> config, DiscordOAuthHandler discordOAuthHandler) {
+    public AddUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
         super("add");
-        this.whitelistMethods = new DiscordWhitelistCommand(api, config, discordOAuthHandler) {
+        this.whitelistMethods = new DiscordWhitelistCommand(api, discordOAuthHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

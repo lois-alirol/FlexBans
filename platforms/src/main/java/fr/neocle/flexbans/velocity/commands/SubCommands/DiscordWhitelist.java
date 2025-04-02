@@ -17,9 +17,9 @@ import java.util.Map;
 public class DiscordWhitelist implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(FlexBansAPI api, ProxyServer proxyServer, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
-        subCommands.put("add", new AddUser(api, discordOAuthHandler, config));
-        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler, config));
+    public DiscordWhitelist(FlexBansAPI api, ProxyServer proxyServer, DiscordOAuthHandler discordOAuthHandler) {
+        subCommands.put("add", new AddUser(api, discordOAuthHandler));
+        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler));
     }
 
     @Override

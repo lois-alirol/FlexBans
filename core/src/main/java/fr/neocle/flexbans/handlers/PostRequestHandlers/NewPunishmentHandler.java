@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers.PostRequestHandlers;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
 import fr.neocle.flexbans.utils.ResourceLoader;
@@ -15,13 +16,11 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class NewPunishmentHandler extends AbstractHandler {
-    private final Map<String, Object> config;
     private Logger logger = Logger.getLogger("FlexBans");
     private final CommandsExecution commandsExecution;
     private final DatabaseUtils databaseUtils;
 
-    public NewPunishmentHandler(Map<String, Object> config, CommandsExecution commandsExecution, DatabaseUtils databaseUtils) {
-        this.config = config;
+    public NewPunishmentHandler(CommandsExecution commandsExecution, DatabaseUtils databaseUtils) {
         this.commandsExecution = commandsExecution;
         this.databaseUtils = databaseUtils;
     }
@@ -47,13 +46,12 @@ public class NewPunishmentHandler extends AbstractHandler {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-        String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-        String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-        String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-        String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
+        String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+        String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+        String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+
         String userId = (String) request.getSession().getAttribute("userId");
         String playerName = (String) request.getSession().getAttribute("playerName");
         String identifier = "";

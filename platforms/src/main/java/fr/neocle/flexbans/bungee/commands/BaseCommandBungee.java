@@ -24,13 +24,16 @@ import java.util.logging.Logger;
 public class BaseCommandBungee extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public BaseCommandBungee(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger, Map<String, Object> config) {
+    public BaseCommandBungee(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler,
+                             DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler,
+                             DatabaseUtils databaseUtils, Logger logger) {
+
         super("flexbans", "flexbans.verify", "fb");
 
         subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, config, authenticationHandler));
-        subCommands.put("discord", new DiscordWhitelist(api, config, discordOAuthHandler));
+        subCommands.put("players", new PlayersWhitelist(api, authenticationHandler));
+        subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler));
     }
 
     @Override

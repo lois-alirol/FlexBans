@@ -16,18 +16,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class ConfigManager {
+public class WebhooksConfigManager {
     private static Logger logger;
-    private static File configFile;
+    private static File webhooksConfigFile;
     private static Yaml yaml;
     private static Node rootNode;
-    private static Map<String, Object> configData = new HashMap<>();
+    private static Map<String, Object> webhooksConfigData = new HashMap<>();
 
-    private static final String DEFAULT_CONFIG = "config.yml";
+    private static final String DEFAULT_WEBHOOKS_CONFIG = "webhooks.yml";
 
     public static void initialize(Logger logger, Path dataFolder) {
-        ConfigManager.logger = logger;
-        configFile = new File(dataFolder.toFile(), DEFAULT_CONFIG);
+        WebhooksConfigManager.logger = logger;
+        webhooksConfigFile = new File(dataFolder.toFile(), DEFAULT_WEBHOOKS_CONFIG);
 
         LoaderOptions loaderOptions = new LoaderOptions();
         loaderOptions.setProcessComments(true);
@@ -45,10 +45,10 @@ public class ConfigManager {
     }
 
     private static void ensureConfigExists() {
-        if (!configFile.exists()) {
-            try (InputStream resourceStream = ConfigManager.class.getClassLoader().getResourceAsStream(DEFAULT_CONFIG)) {
+        if (!webhooksConfigFile.exists()) {
+            try (InputStream resourceStream = WebhooksConfigManager.class.getClassLoader().getResourceAsStream(DEFAULT_WEBHOOKS_CONFIG)) {
                 if (resourceStream != null) {
-                    Files.copy(resourceStream, configFile.toPath());
+                    Files.copy(resourceStream, webhooksConfigFile.toPath());
                 } else {
                     logger.warning("Missing default config.yml. Contact plugin's developer.");
                 }
@@ -59,16 +59,16 @@ public class ConfigManager {
     }
 
     public static void loadConfig() {
-        if (!configFile.exists()) {
-            logger.warning("Config file not found: " + DEFAULT_CONFIG);
+        if (!webhooksConfigFile.exists()) {
+            logger.warning("Config file not found: " + DEFAULT_WEBHOOKS_CONFIG);
             return;
         }
 
-        try (FileReader reader = new FileReader(configFile)) {
+        try (FileReader reader = new FileReader(webhooksConfigFile)) {
             rootNode = yaml.compose(reader);
             if (rootNode instanceof MappingNode mappingNode) {
                 ensureDefaults(mappingNode);
-                configData.clear();
+                webhooksConfigData.clear();
                 parseConfig(mappingNode, "");
             }
         } catch (IOException e) {
@@ -77,13 +77,13 @@ public class ConfigManager {
     }
 
     private static void ensureDefaults(MappingNode root) {
-        try (InputStream defaultStream = ConfigManager.class.getClassLoader().getResourceAsStream(DEFAULT_CONFIG)) {
+        try (InputStream defaultStream = WebhooksConfigManager.class.getClassLoader().getResourceAsStream(DEFAULT_WEBHOOKS_CONFIG)) {
             if (defaultStream != null) {
                 Node defaultRoot = yaml.compose(new InputStreamReader(defaultStream));
                 if (defaultRoot instanceof MappingNode defaultMappingNode) {
                     boolean updated = mergeDefaults(root, defaultMappingNode);
                     if (updated) {
-                        try (FileWriter writer = new FileWriter(configFile)) {
+                        try (FileWriter writer = new FileWriter(webhooksConfigFile)) {
                             yaml.serialize(root, writer);
                         }
                     }
@@ -128,7 +128,7 @@ public class ConfigManager {
                 Node valueNode = tuple.getValueNode();
 
                 if (valueNode instanceof ScalarNode scalarNode) {
-                    configData.put(key, scalarNode.getValue());
+                    webhooksConfigData.put(key, scalarNode.getValue());
                 } else if (valueNode instanceof MappingNode subNode) {
                     parseConfig(subNode, key);
                 } else if (valueNode instanceof SequenceNode sequenceNode) {
@@ -138,22 +138,22 @@ public class ConfigManager {
                             listValues.add(listItemNode.getValue());
                         }
                     }
-                    configData.put(key, listValues);
+                    webhooksConfigData.put(key, listValues);
                 }
             }
         }
     }
 
     public static void reload() {
-        configData.clear();
+        webhooksConfigData.clear();
         loadConfig();
     }
 
     public static Object getConfigValue(String key) {
-        return configData.getOrDefault(key, key);
+        return webhooksConfigData.getOrDefault(key, key);
     }
 
     public static Map<String, Object> getConfig() {
-        return configData;
+        return webhooksConfigData;
     }
 }

@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.utils.DurationCalculator;
 import fr.neocle.flexbans.utils.ResourceLoader;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class ModeratorHistoryHandler extends AbstractHandler {
-    private final Map<String, Object> config;
     private Logger logger = Logger.getLogger("FlexBans");
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
@@ -33,8 +33,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     private static final int PAGE_SIZE = 20;
     private int totalRecords;
 
-    public ModeratorHistoryHandler(Map<String, Object> config, UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
-        this.config = config;
+    public ModeratorHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
         this.durationCalculator = durationCalculator;
@@ -105,10 +104,8 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-        String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
+        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
 
         String totalPunishments = String.valueOf(totalRecords);
         String moderatorDescription = "Check all the punishments of " + capitalize(moderatorIdentifier) + " here. So far, they executed a total of " + totalPunishments + " punishments.";

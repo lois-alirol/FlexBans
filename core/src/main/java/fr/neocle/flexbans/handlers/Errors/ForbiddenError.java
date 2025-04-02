@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers.Errors;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.utils.ResourceLoader;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,10 +11,8 @@ import java.util.logging.Logger;
 
 public class ForbiddenError {
     private final Logger logger;
-    private final Map<String, Object> config;
 
-    public ForbiddenError(Map<String, Object> config, Logger logger) {
-        this.config = config;
+    public ForbiddenError(Logger logger) {
         this.logger = logger;
     }
 
@@ -28,14 +27,12 @@ public class ForbiddenError {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-        String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-        String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-        String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-        String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
-        String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
+        String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+        String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+        String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+        String serverName = (String) ConfigManager.getConfigValue("server-display.name");
 
         String pageContent = htmlTemplate
                 .replace("{{server_icon}}", serverIcon)

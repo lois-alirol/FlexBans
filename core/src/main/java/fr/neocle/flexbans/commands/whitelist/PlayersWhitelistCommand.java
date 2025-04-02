@@ -2,20 +2,18 @@ package fr.neocle.flexbans.commands.whitelist;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
 
 import java.util.Map;
 
 public abstract class PlayersWhitelistCommand {
     private final PlayersWhitelist whitelist;
-    private final Map<String, Object> config;
     private final AuthenticationHandler authenticationHandler;
 
-    public PlayersWhitelistCommand(FlexBansAPI api, Map<String, Object> config, AuthenticationHandler authenticationHandler) {
+    public PlayersWhitelistCommand(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
         this.whitelist = api.getPlayersWhitelist();
-        this.config = config;
         this.authenticationHandler = authenticationHandler;
-
     }
 
     /**
@@ -30,7 +28,7 @@ public abstract class PlayersWhitelistCommand {
             boolean success = isAdding ? whitelist.addPlayer(playerName) : whitelist.removePlayer(playerName);
 
             if (success) {
-                authenticationHandler.updateConfig();
+                ConfigManager.reload();
                 sendMessage(source, isAdding ? "commands.players-whitelist.add-player.success" : "commands.players-whitelist.remove-player.success");
             } else {
                 sendMessage(source, isAdding ? "commands.players-whitelist.add-player.already-added" : "commands.players-whitelist.add-player.not-added");

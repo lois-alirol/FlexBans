@@ -9,7 +9,7 @@ commands:
   flexbans:
     description: Main command for FlexBans plugin.
     usage: "/flexbans <subcommand>"
-    aliases: [ lw, lbw ]
+    aliases: [ fb ]
     permission: flexbans.use
     permission-message: You do not have permission to execute this command.
 

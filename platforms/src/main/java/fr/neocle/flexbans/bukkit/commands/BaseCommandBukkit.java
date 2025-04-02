@@ -25,11 +25,13 @@ import java.util.logging.Logger;
 public class BaseCommandBukkit implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public BaseCommandBukkit(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler, DatabaseUtils databaseUtils, Logger logger, Map<String, Object> config) {
+    public BaseCommandBukkit(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler,
+                             DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler,
+                             DatabaseUtils databaseUtils, Logger logger) {
         subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, authenticationHandler, config));
-        subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler, config));
+        subCommands.put("players", new PlayersWhitelist(api, authenticationHandler));
+        subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler));
     }
 
     @Override

@@ -2,6 +2,7 @@ package fr.neocle.flexbans.velocity.commands.SubCommands;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.handlers.IndexHandler;
 import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
@@ -38,7 +39,7 @@ public class Reload implements SimpleCommand {
         }
 
         if (invocation.arguments().length > 0 && invocation.arguments()[0].equalsIgnoreCase("reload")) {
-            Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
+            Map<String, Object> newConfig = ConfigManager.getConfig();
             if (newConfig != null) {
                 indexHandler.updateConfig(newConfig);
                 @SuppressWarnings("unchecked")

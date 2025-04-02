@@ -12,9 +12,9 @@ import java.util.Map;
 public class AddPlayer extends Command {
     private final PlayersWhitelistCommand whitelistMethods;
 
-    public AddPlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
+    public AddPlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
         super("add");
-        this.whitelistMethods = new PlayersWhitelistCommand(api, config, authenticationHandler) {
+        this.whitelistMethods = new PlayersWhitelistCommand(api, authenticationHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

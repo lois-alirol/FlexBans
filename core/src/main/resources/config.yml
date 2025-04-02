@@ -75,3 +75,7 @@ password-auth:
 
 # DO NOT TOUCH
 config_version: "1.0"
+
+thats-a-test:
+  string: "hey"
+  enabled: true

@@ -22,16 +22,7 @@ public class BanExecutor {
         this.broadcaster = broadcaster;
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.databaseUtils = databaseUtils;
-        this.floodgateApi = isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
-    }
-
-    private boolean isFloodgateLoaded() {
-        try {
-            Class.forName("org.geysermc.floodgate.api.FloodgateApi");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+        this.floodgateApi = Common.isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
     public void executeBan(String target, String sender, String duration, String reason, String serverScope, String serverOrigin, boolean silent, boolean ipScope, Consumer<String> messageSender) {
@@ -61,9 +52,15 @@ public class BanExecutor {
         String banReason = reason != null && !reason.isEmpty() ? reason : LanguageManager.getMessageString("punishments.default-reason");
         long banDuration = Common.parseDuration(duration);
 
+        if (duration == null || duration.isEmpty()) {
+            duration = LanguageManager.getMessageString("punishments.infinite-duration");
+        }
+
         platformHandler.applyBan(target, targetUUID, senderName, duration, banReason, serverScope);
         databaseUtils.getBansManager().insertBan(targetUUID, target, senderUUID, senderName, banReason, banDuration, serverScope, serverOrigin, silent, ipScope);
 
-        broadcaster.execute("§l§aBanning " + target + " for " + (banDuration == -1 ? "permanently" : banDuration + "ms") + " Reason: " + banReason);
+        if (!silent) {
+            broadcaster.execute("§l§aBanning " + target + " for " + (banDuration == -1 ? "permanently" : banDuration + "ms") + " Reason: " + banReason);
+        }
     }
 }

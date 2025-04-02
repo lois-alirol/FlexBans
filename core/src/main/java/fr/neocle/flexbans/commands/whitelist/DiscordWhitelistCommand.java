@@ -2,6 +2,7 @@ package fr.neocle.flexbans.commands.whitelist;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
 
 import java.util.Map;
@@ -9,12 +10,10 @@ import java.util.Map;
 public abstract class DiscordWhitelistCommand {
     private final DiscordWhitelist whitelist;
     private final DiscordOAuthHandler discordOAuthHandler;
-    private final Map<String, Object> config;
 
-    public DiscordWhitelistCommand(FlexBansAPI api, Map<String, Object> config, DiscordOAuthHandler discordOAuthHandler) {
+    public DiscordWhitelistCommand(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
         this.whitelist = api.getDiscordWhitelist();
         this.discordOAuthHandler = discordOAuthHandler;
-        this.config = config;
     }
 
     /**
@@ -29,7 +28,7 @@ public abstract class DiscordWhitelistCommand {
             boolean success = isAdding ? whitelist.addUser(playerName) : whitelist.removeUser(playerName);
 
             if (success) {
-                discordOAuthHandler.updateConfig();
+                ConfigManager.reload();
                 sendMessage(source, isAdding ? "commands.discord-whitelist.add-user.success" : "commands.discord-whitelist.remove-user.success");
             } else {
                 sendMessage(source, isAdding ? "commands.discord-whitelist.add-user.already-added" : "commands.discord-whitelist.add-user.not-added");

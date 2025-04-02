@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.handlers.Security;
 
 import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.Dashboard.SessionManager;
 import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
@@ -15,19 +16,16 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class LoginHandler extends AbstractHandler {
     private final Logger logger;
-    private final Map<String, Object> config;
     private final EventDispatcher eventDispatcher;
     private final UserManager userManager;
     private final SessionManager sessionManager;
 
-    public LoginHandler(Logger logger, Map<String, Object> config, DatabaseUtils databaseUtils, EventDispatcher eventDispatcher) {
+    public LoginHandler(Logger logger, DatabaseUtils databaseUtils, EventDispatcher eventDispatcher) {
         this.logger = logger;
-        this.config = config;
         this.eventDispatcher = eventDispatcher;
         this.userManager = databaseUtils.getUserManager();
         this.sessionManager = databaseUtils.getSessionManager();
@@ -61,18 +59,14 @@ public class LoginHandler extends AbstractHandler {
                 }
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-            String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
-            String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-            String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-            String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-            String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
+            String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+            String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+            String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+            String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+            String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+            String serverName = (String) ConfigManager.getConfigValue("server-display.name");
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> oauth = (Map<String, Object>) config.get("discord-oauth");
-            boolean oauthEnabled = Boolean.parseBoolean(String.valueOf(oauth.getOrDefault("enabled", false)));
+            boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
 
             String discordLoginButton = "";
             if (oauthEnabled) {

@@ -18,10 +18,10 @@ import fr.neocle.flexbans.locale.LanguageManager;
 public class DiscordWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(FlexBansAPI api, Map<String, Object> config, DiscordOAuthHandler discordOAuthHandler) {
+    public DiscordWhitelist(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
         super("discordwhitelist");
-        subCommands.put("add", new AddUser(api, config, discordOAuthHandler));
-        subCommands.put("remove", new RemoveUser(api, config, discordOAuthHandler));
+        subCommands.put("add", new AddUser(api, discordOAuthHandler));
+        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler));
     }
 
     @Override

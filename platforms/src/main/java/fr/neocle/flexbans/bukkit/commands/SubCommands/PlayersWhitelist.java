@@ -18,9 +18,9 @@ import java.util.Map;
 public class PlayersWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(FlexBansAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
-        subCommands.put("add", new AddPlayer(api, authenticationHandler, config));
-        subCommands.put("remove", new RemovePlayer(api, authenticationHandler, config));
+    public PlayersWhitelist(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
+        subCommands.put("add", new AddPlayer(api, authenticationHandler));
+        subCommands.put("remove", new RemovePlayer(api, authenticationHandler));
     }
 
     @Override

@@ -42,6 +42,21 @@ public class BansManager {
         }
     }
 
+    public void removeBan(UUID targetUUID, UUID removerUUID, String removerUsername, String removalReason) {
+        String query = "UPDATE flexbans_bans SET remover_uuid = ?, remover_name = ?, removal_reason = ?, status = 'removed' WHERE target_uuid = ? AND status = 'active'";
+
+        try (Connection connection = dbManager.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, removerUUID.toString());
+            stmt.setString(2, removerUsername);
+            stmt.setString(3, removalReason);
+            stmt.setString(4, targetUUID.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public boolean isPlayerBanned(UUID targetUUID) {
         String query = "SELECT * FROM flexbans_bans WHERE target_uuid = ? AND status = 'active'";
 

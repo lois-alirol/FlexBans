@@ -58,15 +58,11 @@ public class FlexBansBungee extends Plugin implements Listener {
     }
 
     private String getAddressFromConfig() {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
-        return String.valueOf(webserverConfig.getOrDefault("url", "undefined, check config.yml"));
+        return "";
     }
 
     private int getPortFromConfig() {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
-        return Integer.parseInt(String.valueOf(webserverConfig.getOrDefault("port", "8080")));
+        return 0;
     }
 
     private void registerCommands() {
@@ -77,8 +73,7 @@ public class FlexBansBungee extends Plugin implements Listener {
                 bootstrap.getDiscordOAuthHandler(),
                 bootstrap.getIndexHandler(),
                 bootstrap.getDatabaseUtils(),
-                getLogger(),
-                bootstrap.getConfig()
+                getLogger()
         );
 
         getProxy().getPluginManager().registerCommand(this, baseCommand);

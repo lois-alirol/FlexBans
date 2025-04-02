@@ -23,12 +23,13 @@ public class BaseCommandVelocity implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
     public BaseCommandVelocity(FlexBansAPI api, ProxyServer proxyServer, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler,
-                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils, Logger logger, Map<String, Object> config) {
+                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils, Logger logger) {
         subCommands.put("help", new Help(logger));
         subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, jettyReloader, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, proxyServer, authenticationHandler, config));
-        subCommands.put("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler, config));
+        subCommands.put("players", new PlayersWhitelist(api, proxyServer, authenticationHandler));
+        subCommands.put("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler));
+        subCommands.put("dump", new Dump(proxyServer));
     }
 
     @Override
@@ -56,7 +57,7 @@ public class BaseCommandVelocity implements SimpleCommand {
         String[] args = invocation.arguments();
 
         if (args.length == 0) {
-            return List.of("help", "verify", "reload", "players", "discord");
+            return List.of("help", "verify", "reload", "players", "discord", "dump");
         }
 
         if (args.length == 1) {

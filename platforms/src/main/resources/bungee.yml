@@ -7,7 +7,7 @@ softDepends:
 commands:
   flexbans:
     description: Reloads the FlexBans configuration.
-    aliases: [ lw, lbw ]
+    aliases: [ fb ]
     permission: flexbans.reload
 permissions:
   flexbans.reload:

@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.utils.DurationCalculator;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
@@ -21,14 +22,12 @@ import java.util.logging.Logger;
 
 public class PunishmentDetailsHandler extends AbstractHandler {
     private final Logger logger = Logger.getLogger("PunishmentDetailsHandler");
-    private final Map<String, Object> config;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final DurationCalculator durationCalculator;
     private final PlayerHeadImage playerHeadImage;
     private final DatabaseUtils databaseUtils;
 
-    public PunishmentDetailsHandler(Map<String, Object> config, UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils) {
-        this.config = config;
+    public PunishmentDetailsHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.durationCalculator = durationCalculator;
         this.playerHeadImage = playerHeadImage;
@@ -162,19 +161,12 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                         removalReason = "<tr><th class='w-1/3 bg-[#ccc] dark:bg-[#444]'>Un" + modifiedPunishmentType.toLowerCase() + " Reason</th><td>" + removedReason + "</td></tr>";
                     }
 
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-                    String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-                    String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
-                    String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
+                    String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+                    String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+                    String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
 
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> oauth = (Map<String, Object>) config.get("discord-oauth");
-                    boolean oauthEnabled = Boolean.parseBoolean(String.valueOf(oauth.getOrDefault("enabled", false)));
-
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> login = (Map<String, Object>) config.get("password-auth");
-                    boolean loginEnabled = Boolean.parseBoolean(String.valueOf(login.getOrDefault("enabled", false)));
+                    boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
+                    boolean loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
 
                     String revokeButton = "";
                     if ("Active".equals(status) && (oauthEnabled || loginEnabled)) {

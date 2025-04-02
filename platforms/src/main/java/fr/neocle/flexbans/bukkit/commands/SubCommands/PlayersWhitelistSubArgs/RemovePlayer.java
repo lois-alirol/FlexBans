@@ -13,8 +13,8 @@ import java.util.Map;
 public class RemovePlayer implements CommandExecutor {
     private final PlayersWhitelistCommand whitelistMethods;
 
-    public RemovePlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
-        this.whitelistMethods = new PlayersWhitelistCommand(api, config, authenticationHandler) {
+    public RemovePlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
+        this.whitelistMethods = new PlayersWhitelistCommand(api, authenticationHandler) {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

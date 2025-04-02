@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers.Errors;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.ErrorHandler;
 
@@ -17,10 +18,8 @@ import java.util.logging.Logger;
 
 public class InternalServerError extends ErrorHandler {
     private final Logger logger;
-    private final Map<String, Object> config;
 
-    public InternalServerError(Map<String, Object> config, Logger logger) {
-        this.config = config;
+    public InternalServerError(Logger logger) {
         this.logger = logger;
     }
     
@@ -45,14 +44,12 @@ public class InternalServerError extends ErrorHandler {
             return;
         }
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-        String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-        String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-        String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-        String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-        String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
-        String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
+        String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+        String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+        String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+        String serverName = (String) ConfigManager.getConfigValue("server-display.name");
 
         String stackTrace = "";
         if (cause != null) {

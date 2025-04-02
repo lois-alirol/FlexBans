@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.handlers.Security.OAuthHandlers;
 
 import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handlers.Errors.ForbiddenError;
 import fr.neocle.flexbans.utils.ResourceLoader;
@@ -21,20 +22,18 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class DiscordOAuthHandler {
-    private final Map<String, Object> oauthConfig;
     private final DatabaseUtils databaseUtils;
     private final EventDispatcher eventDispatcher;
     private final ForbiddenError forbiddenError;
     private final Logger logger;
-    private final boolean oauthEnabled;
 
-    public DiscordOAuthHandler(Map<String, Object> oauthConfig, DatabaseUtils databaseUtils, ForbiddenError forbiddenError, EventDispatcher eventDispatcher, Logger logger) {
-        this.oauthConfig = oauthConfig;
+    private final boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
+
+    public DiscordOAuthHandler(DatabaseUtils databaseUtils, ForbiddenError forbiddenError, EventDispatcher eventDispatcher, Logger logger) {
         this.databaseUtils = databaseUtils;
         this.forbiddenError = forbiddenError;
         this.eventDispatcher = eventDispatcher;
         this.logger = logger;
-        this.oauthEnabled = Boolean.parseBoolean(oauthConfig.getOrDefault("enabled", "false").toString());
     }
 
     public void initiateOAuthFlow(HttpServletResponse response) throws IOException {
@@ -42,10 +41,11 @@ public class DiscordOAuthHandler {
             return;
         }
 
-        String redirectUri = encodeUri((String) oauthConfig.get("redirect-uri"));
-        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + oauthConfig.get("client-id") +
+        String redirectUri = encodeUri((String) ConfigManager.getConfigValue("discord-oauth.redirect-uri"));
+        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + ConfigManager.getConfigValue("discord-oauth.redirect-uri") +
                 "&redirect_uri=" + redirectUri +
-                "&response_type=code&scope=" + oauthConfig.get("scope");
+                "&response_type=code&scope=" + ConfigManager.getConfigValue("discord-oauth.scope");
+
         response.sendRedirect(authUrl);
     }
 
@@ -100,9 +100,9 @@ public class DiscordOAuthHandler {
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
 
-        String redirectUri = encodeUri((String) oauthConfig.get("redirect-uri"));
-        String params = "client_id=" + oauthConfig.get("client-id") +
-                "&client_secret=" + oauthConfig.get("client-secret") +
+        String redirectUri = encodeUri((String) ConfigManager.getConfigValue("discord-oauth.redirect-uri"));
+        String params = "client_id=" + ConfigManager.getConfigValue("discord-oauth.client-id") +
+                "&client_secret=" + ConfigManager.getConfigValue("discord-oauth.client-secret") +
                 "&grant_type=authorization_code" +
                 "&code=" + code +
                 "&redirect_uri=" + redirectUri;
@@ -143,26 +143,11 @@ public class DiscordOAuthHandler {
 
     public boolean isUserAllowed(String userId) {
         @SuppressWarnings("unchecked")
-        String allowedUsers = String.join(",", (Iterable<String>) oauthConfig.get("allowed-users"));
+        String allowedUsers = String.join(",", (Iterable<String>) ConfigManager.getConfigValue("discord-oauth.allowed-users"));
         return allowedUsers.contains(userId);
     }
 
     public void updateConfig() {
-        Path dataFolder = Paths.get("plugins", "FlexBans");
-        Map<String, Object> newConfig = ResourceLoader.loadConfig(dataFolder, logger);
-
-        if (newConfig != null) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> oauthNewConfig = (Map<String, Object>) newConfig.get("discord-oauth");
-
-            if (oauthNewConfig != null) {
-                oauthConfig.clear();
-                oauthConfig.putAll(oauthNewConfig);
-            }
-
-            logger.info("OAuth configuration successfully reloaded.");
-        } else {
-            logger.severe("Failed to reload OAuth configuration.");
-        }
+        // TO DO
     }
 }

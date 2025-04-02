@@ -5,186 +5,81 @@ import fr.neocle.flexbans.api.events.velocity.authentication.DiscordUserLoginEve
 import fr.neocle.flexbans.api.events.velocity.authentication.LogoutEvent;
 import fr.neocle.flexbans.api.events.velocity.authentication.PlayerLoginEvent;
 import fr.neocle.flexbans.api.events.velocity.authentication.PlayerRegisterEvent;
+import fr.neocle.flexbans.configs.WebhooksConfigManager;
 import fr.neocle.flexbans.webhooks.WebhookService;
 
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-@SuppressWarnings("unchecked")
 public class DashboardEvents {
-    private final Map<String, Object> webhooksConfig;
     private final Logger logger;
 
-    public DashboardEvents(Map<String, Object> webhooksConfig, Logger logger) {
-        this.webhooksConfig = webhooksConfig;
+    public DashboardEvents(Logger logger) {
         this.logger = logger;
     }
 
     @Subscribe
     public void onPlayerLogin(PlayerLoginEvent event) {
-        Map<String, Object> config = (Map<String, Object>) webhooksConfig.get("player-login");
-        boolean enabled = Boolean.parseBoolean(String.valueOf(config.getOrDefault("enabled", "false")));
-
-        if (!enabled) return;
-
-        String webhookUrl = String.valueOf(config.get("url"));
-        String content = String.valueOf(config.get("content")).replace("%player%", event.getPlayerName())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-
-        Map<String, Object> embedConfig = (Map<String, Object>) config.get("embed");
-        boolean embedEnabled = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("enabled", "false")));
-
-        String color = String.valueOf(embedConfig.get("color"));
-        String authorName = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("name"));
-        String authorUrl = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("url"));
-        String authorIcon = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("image-url"));
-        String thumbnailUrl = String.valueOf(embedConfig.get("thumbnail-url")).replace("%player%", event.getPlayerName());
-        String title = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("text"));
-        String titleUrl = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("url"));
-        String description = String.valueOf(embedConfig.get("description")).replace("%player%", event.getPlayerName())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-        String imageUrl = String.valueOf(embedConfig.get("image-url"));
-        String footerText = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("text"));
-        String footerIcon = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("icon-url"));
-        boolean timestamp = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("timestamp", "false")));
-
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) embedConfig.get("fields");
-        for (Map<String, Object> field : fields) {
-            field.put("value", String.valueOf(field.get("value")).replace("%player%", event.getPlayerName()));
-        }
-
-        WebhookService webhookService = new WebhookService(logger);
-        webhookService.sendWebhook(webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
-                thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText,
-                footerIcon, timestamp);
+        sendWebhookEvent("player-login", event.getPlayerName(), event.getClientIP(), event.getUserAgent());
     }
 
     @Subscribe
     public void onPlayerRegister(PlayerRegisterEvent event) {
-        Map<String, Object> config = (Map<String, Object>) webhooksConfig.get("player-register");
-        boolean enabled = Boolean.parseBoolean(String.valueOf(config.getOrDefault("enabled", "false")));
-
-        if (!enabled) return;
-
-        String webhookUrl = String.valueOf(config.get("url"));
-        String content = String.valueOf(config.get("content")).replace("%player%", event.getPlayerName())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-
-        Map<String, Object> embedConfig = (Map<String, Object>) config.get("embed");
-        boolean embedEnabled = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("enabled", "false")));
-
-        String color = String.valueOf(embedConfig.get("color"));
-        String authorName = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("name"));
-        String authorUrl = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("url"));
-        String authorIcon = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("image-url"));
-        String thumbnailUrl = String.valueOf(embedConfig.get("thumbnail-url")).replace("%player%", event.getPlayerName());
-        String title = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("text"));
-        String titleUrl = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("url"));
-        String description = String.valueOf(embedConfig.get("description")).replace("%player%", event.getPlayerName())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-        String imageUrl = String.valueOf(embedConfig.get("image-url"));
-        String footerText = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("text"));
-        String footerIcon = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("icon-url"));
-        boolean timestamp = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("timestamp", "false")));
-
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) embedConfig.get("fields");
-        for (Map<String, Object> field : fields) {
-            field.put("value", String.valueOf(field.get("value")).replace("%player%", event.getPlayerName()));
-        }
-
-        WebhookService webhookService = new WebhookService(logger);
-        webhookService.sendWebhook(webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
-                thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText,
-                footerIcon, timestamp);
+        sendWebhookEvent("player-register", event.getPlayerName(), event.getClientIP(), event.getUserAgent());
     }
 
     @Subscribe
     public void onDiscordUserLogin(DiscordUserLoginEvent event) {
-        Map<String, Object> config = (Map<String, Object>) webhooksConfig.get("discord-user-login");
-        boolean enabled = Boolean.parseBoolean(String.valueOf(config.getOrDefault("enabled", "false")));
-
-        if (!enabled) return;
-
-        String webhookUrl = String.valueOf(config.get("url"));
-        String content = String.valueOf(config.get("content")).replace("%user%", event.getUserId())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-
-        Map<String, Object> embedConfig = (Map<String, Object>) config.get("embed");
-        boolean embedEnabled = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("enabled", "false")));
-
-        String color = String.valueOf(embedConfig.get("color"));
-        String authorName = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("name"));
-        String authorUrl = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("url"));
-        String authorIcon = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("image-url"));
-        String thumbnailUrl = String.valueOf(embedConfig.get("thumbnail-url")).replace("%user%", event.getUserId());
-        String title = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("text"));
-        String titleUrl = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("url"));
-        String description = String.valueOf(embedConfig.get("description")).replace("%user%", event.getUserId())
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-        String imageUrl = String.valueOf(embedConfig.get("image-url"));
-        String footerText = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("text"));
-        String footerIcon = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("icon-url"));
-        boolean timestamp = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("timestamp", "false")));
-
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) embedConfig.get("fields");
-        for (Map<String, Object> field : fields) {
-            field.put("value", String.valueOf(field.get("value")).replace("%user%", event.getUserId()));
-        }
-
-        WebhookService webhookService = new WebhookService(logger);
-        webhookService.sendWebhook(webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
-                thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText,
-                footerIcon, timestamp);
+        sendWebhookEvent("discord-user-login", event.getUserId(), event.getClientIP(), event.getUserAgent());
     }
 
     @Subscribe
     public void onUserLogout(LogoutEvent event) {
-        Map<String, Object> config = (Map<String, Object>) webhooksConfig.get("user-logout");
-        boolean enabled = Boolean.parseBoolean(String.valueOf(config.getOrDefault("enabled", "false")));
-
-        if (!enabled) return;
-
         String userId = event.getUserId() != null ? event.getUserId() : "Null Discord ID";
         String playerName = event.getPlayerName() != null ? event.getPlayerName() : "Null In-game Name";
+        sendWebhookEvent("user-logout", userId + " / " + playerName, event.getClientIP(), event.getUserAgent());
+    }
 
-        String webhookUrl = String.valueOf(config.get("url"));
-        String content = String.valueOf(config.get("content")).replace("%user%", userId + " / " + playerName)
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
+    private void sendWebhookEvent(String eventType, String user, String ip, String userAgent) {
+        boolean enabled = Boolean.parseBoolean((String) WebhooksConfigManager.getConfigValue(eventType + ".enabled"));
+        if (!enabled) return;
 
-        Map<String, Object> embedConfig = (Map<String, Object>) config.get("embed");
-        boolean embedEnabled = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("enabled", "false")));
+        String webhookUrl = (String) WebhooksConfigManager.getConfigValue(eventType + ".url");
+        String content = ((String) WebhooksConfigManager.getConfigValue(eventType + ".content"))
+                .replace("%player%", user)
+                .replace("%user%", user)
+                .replace("%ip%", ip)
+                .replace("%user-agents%", userAgent);
 
-        String color = String.valueOf(embedConfig.get("color"));
-        String authorName = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("name"));
-        String authorUrl = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("url"));
-        String authorIcon = String.valueOf(((Map<String, Object>) embedConfig.get("author")).get("image-url"));
-        String thumbnailUrl = String.valueOf(embedConfig.get("thumbnail-url")).replace("%user%", userId + " / " + playerName);
-        String title = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("text"));
-        String titleUrl = String.valueOf(((Map<String, Object>) embedConfig.get("title")).get("url"));
-        String description = String.valueOf(embedConfig.get("description")).replace("%user%", userId + " / " + playerName)
-                .replace("%ip%", event.getClientIP())
-                .replace("%user-agents%", event.getUserAgent());
-        String imageUrl = String.valueOf(embedConfig.get("image-url"));
-        String footerText = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("text"));
-        String footerIcon = String.valueOf(((Map<String, Object>) embedConfig.get("footer")).get("icon-url"));
-        boolean timestamp = Boolean.parseBoolean(String.valueOf(embedConfig.getOrDefault("timestamp", "false")));
+        boolean embedEnabled = Boolean.parseBoolean((String) WebhooksConfigManager.getConfigValue(eventType + ".embed.enabled"));
+        String color = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.color");
+        String authorName = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.author.name");
+        String authorUrl = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.author.url");
+        String authorIcon = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.author.image-url");
+        String thumbnailUrl = ((String) WebhooksConfigManager.getConfigValue(eventType + ".embed.thumbnail-url"))
+                .replace("%player%", user).replace("%user%", user);
+        String title = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.title.text");
+        String titleUrl = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.title.url");
+        String description = ((String) WebhooksConfigManager.getConfigValue(eventType + ".embed.description"))
+                .replace("%player%", user)
+                .replace("%user%", user)
+                .replace("%ip%", ip)
+                .replace("%user-agents%", userAgent);
+        String imageUrl = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.image-url");
+        String footerText = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.footer.text");
+        String footerIcon = (String) WebhooksConfigManager.getConfigValue(eventType + ".embed.footer.icon-url");
+        boolean timestamp = Boolean.parseBoolean((String) WebhooksConfigManager.getConfigValue(eventType + ".embed.timestamp"));
 
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) embedConfig.get("fields");
-        for (Map<String, Object> field : fields) {
-            field.put("value", String.valueOf(field.get("value")).replace("%user%", userId + " / " + playerName));
+        List<Map<String, Object>> fields = (List<Map<String, Object>>) WebhooksConfigManager.getConfigValue(eventType + ".embed.fields");
+        if (fields != null) {
+            for (Map<String, Object> field : fields) {
+                field.put("value", ((String) field.get("value")).replace("%player%", user).replace("%user%", user));
+            }
         }
 
         WebhookService webhookService = new WebhookService(logger);
         webhookService.sendWebhook(webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
-                thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText,
-                footerIcon, timestamp);
+                thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText, footerIcon, timestamp);
     }
 }

@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AddPlayer extends PlayersWhitelistCommand implements SimpleCommand {
 
-    public AddPlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler, Map<String, Object> config) {
-        super(api, config, authenticationHandler);
+    public AddPlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
+        super(api, authenticationHandler);
     }
 
     @Override

@@ -18,9 +18,9 @@ import java.util.Map;
 public class DiscordWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
-        subCommands.put("add", new AddUser(api, discordOAuthHandler, config));
-        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler, config));
+    public DiscordWhitelist(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
+        subCommands.put("add", new AddUser(api, discordOAuthHandler));
+        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler));
     }
 
     @Override

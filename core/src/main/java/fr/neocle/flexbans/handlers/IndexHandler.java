@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.handlers;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.utils.DurationCalculator;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
@@ -22,14 +23,12 @@ import java.util.logging.Logger;
 
 public class IndexHandler extends AbstractHandler {
     private static final int PAGE_SIZE = 20;
-    private final Map<String, Object> config;
     private Logger logger = Logger.getLogger("FlexBans");
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
     private final DurationCalculator durationCalculator;
 
-    public IndexHandler(Map<String, Object> config, UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
-        this.config = config;
+    public IndexHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
         this.durationCalculator = durationCalculator;
@@ -114,23 +113,16 @@ public class IndexHandler extends AbstractHandler {
                 return;
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> serverDisplaySettings = (Map<String, Object>) config.get("server-display");
-            String serverName = String.valueOf(serverDisplaySettings.getOrDefault("name", "Example"));
-            String serverIcon = String.valueOf(serverDisplaySettings.getOrDefault("icon", "https://i.imgur.com/iweixVA.png"));
-            String serverFavicon = String.valueOf(serverDisplaySettings.getOrDefault("favicon", "https://i.imgur.com/iweixVA.png"));
-            String serverLogo = String.valueOf(serverDisplaySettings.getOrDefault("logo", "https://i.imgur.com/iweixVA.png"));
-            String serverColor = String.valueOf(serverDisplaySettings.getOrDefault("color", "#4097e7"));
-            String serverColorDarker = String.valueOf(serverDisplaySettings.getOrDefault("darker-color", "#207dd2"));
-            String serverDescription = String.valueOf(serverDisplaySettings.getOrDefault("description", "ExampleServer: Punishments, view detailed records of every user sanction. Find and review all past bans, mutes, and kicks in one convenient place."));
+            String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+            String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+            String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
+            String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
+            String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+            String serverName = (String) ConfigManager.getConfigValue("server-display.name");
+            String serverDescription = (String) ConfigManager.getConfigValue("server-display.description");
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> oauth = (Map<String, Object>) config.get("discord-oauth");
-            boolean oauthEnabled = Boolean.parseBoolean(String.valueOf(oauth.getOrDefault("enabled", false)));
-
-            @SuppressWarnings("unchecked")
-            Map<String, Object> login = (Map<String, Object>) config.get("password-auth");
-            boolean loginEnabled = Boolean.parseBoolean(String.valueOf(login.getOrDefault("enabled", false)));
+            boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
+            boolean loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
 
             String newPunishmentButton = "";
             if (oauthEnabled || loginEnabled) {
@@ -472,7 +464,6 @@ public class IndexHandler extends AbstractHandler {
     }
 
     public void updateConfig(Map<String, Object> newConfig) {
-        this.config.clear();
-        this.config.putAll(newConfig);
+        //TO DO
     }
 }

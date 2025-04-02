@@ -11,15 +11,16 @@ import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
+import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.velocity.commands.BanCommand;
 import fr.neocle.flexbans.velocity.commands.BaseCommandVelocity;
+import fr.neocle.flexbans.velocity.commands.UnbanCommand;
 import fr.neocle.flexbans.velocity.listener.DashboardEvents;
 import fr.neocle.flexbans.velocity.listener.PlayerEvents;
 import fr.neocle.flexbans.velocity.listener.WhitelistEvents;
 
 import javax.inject.Inject;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.logging.Logger;
 
 @Plugin(id = "flexbans", name = "FlexBans", version = "1.0-SNAPSHOT", authors = {"Neocle"})
@@ -40,6 +41,10 @@ public class FlexBansVelocity {
     public void onProxyInitialization(ProxyInitializeEvent event) {
         EventDispatcher eventDispatcher = new VelocityEventDispatcher(proxyServer);
 
+        int pluginId = 23869;
+        @SuppressWarnings("unused")
+        Metrics metrics = metricsFactory.make(this, pluginId);
+
         FlexBansAPIImpl.initialize(
                 Paths.get("plugins", "FlexBans", "config.yml"),
                 logger,
@@ -48,16 +53,19 @@ public class FlexBansVelocity {
 
         bootstrap = new Bootstrap();
         bootstrap.initialize(Paths.get("plugins", "FlexBans"), logger, "velocity", eventDispatcher, proxyServer);
-        bootstrap.startWebServer(getPortFromConfig());
 
-        int pluginId = 23869;
-        @SuppressWarnings("unused")
-        Metrics metrics = metricsFactory.make(this, pluginId);
+        int port = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.port"));
+        boolean webserverEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.enabled"));
+        String url = (String) ConfigManager.getConfigValue("webserver.url");
+
+        if (webserverEnabled) {
+            bootstrap.startWebServer(port);
+        }
 
         registerCommands();
         registerListeners();
 
-        bootstrap.logServerStartupInfo(getAddressFromConfig(), getPortFromConfig(), "Velocity", proxyServer.getVersion().getVersion(), getWebServerConfig());
+        bootstrap.logServerStartupInfo(url, port, "Velocity", proxyServer.getVersion().getVersion(), webserverEnabled);
     }
 
     @Subscribe
@@ -81,37 +89,19 @@ public class FlexBansVelocity {
                 bootstrap.getIndexHandler(),
                 bootstrap.getJettyReloader(),
                 bootstrap.getDatabaseUtils(),
-                logger,
-                bootstrap.getConfig()
+                logger
         ));
 
         commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer));
+        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor()));
     }
 
     private void registerListeners() {
         logger.info("Registering listeners...");
         EventManager eventManager = proxyServer.getEventManager();
 
-        eventManager.register(this, new WhitelistEvents(bootstrap.getWebhooksConfig(), logger));
-        eventManager.register(this, new DashboardEvents(bootstrap.getWebhooksConfig(), logger));
+        eventManager.register(this, new WhitelistEvents(logger));
+        eventManager.register(this, new DashboardEvents(logger));
         eventManager.register(this, new PlayerEvents(bootstrap, proxyServer));
-    }
-
-    private String getAddressFromConfig() {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
-        return String.valueOf(webserverConfig.getOrDefault("url", "undefined, check config.yml"));
-    }
-
-    private int getPortFromConfig() {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
-        return Integer.parseInt(String.valueOf(webserverConfig.getOrDefault("port", "8080")));
-    }
-
-    private boolean getWebServerConfig() {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> webserverConfig = (Map<String, Object>) bootstrap.getConfig().get("webserver");
-        return Boolean.parseBoolean(String.valueOf(webserverConfig.getOrDefault("enabled", true)));
     }
 }

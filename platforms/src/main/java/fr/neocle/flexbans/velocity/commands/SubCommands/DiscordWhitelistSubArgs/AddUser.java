@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class AddUser extends DiscordWhitelistCommand implements SimpleCommand {
 
-    public AddUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler, Map<String, Object> config) {
-        super(api, config, discordOAuthHandler);
+    public AddUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
+        super(api, discordOAuthHandler);
     }
 
     @Override

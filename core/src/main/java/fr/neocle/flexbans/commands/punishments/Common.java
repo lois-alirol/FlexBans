@@ -13,6 +13,15 @@ import java.util.concurrent.TimeUnit;
 
 public class Common {
 
+    public static boolean isFloodgateLoaded() {
+        try {
+            Class.forName("org.geysermc.floodgate.api.FloodgateApi");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+
     public static UUID parseUUID(String input) {
         try {
             return UUID.fromString(input);
