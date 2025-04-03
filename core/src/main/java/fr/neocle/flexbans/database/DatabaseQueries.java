@@ -156,12 +156,58 @@ public class DatabaseQueries {
                     """
     );
 
+    private static final Map<String, String> CREATE_KICKS_TABLE = Map.of(
+            "mysql", """
+                        CREATE TABLE IF NOT EXISTS flexbans_kicks (
+                            id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+                            ip_scope BOOLEAN DEFAULT FALSE NOT NULL,
+                            target_uuid VARCHAR(255) NOT NULL,
+                            target_name VARCHAR(255) NOT NULL,
+                            issuer_uuid VARCHAR(255) NOT NULL,
+                            issuer_name VARCHAR(255) NOT NULL,
+                            reason VARCHAR(255) NOT NULL,
+                            time BIGINT NOT NULL,
+                            server_origin VARCHAR(255) NOT NULL,
+                            silent BOOLEAN DEFAULT FALSE NOT NULL
+                        );
+                    """,
+            "sqlite", """
+                        CREATE TABLE IF NOT EXISTS flexbans_kicks (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            ip_scope BOOLEAN DEFAULT FALSE NOT NULL,
+                            target_uuid TEXT NOT NULL,
+                            target_name TEXT NOT NULL,
+                            issuer_uuid TEXT NOT NULL,
+                            issuer_name TEXT NOT NULL,
+                            reason TEXT NOT NULL,
+                            time BIGINT NOT NULL,
+                            server_origin TEXT NOT NULL,
+                            silent BOOLEAN DEFAULT FALSE NOT NULL
+                        );
+                    """,
+            "h2", """
+                        CREATE TABLE IF NOT EXISTS flexbans_kicks (
+                            id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+                            ip_scope BOOLEAN DEFAULT FALSE NOT NULL,
+                            target_uuid VARCHAR(255) NOT NULL,
+                            target_name VARCHAR(255) NOT NULL,
+                            issuer_uuid VARCHAR(255) NOT NULL,
+                            issuer_name VARCHAR(255) NOT NULL,
+                            reason VARCHAR(255) NOT NULL,
+                            time BIGINT NOT NULL,
+                            server_origin VARCHAR(255) NOT NULL,
+                            silent BOOLEAN DEFAULT FALSE NOT NULL
+                        );
+                    """
+    );
+
     public static String getCreateTableQuery(String dbType, String tableName) {
         return switch (tableName.toLowerCase()) {
             case "users" -> CREATE_USERS_TABLE.get(dbType.toLowerCase());
             case "sessions" -> CREATE_SESSIONS_TABLE.get(dbType.toLowerCase());
             case "history" -> CREATE_HISTORY_TABLE.get(dbType.toLowerCase());
             case "bans" -> CREATE_BANS_TABLE.get(dbType.toLowerCase());
+            case "kicks" -> CREATE_KICKS_TABLE.get(dbType.toLowerCase());
             default -> throw new IllegalArgumentException("Unknown table: " + tableName);
         };
     }

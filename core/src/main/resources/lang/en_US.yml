@@ -52,6 +52,8 @@ commands:
 
 
 punishments:
+  default-reason: "No reason provided"
+  infinite-duration: "Infinite ∞"
   ban:
     disconnect-message: |
       <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>
@@ -64,3 +66,14 @@ punishments:
 
       <gray>You can appeal at:
       <u><white>https://discord.gg/zN5kfrW2UQ
+
+  kick:
+    disconnect-message: |
+      <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>
+      <#ff4747>ʏᴏᴜ ᴡᴇʀᴇ ᴋɪᴄᴋᴇᴅ ꜰʀᴏᴍ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ!
+
+      <gray>• Reason: <white>%reason%
+      <gray>• Kicked by: <white>%moderator%
+
+      <gray>You can contact us at:
+      <u><white>https://discord.gg/zN5kfrW2UQ    

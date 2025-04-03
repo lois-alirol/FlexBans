@@ -6,6 +6,9 @@ import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.ban.BanExecutor;
 import fr.neocle.flexbans.commands.punishments.ban.BanPlatformHandler;
 import fr.neocle.flexbans.commands.punishments.ban.platforms.VelocityBan;
+import fr.neocle.flexbans.commands.punishments.kick.KickExecutor;
+import fr.neocle.flexbans.commands.punishments.kick.KickPlatformHandler;
+import fr.neocle.flexbans.commands.punishments.kick.platforms.VelocityKick;
 import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.configs.WebhooksConfigManager;
@@ -35,7 +38,6 @@ import fr.neocle.flexbans.utils.JettyReloader;
 import fr.neocle.flexbans.utils.LibsLoader;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
-import fr.neocle.flexbans.utils.ResourceLoader;
 import fr.neocle.flexbans.utils.Security.CodeGenerator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -46,7 +48,6 @@ import org.eclipse.jetty.server.session.SessionHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -85,8 +86,10 @@ public class Bootstrap {
     protected JettyReloader jettyReloader;
     protected PlayerHeadImage playerHeadImage;
     protected BanExecutor banExecutor;
+    protected KickExecutor kickExecutor;
     protected UnbanExecutor unbanExecutor;
     protected BanPlatformHandler banPlatformHandler;
+    protected KickPlatformHandler kickPlatformHandler;
     protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
     protected UsernameUUIDConverters usernameUUIDConverters;
@@ -152,6 +155,7 @@ public class Bootstrap {
                 broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
 
                 banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
+                kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
                 break;
             default:
                 logger.severe("Unsupported platform: " + platform);
@@ -205,6 +209,7 @@ public class Bootstrap {
 
     public void initializeCommands() {
         banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
+        kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
         unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils);
     }
 
@@ -328,7 +333,15 @@ public class Bootstrap {
         return banExecutor;
     }
 
+    public KickExecutor getKickExecutor() {
+        return kickExecutor;
+    }
+
     public UnbanExecutor getUnbanExecutor() {
         return unbanExecutor;
+    }
+
+    public String getVersion() {
+        return "1.0.0-SNAPSHOT";
     }
 }

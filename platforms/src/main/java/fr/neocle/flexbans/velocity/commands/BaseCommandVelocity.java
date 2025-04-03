@@ -23,13 +23,13 @@ public class BaseCommandVelocity implements SimpleCommand {
     private final Map<String, SimpleCommand> subCommands = new HashMap<>();
 
     public BaseCommandVelocity(FlexBansAPI api, ProxyServer proxyServer, Path dataFolder, AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler,
-                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils, Logger logger) {
+                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils, String version, Logger logger) {
         subCommands.put("help", new Help(logger));
         subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, jettyReloader, logger));
         subCommands.put("verify", new Verify(logger, databaseUtils));
         subCommands.put("players", new PlayersWhitelist(api, proxyServer, authenticationHandler));
         subCommands.put("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler));
-        subCommands.put("dump", new Dump(proxyServer));
+        subCommands.put("dump", new Dump(proxyServer, version));
     }
 
     @Override

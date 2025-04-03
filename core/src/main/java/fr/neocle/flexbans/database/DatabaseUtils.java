@@ -4,6 +4,7 @@ import fr.neocle.flexbans.database.Dashboard.SessionManager;
 import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.Punishments.BansManager;
 import fr.neocle.flexbans.database.Punishments.HistoryManager;
+import fr.neocle.flexbans.database.Punishments.KicksManager;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -14,6 +15,7 @@ public class DatabaseUtils {
     private final UserManager userManager;
     private final SessionManager sessionManager;
     private final BansManager bansManager;
+    private final KicksManager kicksManager;
     private final HistoryManager historyManager;
     private final DatabaseCleanupTask cleanupTask;
     private final String databaseType;
@@ -43,6 +45,7 @@ public class DatabaseUtils {
         this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password, logger);
         this.userManager = new UserManager(dbManager, logger);
         this.bansManager = new BansManager(dbManager, logger);
+        this.kicksManager = new KicksManager(dbManager, logger);
         this.historyManager = new HistoryManager(dbManager, logger);
         this.sessionManager = new SessionManager(dbManager, logger);
         this.cleanupTask = new DatabaseCleanupTask(dbManager);
@@ -79,6 +82,10 @@ public class DatabaseUtils {
 
     public BansManager getBansManager() {
         return bansManager;
+    }
+
+    public KicksManager getKicksManager() {
+        return kicksManager;
     }
 
     public HistoryManager getHistoryManager() {

@@ -14,6 +14,7 @@ import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.velocity.commands.BanCommand;
 import fr.neocle.flexbans.velocity.commands.BaseCommandVelocity;
+import fr.neocle.flexbans.velocity.commands.KickCommand;
 import fr.neocle.flexbans.velocity.commands.UnbanCommand;
 import fr.neocle.flexbans.velocity.listener.DashboardEvents;
 import fr.neocle.flexbans.velocity.listener.PlayerEvents;
@@ -89,10 +90,12 @@ public class FlexBansVelocity {
                 bootstrap.getIndexHandler(),
                 bootstrap.getJettyReloader(),
                 bootstrap.getDatabaseUtils(),
+                bootstrap.getVersion(),
                 logger
         ));
 
         commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer));
+        commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer));
         commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor()));
     }
 
