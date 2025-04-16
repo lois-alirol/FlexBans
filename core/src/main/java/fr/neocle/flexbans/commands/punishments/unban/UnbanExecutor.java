@@ -23,7 +23,7 @@ public class UnbanExecutor {
         this.floodgateApi = Common.isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
-    public void executeUnban(String target, String remover, String reason, boolean silent, Consumer<String> messageSender) {
+    public void executeUnban(String target, String remover, String scope, String reason, boolean silent, Consumer<String> messageSender) {
         UUID targetUUID = Common.resolveTargetUUID(target, floodgateApi, usernameUUIDConverters);
         if (targetUUID == null) {
             messageSender.accept("§cError: Player '" + target + "' does not exist.");
@@ -43,10 +43,14 @@ public class UnbanExecutor {
             return;
         }
 
-        if (databaseUtils.getBansManager().isPlayerBanned(targetUUID)) {
+        if (scope.equalsIgnoreCase("Global")) {
+            scope = null;
+        }
+
+        if (databaseUtils.getBansManager().isPlayerBanned(targetUUID, scope)) {
             processUnban(target, targetUUID, removerName, removerUUID, reason, silent);
         } else {
-            messageSender.accept("§cThis player is not banned");
+            messageSender.accept("§cThis player is not banned on this server");
         }
     }
 

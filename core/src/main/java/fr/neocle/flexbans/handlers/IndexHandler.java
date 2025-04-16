@@ -26,12 +26,10 @@ public class IndexHandler extends AbstractHandler {
     private Logger logger = Logger.getLogger("FlexBans");
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
-    private final DurationCalculator durationCalculator;
 
-    public IndexHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
+    public IndexHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
-        this.durationCalculator = durationCalculator;
     }
 
     @Override
@@ -380,7 +378,7 @@ public class IndexHandler extends AbstractHandler {
         String executionDate = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date(time));
         String expirationDate = (until == -1 || until == 0) ? "Never" : new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date(until));
 
-        String duration = durationCalculator.calculateDuration(time, until);
+        String duration = DurationCalculator.calculateDuration(time, until);
 
         String rowClass = isExpired
                 ? "bg-light-expired-bans dark:bg-dark-expired-bans text-light-text dark:text-dark-text"

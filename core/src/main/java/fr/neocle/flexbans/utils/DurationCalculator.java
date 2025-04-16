@@ -7,7 +7,7 @@ import java.time.temporal.ChronoUnit;
 
 public class DurationCalculator {
 
-    public String calculateDuration(long startTime, long endTime) {
+    public static String calculateDuration(long startTime, long endTime) {
         if (endTime == -1 || endTime == 0) {
             return "Permanent";
         }

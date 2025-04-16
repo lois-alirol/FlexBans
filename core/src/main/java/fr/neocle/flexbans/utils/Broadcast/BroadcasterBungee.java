@@ -1,21 +1,21 @@
 package fr.neocle.flexbans.utils.Broadcast;
 
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.plugin.Plugin;
 
 public class BroadcasterBungee implements Broadcaster {
-    private final Plugin plugin;
+    private final ProxyServer proxyServer;
 
-    public BroadcasterBungee(Plugin plugin) {
-        this.plugin = plugin;
+    public BroadcasterBungee(ProxyServer proxyServer) {
+        this.proxyServer = proxyServer;
     }
     
     @Override
     public void execute(String message) {
         String formattedMessage = ChatColor.translateAlternateColorCodes('&', message);
 
-        for (ProxiedPlayer player : plugin.getProxy().getPlayers()) {
+        for (ProxiedPlayer player : proxyServer.getPlayers()) {
             player.sendMessage(formattedMessage);
         }
     }

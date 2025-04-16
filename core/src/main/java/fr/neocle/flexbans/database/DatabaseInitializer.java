@@ -12,6 +12,7 @@ public class DatabaseInitializer {
             statement.executeUpdate(DatabaseQueries.getCreateTableQuery(dbType, "history"));
             statement.executeUpdate(DatabaseQueries.getCreateTableQuery(dbType, "bans"));
             statement.executeUpdate(DatabaseQueries.getCreateTableQuery(dbType, "kicks"));
+            statement.executeUpdate(DatabaseQueries.getCreateTableQuery(dbType, "server_locks"));
         }
     }
 }

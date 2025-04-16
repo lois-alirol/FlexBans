@@ -5,11 +5,17 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.ban.BanExecutor;
 import fr.neocle.flexbans.commands.punishments.ban.BanPlatformHandler;
+import fr.neocle.flexbans.commands.punishments.ban.platforms.BungeeBan;
 import fr.neocle.flexbans.commands.punishments.ban.platforms.VelocityBan;
 import fr.neocle.flexbans.commands.punishments.kick.KickExecutor;
 import fr.neocle.flexbans.commands.punishments.kick.KickPlatformHandler;
 import fr.neocle.flexbans.commands.punishments.kick.platforms.VelocityKick;
+import fr.neocle.flexbans.commands.punishments.kick.platforms.BungeeKick;
+import fr.neocle.flexbans.commands.punishments.kick.platforms.BukkitKick;
 import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
+import fr.neocle.flexbans.commands.servers.lock.ServerLockExecutor;
+import fr.neocle.flexbans.commands.servers.lock.ServerLockPlatformHandler;
+import fr.neocle.flexbans.commands.servers.lock.platforms.VelocityServerLock;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.configs.WebhooksConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
@@ -28,12 +34,12 @@ import fr.neocle.flexbans.handlers.Security.Utils.DomainFilter;
 import fr.neocle.flexbans.handlers.Security.Utils.HttpsEnforcementHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.Broadcast.Broadcaster;
+import fr.neocle.flexbans.utils.Broadcast.BroadcasterBungee;
 import fr.neocle.flexbans.utils.Broadcast.BroadcasterVelocity;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionBukkit;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionBungee;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionVelocity;
-import fr.neocle.flexbans.utils.DurationCalculator;
 import fr.neocle.flexbans.utils.JettyReloader;
 import fr.neocle.flexbans.utils.LibsLoader;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
@@ -88,8 +94,10 @@ public class Bootstrap {
     protected BanExecutor banExecutor;
     protected KickExecutor kickExecutor;
     protected UnbanExecutor unbanExecutor;
+    protected ServerLockExecutor serverLockExecutor;
     protected BanPlatformHandler banPlatformHandler;
     protected KickPlatformHandler kickPlatformHandler;
+    protected ServerLockPlatformHandler serverLockHandler;
     protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
     protected UsernameUUIDConverters usernameUUIDConverters;
@@ -131,12 +139,11 @@ public class Bootstrap {
 
         usernameUUIDConverters = new UsernameUUIDConverters();
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
-        DurationCalculator durationCalculator = new DurationCalculator();
 
-        indexHandler = new IndexHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
-        playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
-        moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, durationCalculator, playerHeadImage);
-        punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, durationCalculator, playerHeadImage, databaseUtils);
+        indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage);
+        playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage);
+        moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage);
+        punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils);
         playerHeadHandler = new PlayerHeadHandler(dataFolder, notFoundError);
 
         scriptsHandler = new ScriptsHandler(notFoundError);
@@ -146,9 +153,17 @@ public class Bootstrap {
         switch (platform.toLowerCase()) {
             case "bungee":
                 commandsExecution = new CommandsExecutionBungee();
+                broadcaster = new BroadcasterBungee((net.md_5.bungee.api.ProxyServer) pluginInstance);
+
+                banPlatformHandler = new BungeeBan((net.md_5.bungee.api.ProxyServer) pluginInstance);
+                kickPlatformHandler = new BungeeKick((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 break;
             case "spigot":
                 commandsExecution = new CommandsExecutionBukkit();
+                broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
+
+                banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
+                kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
                 break;
             case "velocity":
                 commandsExecution = new CommandsExecutionVelocity((ProxyServer) pluginInstance);
@@ -156,6 +171,7 @@ public class Bootstrap {
 
                 banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
                 kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
+                serverLockHandler = new VelocityServerLock((ProxyServer) pluginInstance);
                 break;
             default:
                 logger.severe("Unsupported platform: " + platform);
@@ -211,6 +227,7 @@ public class Bootstrap {
         banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
         kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
         unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils);
+        serverLockExecutor = new ServerLockExecutor(serverLockHandler, broadcaster, usernameUUIDConverters, databaseUtils);
     }
 
     public void initializeAPI(EventDispatcher eventDispatcher) {
@@ -339,6 +356,10 @@ public class Bootstrap {
 
     public UnbanExecutor getUnbanExecutor() {
         return unbanExecutor;
+    }
+
+    public ServerLockExecutor getServerLockExecutor() {
+        return serverLockExecutor;
     }
 
     public String getVersion() {

@@ -28,15 +28,13 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     private Logger logger = Logger.getLogger("FlexBans");
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
-    private final DurationCalculator durationCalculator;
 
     private static final int PAGE_SIZE = 20;
     private int totalRecords;
 
-    public ModeratorHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage) {
+    public ModeratorHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
-        this.durationCalculator = durationCalculator;
     }
 
     @Override
@@ -290,7 +288,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             }
         }
     
-        String duration = durationCalculator.calculateDuration(time, until);
+        String duration = DurationCalculator.calculateDuration(time, until);
     
         String typeColorClass = getTypeColorClass(type);
     

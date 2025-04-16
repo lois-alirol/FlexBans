@@ -76,4 +76,16 @@ punishments:
       <gray>• Kicked by: <white>%moderator%
 
       <gray>You can contact us at:
-      <u><white>https://discord.gg/zN5kfrW2UQ    
+      <u><white>https://discord.gg/zN5kfrW2UQ
+
+server-locks:
+  disconnect-message: |
+    <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>
+    <#ff4747>ᴛʜᴇ ꜱᴇʀᴠᴇʀ %server% ᴡᴀꜱ ʟᴏᴄᴋᴇᴅ!
+
+    <gray>• Reason: <white>%reason%
+    <gray>• Date: <white>%date%
+    <gray>• Locked by: <white>%moderator%
+    
+    <gray>You can contact us at:
+    <u><white>https://discord.gg/zN5kfrW2UQ

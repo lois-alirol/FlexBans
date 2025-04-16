@@ -1,8 +1,5 @@
 package fr.neocle.flexbans.locale;
 
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
@@ -11,6 +8,8 @@ import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -24,7 +23,7 @@ public class LanguageManager {
     private static File langFolder;
     private static Yaml yaml;
     private static MiniMessage miniMessage;
-    private static Map<String, String> languageData = new HashMap<>();
+    public static Map<String, String> languageData = new HashMap<>();
 
     private static final String DEFAULT_LANGUAGE = "en_US.yml";
     private static final String[] AVAILABLE_LANGUAGES = {"en_US.yml", "fr_FR.yml", "de_DE.yml"};
@@ -45,7 +44,8 @@ public class LanguageManager {
     }
 
     private static void ensureLanguageFilesExist() {
-        if (!langFolder.exists() && langFolder.mkdirs()) {}
+        if (!langFolder.exists() && langFolder.mkdirs()) {
+        }
 
         for (String langFile : AVAILABLE_LANGUAGES) {
             File targetFile = new File(langFolder, langFile);
@@ -151,7 +151,7 @@ public class LanguageManager {
             return BungeeComponentSerializer.get().serialize(component);
         } else {
             String legacyMessage = LegacyComponentSerializer.legacySection().serialize(component);
-            return new BaseComponent[]{ new TextComponent(legacyMessage) };
+            return new BaseComponent[]{new TextComponent(legacyMessage)};
         }
     }
 }

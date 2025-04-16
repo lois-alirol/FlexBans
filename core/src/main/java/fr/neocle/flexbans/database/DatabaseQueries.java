@@ -105,10 +105,11 @@ public class DatabaseQueries {
                             remover_uuid VARCHAR(255),
                             remover_name VARCHAR(255),
                             removal_reason VARCHAR(255),
+                            removal_time BIGINT,
                             reason VARCHAR(255) NOT NULL,
                             time BIGINT NOT NULL,
                             duration BIGINT NOT NULL,
-                            server_scope VARCHAR(255) DEFAULT 'global' NOT NULL,
+                            server_scope VARCHAR(255) NOT NULL,
                             server_origin VARCHAR(255) NOT NULL,
                             silent BOOLEAN DEFAULT FALSE NOT NULL,
                             status VARCHAR(255) DEFAULT 'active' NOT NULL
@@ -125,10 +126,11 @@ public class DatabaseQueries {
                             remover_uuid TEXT,
                             remover_name TEXT,
                             removal_reason TEXT,
+                            removal_time BIGINT,
                             reason TEXT NOT NULL,
                             time BIGINT NOT NULL,
                             duration BIGINT NOT NULL,
-                            server_scope TEXT DEFAULT 'global' NOT NULL,
+                            server_scope TEXT NOT NULL,
                             server_origin TEXT NOT NULL,
                             silent BOOLEAN DEFAULT FALSE NOT NULL,
                             status TEXT DEFAULT 'active' NOT NULL
@@ -145,10 +147,11 @@ public class DatabaseQueries {
                             remover_uuid VARCHAR(255),
                             remover_name VARCHAR(255),
                             removal_reason VARCHAR(255),
+                            removal_time BIGINT,
                             reason VARCHAR(255) NOT NULL,
                             time BIGINT NOT NULL,
                             duration BIGINT NOT NULL,
-                            server_scope VARCHAR(255) DEFAULT 'global' NOT NULL,
+                            server_scope VARCHAR(255) NOT NULL,
                             server_origin VARCHAR(255) NOT NULL,
                             silent BOOLEAN DEFAULT FALSE NOT NULL,
                             status VARCHAR(255) DEFAULT 'active' NOT NULL
@@ -201,6 +204,60 @@ public class DatabaseQueries {
                     """
     );
 
+    private static final Map<String, String> CREATE_SERVER_LOCKS_TABLE = Map.of(
+            "mysql", """
+                    CREATE TABLE IF NOT EXISTS flexbans_server_locks (
+                        id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+                        server_name VARCHAR(255) NOT NULL,
+                        start_time BIGINT NOT NULL,
+                        reason VARCHAR(255) NOT NULL,
+                        duration BIGINT NOT NULL,
+                        issuer_uuid VARCHAR(255) NOT NULL,
+                        issuer_name VARCHAR(255) NOT NULL,
+                        remover_uuid VARCHAR(255),
+                        remover_name VARCHAR(255),
+                        removal_time BIGINT,
+                        server_origin VARCHAR(255) NOT NULL,
+                        silent BOOLEAN DEFAULT FALSE NOT NULL,
+                        status TEXT DEFAULT 'locked' NOT NULL
+                    );
+                """,
+            "sqlite", """
+                    CREATE TABLE IF NOT EXISTS flexbans_server_locks (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        server_name TEXT NOT NULL,
+                        start_time BIGINT NOT NULL,
+                        reason TEXT NOT NULL,
+                        duration BIGINT NOT NULL,
+                        issuer_uuid TEXT NOT NULL,
+                        issuer_name TEXT NOT NULL,
+                        remover_uuid TEXT,
+                        remover_name TEXT,
+                        removal_time BIGINT,
+                        server_origin TEXT NOT NULL,
+                        silent BOOLEAN DEFAULT FALSE NOT NULL,
+                        status TEXT DEFAULT 'locked' NOT NULL
+                    );
+                """,
+            "h2", """
+                    CREATE TABLE IF NOT EXISTS flexbans_server_locks (
+                        id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
+                        server_name VARCHAR(255) NOT NULL,
+                        start_time BIGINT NOT NULL,
+                        reason VARCHAR(255) NOT NULL,
+                        duration BIGINT NOT NULL,
+                        issuer_uuid VARCHAR(255) NOT NULL,
+                        issuer_name VARCHAR(255) NOT NULL,
+                        remover_uuid VARCHAR(255),
+                        remover_name VARCHAR(255),
+                        removal_time BIGINT,
+                        server_origin VARCHAR(255) NOT NULL,
+                        silent BOOLEAN DEFAULT FALSE NOT NULL,
+                        status TEXT DEFAULT 'locked' NOT NULL
+                    );
+                """
+    );
+
     public static String getCreateTableQuery(String dbType, String tableName) {
         return switch (tableName.toLowerCase()) {
             case "users" -> CREATE_USERS_TABLE.get(dbType.toLowerCase());
@@ -208,6 +265,7 @@ public class DatabaseQueries {
             case "history" -> CREATE_HISTORY_TABLE.get(dbType.toLowerCase());
             case "bans" -> CREATE_BANS_TABLE.get(dbType.toLowerCase());
             case "kicks" -> CREATE_KICKS_TABLE.get(dbType.toLowerCase());
+            case "server_locks" -> CREATE_SERVER_LOCKS_TABLE.get(dbType.toLowerCase());
             default -> throw new IllegalArgumentException("Unknown table: " + tableName);
         };
     }

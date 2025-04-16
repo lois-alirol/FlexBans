@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -49,6 +51,45 @@ public class HistoryManager {
         return false;
     }
 
+    public String getPlayerIP(String playerName) {
+        String sql = "SELECT ip FROM flexbans_history WHERE player_name = ? LIMIT 1";
+
+        try (Connection connection = dbManager.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, playerName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("ip");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public List<String[]> getPlayersWithSameIP(String ip) {
+        List<String[]> results = new ArrayList<>();
+        String sql = "SELECT player_uuid, player_name, ip FROM flexbans_history WHERE ip = ?";
+
+        try (Connection connection = dbManager.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, ip);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String[] playerInfo = new String[]{
+                            rs.getString("player_uuid"),
+                            rs.getString("player_name"),
+                            rs.getString("ip")
+                    };
+                    results.add(playerInfo);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return results;
+    }
 
     public void printEntireDatabase() {
         String query = "SELECT * FROM flexbans_history";

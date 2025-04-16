@@ -12,10 +12,7 @@ import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.velocity.commands.BanCommand;
-import fr.neocle.flexbans.velocity.commands.BaseCommandVelocity;
-import fr.neocle.flexbans.velocity.commands.KickCommand;
-import fr.neocle.flexbans.velocity.commands.UnbanCommand;
+import fr.neocle.flexbans.velocity.commands.*;
 import fr.neocle.flexbans.velocity.listener.DashboardEvents;
 import fr.neocle.flexbans.velocity.listener.PlayerEvents;
 import fr.neocle.flexbans.velocity.listener.WhitelistEvents;
@@ -45,6 +42,13 @@ public class FlexBansVelocity {
         int pluginId = 23869;
         @SuppressWarnings("unused")
         Metrics metrics = metricsFactory.make(this, pluginId);
+        metrics.addCustomChart(new Metrics.SimplePie("language", () -> {
+            return (String) ConfigManager.getConfigValue("language");
+        }));
+
+        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> {
+            return String.valueOf(Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.https")));
+        }));
 
         FlexBansAPIImpl.initialize(
                 Paths.get("plugins", "FlexBans", "config.yml"),
@@ -96,7 +100,9 @@ public class FlexBansVelocity {
 
         commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer));
         commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer));
-        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor()));
+        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer));
+        commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer));
+        commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()));
     }
 
     private void registerListeners() {

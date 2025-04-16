@@ -23,13 +23,11 @@ import java.util.logging.Logger;
 public class PunishmentDetailsHandler extends AbstractHandler {
     private final Logger logger = Logger.getLogger("PunishmentDetailsHandler");
     private final UsernameUUIDConverters usernameUUIDConverters;
-    private final DurationCalculator durationCalculator;
     private final PlayerHeadImage playerHeadImage;
     private final DatabaseUtils databaseUtils;
 
-    public PunishmentDetailsHandler(UsernameUUIDConverters usernameUUIDConverters, DurationCalculator durationCalculator, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils) {
+    public PunishmentDetailsHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils) {
         this.usernameUUIDConverters = usernameUUIDConverters;
-        this.durationCalculator = durationCalculator;
         this.playerHeadImage = playerHeadImage;
         this.databaseUtils = databaseUtils;
     }
@@ -136,7 +134,7 @@ public class PunishmentDetailsHandler extends AbstractHandler {
 
                     String duration = (until == 0 || until == -1)
                             ? "Permanent"
-                            : durationCalculator.calculateDuration(time, until);
+                            : DurationCalculator.calculateDuration(time, until);
 
                     String executorName = "Console".equalsIgnoreCase(bannedByName)
                             ? "Console"

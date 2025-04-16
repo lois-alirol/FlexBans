@@ -68,6 +68,6 @@ public class KickCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("kick.use");
+        return invocation.source().hasPermission("flexbans.kick");
     }
 }

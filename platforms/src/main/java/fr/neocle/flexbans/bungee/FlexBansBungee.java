@@ -38,7 +38,7 @@ public class FlexBansBungee extends Plugin implements Listener {
         getProxy().getPluginManager().registerListener(this, this);
 
         bootstrap = new Bootstrap();
-        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), "bungee", eventDispatcher, this);
+        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), "bungee", eventDispatcher, getProxy());
 
         int pluginId = 23870;
         @SuppressWarnings("unused")

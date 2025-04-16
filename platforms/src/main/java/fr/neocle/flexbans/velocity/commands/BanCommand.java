@@ -85,6 +85,6 @@ public class BanCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("ban.use");
+        return invocation.source().hasPermission("flexbans.ban");
     }
 }
