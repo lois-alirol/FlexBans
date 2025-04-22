@@ -24,7 +24,6 @@ public class HomeHandler extends AbstractHandler {
                 return;
             }
 
-            String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
             String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
             String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
             String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
@@ -35,7 +34,6 @@ public class HomeHandler extends AbstractHandler {
             String pageContent = htmlTemplate
                     .replace("{{server_name}}", serverName)
                     .replace("{{server_description}}", serverDescription)
-                    .replace("{{server_icon}}", serverIcon)
                     .replace("{{server_favicon}}", serverFavicon)
                     .replace("{{server_color}}", serverColor)
                     .replace("{{server_color_hover}}", serverColorDarker)

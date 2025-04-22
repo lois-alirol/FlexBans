@@ -45,6 +45,16 @@ public class Verify extends Command {
         String code = args[0];
         String username = player.getName();
 
+        if (userManager.isUserRegistered(username) && userManager.isPlayerVerified(username)) {
+            boolean success = userManager.setDiscordIdFromCode(username, code);
+            if (success) {
+                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
+            } else {
+                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
+            }
+            return;
+        }
+
         try {
             userManager.insertUsername(username, code);
             userManager.setVerifiedStatusForPlayerName(username, true);

@@ -5,9 +5,11 @@ import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.Punishments.BansManager;
 import fr.neocle.flexbans.database.Punishments.HistoryManager;
 import fr.neocle.flexbans.database.Punishments.KicksManager;
+import fr.neocle.flexbans.database.Punishments.MutesManager;
 import fr.neocle.flexbans.database.Servers.ServerLocksManager;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
@@ -16,6 +18,7 @@ public class DatabaseUtils {
     private final UserManager userManager;
     private final SessionManager sessionManager;
     private final BansManager bansManager;
+    private final MutesManager mutesManager;
     private final KicksManager kicksManager;
     private final HistoryManager historyManager;
     private final ServerLocksManager serverLocksManager;
@@ -45,8 +48,9 @@ public class DatabaseUtils {
         }
 
         this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password, logger);
-        this.userManager = new UserManager(dbManager, logger);
+        this.userManager = new UserManager(this, dbManager, logger);
         this.bansManager = new BansManager(dbManager, logger);
+        this.mutesManager = new MutesManager(dbManager, logger);
         this.kicksManager = new KicksManager(dbManager, logger);
         this.historyManager = new HistoryManager(dbManager, logger);
         this.serverLocksManager = new ServerLocksManager(dbManager, logger);
@@ -67,8 +71,14 @@ public class DatabaseUtils {
         }
     }
 
+    public PreparedStatement prepareStatement(String sql) throws SQLException {
+        Connection connection = dbManager.getConnection();
+        return connection.prepareStatement(sql);
+    }
+
     public void shutdown() {
         cleanupTask.shutdown();
+        bansManager.shutdown();
     }
 
     public String getDatabaseType() {
@@ -85,6 +95,10 @@ public class DatabaseUtils {
 
     public BansManager getBansManager() {
         return bansManager;
+    }
+
+    public MutesManager getMutesManager() {
+        return mutesManager;
     }
 
     public KicksManager getKicksManager() {

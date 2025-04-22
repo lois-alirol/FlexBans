@@ -3,6 +3,10 @@ package fr.neocle.flexbans.api;
 import java.util.List;
 
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
+import fr.neocle.flexbans.api.punishments.BanExecutor;
+import fr.neocle.flexbans.api.punishments.KickExecutor;
+import fr.neocle.flexbans.api.punishments.MuteExecutor;
+import fr.neocle.flexbans.api.punishments.UnbanExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
 
@@ -84,4 +88,12 @@ public interface FlexBansAPI {
      * @return true if the user is whitelisted, false otherwise
      */
     boolean isUserWhitelisted(String userId);
+
+    BanExecutor getBanExecutor();
+
+    MuteExecutor getMuteExecutor();
+
+    KickExecutor getKickExecutor();
+
+    UnbanExecutor getUnbanExecutor();
 }

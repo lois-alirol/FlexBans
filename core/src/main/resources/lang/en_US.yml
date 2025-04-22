@@ -78,6 +78,18 @@ punishments:
       <gray>You can contact us at:
       <u><white>https://discord.gg/zN5kfrW2UQ
 
+  mute:
+    alert-message: |
+      <#ff4747>ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴍᴜᴛᴇᴅ ᴏɴ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ!
+      <gray>| Reason: <white>%reason%
+      <gray>| Muted by: <white>%moderator%
+    chat-message: |
+      <#ff4747>ʏᴏᴜ ᴀʀᴇ ᴍᴜᴛᴇᴅ ᴏɴ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ!
+      <gray>| Reason: <white>%reason%
+      <gray>| Muted by: <white>%moderator%
+
+
+
 server-locks:
   disconnect-message: |
     <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>

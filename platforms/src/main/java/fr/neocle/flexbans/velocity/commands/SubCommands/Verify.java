@@ -45,6 +45,17 @@ public class Verify implements SimpleCommand {
         String code = args[1];
         String username = player.getUsername();
 
+        if (userManager.isUserRegistered(username) && userManager.isPlayerVerified(username)) {
+            boolean success = userManager.setDiscordIdFromCode(username, code);
+            if (success) {
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
+            } else {
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
+            }
+            return;
+        }
+
+
         try {
             userManager.insertUsername(username, code);
             userManager.setVerifiedStatusForPlayerName(username, true);

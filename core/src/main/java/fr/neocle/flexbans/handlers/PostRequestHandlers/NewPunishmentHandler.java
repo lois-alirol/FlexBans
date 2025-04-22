@@ -16,13 +16,14 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class NewPunishmentHandler extends AbstractHandler {
-    private Logger logger = Logger.getLogger("FlexBans");
+    private Logger logger;
     private final CommandsExecution commandsExecution;
     private final DatabaseUtils databaseUtils;
 
-    public NewPunishmentHandler(CommandsExecution commandsExecution, DatabaseUtils databaseUtils) {
+    public NewPunishmentHandler(CommandsExecution commandsExecution, DatabaseUtils databaseUtils, Logger logger) {
         this.commandsExecution = commandsExecution;
         this.databaseUtils = databaseUtils;
+        this.logger = logger;
     }
 
     @Override
@@ -60,6 +61,8 @@ public class NewPunishmentHandler extends AbstractHandler {
             identifier = (String) request.getSession().getAttribute("playerName");
         } else if (playerName == null) {
             identifier = databaseUtils.getUserManager().getUsernameFromDiscordId(userId);
+        } else if (playerName != null && userId != null) {
+            identifier = playerName;
         }
 
         String pageContent = htmlTemplate

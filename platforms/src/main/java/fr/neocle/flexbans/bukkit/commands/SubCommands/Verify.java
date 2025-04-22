@@ -44,15 +44,34 @@ public class Verify implements CommandExecutor {
         String username = player.getName();
 
         try {
-            userManager.insertUsername(username, code);
-            userManager.setVerifiedStatusForPlayerName(username, true);
+            boolean isRegistered = userManager.isUserRegistered(username);
+            boolean isVerified = userManager.isPlayerVerified(username);
+
+            if (isRegistered && isVerified) {
+                userManager.setDiscordIdFromCode(username, code);
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
+                return true;
+            }
+
+            if (isRegistered) {
+                userManager.insertVerificationCodeFromPlayerName(username, code);
+                userManager.setVerifiedStatusForPlayerName(username, true);
+            } else {
+                userManager.insertUsername(username, code);
+                userManager.setVerifiedStatusForPlayerName(username, true);
+            }
+
+            userManager.setDiscordIdFromCode(username, code);
             player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
+
         } catch (SQLException e) {
             if (e.getMessage().contains("does not exist")) {
-                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.unknown-code").replaceText(builder -> builder.matchLiteral("%code%").replacement(Component.text(code))));
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.unknown-code")
+                        .replaceText(builder -> builder.matchLiteral("%code%").replacement(Component.text(code))));
             } else {
                 player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
-                logger.warning(LanguageManager.getMessageString("commands.logging.verify.sql-exception").replace("%error%", e.getMessage()));
+                logger.warning(LanguageManager.getMessageString("commands.logging.verify.sql-exception")
+                        .replace("%error%", e.getMessage()));
             }
         } catch (Exception e) {
             player.sendMessage(LanguageManager.getMessageComponent("commands.verify.error"));

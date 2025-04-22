@@ -27,6 +27,8 @@
         <h1 class="text-3xl font-bold text-center mb-4">Register for {{server_name}}</h1>
         <form action="/register" method="POST" class="space-y-4">
             <div>
+                <div id="status-message" class="hidden mb-2 text-sm font-medium px-4 py-2 rounded-lg"></div>
+
                 <label for="username" class="block text-sm font-medium mb-1">Username</label>
                 <input type="text" id="username" name="username" required
                     class="w-full bg-[#2e2e2e] text-[#e4e4e7] border border-[#4b5563] rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[{{server_color}}]">
@@ -155,13 +157,30 @@
                 contentType: 'application/json',
                 data: JSON.stringify(data),
                 success: function (response) {
-                    alert(response.message || 'Registration successful!');
-                    window.location.reload();
+                    const statusMsg = document.getElementById('status-message');
+                    statusMsg.classList.remove('bg-red-600');
+                    statusMsg.classList.add('bg-green-600', 'text-white');
+                    statusMsg.textContent = 'Login successful! Redirecting...';
+                    statusMsg.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        location.href = '/index'; // more reliable
+                    }, 1000);
                 },
+
                 error: function (xhr) {
-                    console.error('Error details:', xhr.status, xhr.responseText);
-                    alert('Error registering: ' + (xhr.responseText || 'Unknown error'));
-                    window.location.reload();
+                    let errorText = xhr.responseText;
+                    try {
+                        const json = JSON.parse(errorText);
+                        if (json.error) errorText = json.error;
+                    } catch (e) {
+                    }
+
+                    const statusMsg = document.getElementById('status-message');
+                    statusMsg.classList.remove('bg-green-600');
+                    statusMsg.classList.add('bg-red-600', 'text-white');
+                    statusMsg.textContent = errorText || 'Unknown error';
+                    statusMsg.classList.remove('hidden');
                 }
             });
         });

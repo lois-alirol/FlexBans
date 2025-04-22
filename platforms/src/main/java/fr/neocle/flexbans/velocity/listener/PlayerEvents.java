@@ -1,25 +1,26 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.database.Punishments.BansManager;
 import fr.neocle.flexbans.database.Punishments.HistoryManager;
+import fr.neocle.flexbans.database.Punishments.MutesManager;
 import fr.neocle.flexbans.database.Servers.ServerLocksManager;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.DateCalculator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.util.UUID;
 
@@ -27,7 +28,11 @@ public class PlayerEvents {
     private final Bootstrap bootstrap;
     private final ProxyServer proxyServer;
     private final BansManager bansManager;
+    private final MutesManager mutesManager;
     private final ServerLocksManager serverLocksManager;
+
+    public static final MinecraftChannelIdentifier MUTE_QUERY_CHANNEL = MinecraftChannelIdentifier.from("muting:query");
+    public static final MinecraftChannelIdentifier MUTE_RESPONSE_CHANNEL = MinecraftChannelIdentifier.from("muting:response");
 
     public static final MinecraftChannelIdentifier IDENTIFIER = MinecraftChannelIdentifier.from("muting:channel");
 
@@ -35,6 +40,7 @@ public class PlayerEvents {
         this.bootstrap = bootstrap;
         this.proxyServer = proxyServer;
         this.bansManager = bootstrap.getDatabaseUtils().getBansManager();
+        this.mutesManager = bootstrap.getDatabaseUtils().getMutesManager();
         this.serverLocksManager = bootstrap.getDatabaseUtils().getServerLocksManager();
 
         proxyServer.getChannelRegistrar().register(IDENTIFIER);
@@ -159,20 +165,51 @@ public class PlayerEvents {
     public void onPlayerChat(PlayerChatEvent event) {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
-        if ("c86eca4d-cb44-4589-98f7-3f6554cf0823".equals(player.getUniqueId().toString())) {
-            player.sendMessage(Component.text("§cYou are muted and cannot chat."));
+        String serverName = player.getCurrentServer()
+                .map(server -> server.getServer().getServerInfo().getName())
+                .orElse(null);
+        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
 
-            sendMuteSignal(player);
+        if (mutesManager.isPlayerMuted(playerUUID, null) ||
+                (serverName != null && mutesManager.isPlayerMuted(playerUUID, serverName)) ||
+                mutesManager.isIpMuted(playerIp, null) ||
+                (serverName != null && mutesManager.isIpMuted(playerIp, serverName))) {
+
+            String reason = mutesManager.getReason(playerUUID, serverName);
+            String issuer = mutesManager.getIssuer(playerUUID, serverName);
+            long time = mutesManager.getTime(playerUUID, serverName);
+            long duration = mutesManager.getDuration(playerUUID, serverName);
+
+            String rawMuteMessage = LanguageManager.getMessageString("punishments.mute.chat-message");
+            if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
+                rawMuteMessage = "§cYou are muted and cannot chat.";
+            } else {
+                rawMuteMessage = rawMuteMessage
+                        .replace("%reason%", reason != null ? reason : "No reason specified")
+                        .replace("%moderator%", issuer != null ? issuer : "Console")
+                        .replace("%date%", DateCalculator.formatTimestamp(time))
+                        .replace("%duration%", DateCalculator.formatDuration(duration))
+                        .replace("%expiration-date%", duration <= 0 ? "Never" : DateCalculator.formatTimestamp(time + duration))
+                        .replace("%time-left%", DateCalculator.formatExpiration(time, duration));
+            }
+
+            MiniMessage miniMessage = MiniMessage.miniMessage();
+            Component formattedMuteMessage = miniMessage.deserialize(rawMuteMessage);
+
+            player.sendMessage(formattedMuteMessage);
+            sendMuteSignal(player, true, serverName);
         }
     }
 
-    private void sendMuteSignal(Player player) {
+    private void sendMuteSignal(Player player, boolean isMuted, String serverName) {
         player.getCurrentServer().ifPresent(connection -> {
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(byteStream);
 
             try {
                 out.writeUTF(player.getUniqueId().toString());
+                out.writeBoolean(isMuted);
+                out.writeUTF(serverName);
             } catch (IOException e) {
                 e.printStackTrace();
                 return;
@@ -180,5 +217,42 @@ public class PlayerEvents {
 
             connection.sendPluginMessage(IDENTIFIER, byteStream.toByteArray());
         });
+    }
+
+    @Subscribe
+    public void onPluginMessage(PluginMessageEvent event) {
+        if (!event.getIdentifier().equals(MUTE_QUERY_CHANNEL)) return;
+        if (!(event.getSource() instanceof ServerConnection server)) return;
+
+        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
+            UUID uuid = UUID.fromString(in.readUTF());
+
+            Player player = proxyServer.getPlayer(uuid).orElse(null);
+            if (player == null) return;
+
+            String serverName = player.getCurrentServer()
+                    .map(connection -> connection.getServer().getServerInfo().getName())
+                    .orElse(null);
+
+            boolean isMuted = mutesManager.isPlayerMuted(uuid, null) ||
+                    (serverName != null && mutesManager.isPlayerMuted(uuid, serverName));
+
+            String reason = isMuted ? mutesManager.getReason(uuid, serverName) : "";
+            long until = isMuted ? mutesManager.getExpiration(uuid, serverName) : 0L;
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(baos);
+
+            out.writeUTF(uuid.toString());
+            out.writeBoolean(isMuted);
+            out.writeUTF(reason != null ? reason : "");
+            out.writeLong(until);
+            out.writeUTF(serverName != null ? serverName : "Global");
+
+            server.sendPluginMessage(MUTE_RESPONSE_CHANNEL, baos.toByteArray());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

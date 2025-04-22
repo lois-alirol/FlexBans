@@ -1,7 +1,10 @@
 package fr.neocle.flexbans.handlers.PostRequestHandlers;
 
+import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
+import fr.neocle.flexbans.utils.HooksUtils;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -9,18 +12,19 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import org.json.JSONObject;
-
-import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
 
 public class RevokePunishmentHandler extends AbstractHandler {
-    private final Logger logger = Logger.getLogger("RevokePunishmentHandler");
+    private final Logger logger;
     private final CommandsExecution commandsExecution;
+
+    private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
+    private final boolean usingLiteBans = HooksUtils.usingLiteBansSystem();
 
     private static final Pattern SAFE_TEXT_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\- ]{1,255}$");
 
-    public RevokePunishmentHandler(CommandsExecution commandsExecution) {
+    public RevokePunishmentHandler(CommandsExecution commandsExecution, Logger logger) {
         this.commandsExecution = commandsExecution;
+        this.logger = logger;
     }
 
     @Override
@@ -58,6 +62,7 @@ public class RevokePunishmentHandler extends AbstractHandler {
             String punishmentId = sanitizeInput(jsonPayload.optString("punishmentId"));
 
             if (identity == null || removalReason == null || punishmentType == null || punishmentId == null) {
+                logger.info(identity + " " + removalReason +  " " + punishmentType + " " + punishmentId);
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write("Error: Invalid input.");
                 return;
@@ -71,7 +76,11 @@ public class RevokePunishmentHandler extends AbstractHandler {
                 return;
             }
 
-            commandsExecution.executeCommand(command);
+            if (usingFlexBans) {
+                logger.info("FlexBans system: Command would have been executed: " + command);
+            } else {
+                commandsExecution.executeCommand(command);
+            }
 
             response.setStatus(HttpServletResponse.SC_OK);
             JSONObject jsonResponse = new JSONObject();

@@ -1,7 +1,10 @@
 package fr.neocle.flexbans.handlers;
 
 import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.queries.DashboardQueries;
 import fr.neocle.flexbans.utils.DurationCalculator;
+import fr.neocle.flexbans.utils.HooksUtils;
 import fr.neocle.flexbans.utils.ResourceLoader;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
@@ -16,20 +19,25 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class PlayerHistoryHandler extends AbstractHandler {
-    private Logger logger = Logger.getLogger("FlexBans");
+    private final Logger logger;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
+    private final DatabaseUtils flexbansDatabase;
 
-    private static final int PAGE_SIZE = 20;
+    private static final int PAGE_SIZE = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.pages.details.player.max-per-page"));
     private int totalRecords;
 
-    public PlayerHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage) {
+    private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
+    private final boolean usingLiteBans = HooksUtils.usingLiteBansSystem();
+
+    public PlayerHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils, Logger logger) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
+        this.flexbansDatabase = databaseUtils;
+        this.logger = logger;
     }
 
     @Override
@@ -93,7 +101,7 @@ public class PlayerHistoryHandler extends AbstractHandler {
 
             int offset = (page - 1) * PAGE_SIZE;
 
-            fetchAndAddPunishments(punishmentRows, executor, uuid, offset);
+            fetchAndAddPunishments(punishmentRows, uuid, executor, offset);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -127,45 +135,44 @@ public class PlayerHistoryHandler extends AbstractHandler {
     }
 
     private int getTotalPages(String player, String executor) throws SQLException {
-        StringBuilder baseQuery = new StringBuilder("SELECT COUNT(*) FROM (");
-        List<String> queries = new ArrayList<>();
-        List<Object> parameters = new ArrayList<>();
+        String query = DashboardQueries.buildPlayerCountQuery(usingFlexBans, player, executor);
+        PreparedStatement stmt;
 
-        queries.add("SELECT uuid FROM litebans_bans WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
+        if (usingFlexBans) {
+            stmt = flexbansDatabase.prepareStatement(query);
+        } else if (usingLiteBans) {
+            stmt = Database.get().prepareStatement(query);
+        } else {
+            logger.severe("No database system is active.");
+            return 0;
         }
 
-        queries.add("SELECT uuid FROM litebans_mutes WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        queries.add("SELECT uuid FROM litebans_warnings WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        queries.add("SELECT uuid FROM litebans_kicks WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t");
-
-        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+        try (stmt) {
             int paramIndex = 1;
-            for (Object param : parameters) {
-                stmt.setString(paramIndex++, (String) param);
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    int totalRecords = rs.getInt(1);
+                    totalRecords = rs.getInt(1);
                     return (int) Math.ceil((double) totalRecords / PAGE_SIZE);
                 }
             }
@@ -173,52 +180,44 @@ public class PlayerHistoryHandler extends AbstractHandler {
         return 0;
     }
 
-    private String buildWhereClause(String player) {
-        StringBuilder whereClause = new StringBuilder();
+    private void fetchAndAddPunishments(StringBuilder punishmentRows, String player, String executor, int offset) throws SQLException {
+        String query = DashboardQueries.buildPlayerPunishmentsQuery(usingFlexBans, player, executor, PAGE_SIZE, offset);
+        PreparedStatement stmt;
 
-        if (player != null && !player.isEmpty()) {
-            whereClause.append(" AND banned_by_name = ?");
+        if (usingFlexBans) {
+            stmt = flexbansDatabase.prepareStatement(query);
+        } else if (usingLiteBans) {
+            stmt = Database.get().prepareStatement(query);
+        } else {
+            logger.severe("No database system is active.");
+            return;
         }
 
-        return whereClause.toString();
-    }
-
-    private void fetchAndAddPunishments(StringBuilder punishmentRows, String executor, String player, int offset) throws SQLException {
-        StringBuilder baseQuery = new StringBuilder("SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (");
-        List<String> queries = new ArrayList<>();
-        List<Object> parameters = new ArrayList<>();
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Ban' AS type FROM litebans_bans WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Mute' AS type FROM litebans_mutes WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Warning' AS type FROM litebans_warnings WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Kick' AS type FROM litebans_kicks WHERE uuid = ? " + buildWhereClause(executor));
-        parameters.add(player);
-        if (executor != null && !executor.isEmpty()) {
-            parameters.add(executor);
-        }
-
-        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t ORDER BY time DESC LIMIT ").append(PAGE_SIZE).append(" OFFSET ").append(offset);
-
-        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+        try (stmt) {
             int paramIndex = 1;
-            for (Object param : parameters) {
-                stmt.setString(paramIndex++, (String) param);
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
             }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setString(paramIndex++, player);
+            if (executor != null && !executor.isEmpty()) {
+                stmt.setString(paramIndex++, executor);
+            }
+
+            stmt.setInt(paramIndex++, PAGE_SIZE);
+            stmt.setInt(paramIndex++, offset);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -233,6 +232,7 @@ public class PlayerHistoryHandler extends AbstractHandler {
         String playerUUID = rs.getString("uuid");
         String reason = rs.getString("reason");
         String executorName = rs.getString("banned_by_name");
+
         long time = rs.getLong("time");
         long until = rs.getLong("until");
         boolean isIpBan = rs.getInt("ipban") == 1;

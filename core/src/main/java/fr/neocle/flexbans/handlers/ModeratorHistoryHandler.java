@@ -1,40 +1,41 @@
 package fr.neocle.flexbans.handlers;
 
 import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.queries.DashboardQueries;
 import fr.neocle.flexbans.utils.DurationCalculator;
-import fr.neocle.flexbans.utils.ResourceLoader;
+import fr.neocle.flexbans.utils.HooksUtils;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
+import fr.neocle.flexbans.utils.ResourceLoader;
 import litebans.api.Database;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.sql.*;
 import java.util.logging.Logger;
 
 public class ModeratorHistoryHandler extends AbstractHandler {
-    private Logger logger = Logger.getLogger("FlexBans");
+    private final Logger logger;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
 
-    private static final int PAGE_SIZE = 20;
+    private final DatabaseUtils flexbansDatabase;
+
+    private static final int PAGE_SIZE = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.max-per-page"));
     private int totalRecords;
 
-    public ModeratorHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage) {
+    private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
+    private final boolean usingLiteBans = HooksUtils.usingLiteBansSystem();
+
+    public ModeratorHistoryHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils, Logger logger) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
+        this.flexbansDatabase = databaseUtils;
+        this.logger = logger;
     }
 
     @Override
@@ -127,45 +128,44 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     }
 
     private int getTotalPages(String executor, String player) throws SQLException {
-        StringBuilder baseQuery = new StringBuilder("SELECT COUNT(*) FROM (");
-        List<String> queries = new ArrayList<>();
-        List<Object> parameters = new ArrayList<>();
+        String query = DashboardQueries.buildModeratorCountQuery(usingFlexBans, executor, player);
+        PreparedStatement stmt;
 
-        queries.add("SELECT uuid FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
+        if (usingFlexBans) {
+            stmt = flexbansDatabase.prepareStatement(query);
+        } else if (usingLiteBans) {
+            stmt = Database.get().prepareStatement(query);
+        } else {
+            logger.severe("No database system is active.");
+            return 0;
         }
 
-        queries.add("SELECT uuid FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        queries.add("SELECT uuid FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        queries.add("SELECT uuid FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t");
-
-        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+        try (stmt) {
             int paramIndex = 1;
-            for (Object param : parameters) {
-                stmt.setString(paramIndex++, (String) param);
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    int totalRecords = rs.getInt(1);
+                    totalRecords = rs.getInt(1);
                     return (int) Math.ceil((double) totalRecords / PAGE_SIZE);
                 }
             }
@@ -173,52 +173,44 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         return 0;
     }
 
-    private String buildWhereClause(String player) {
-        StringBuilder whereClause = new StringBuilder();
-
-        if (player != null && !player.isEmpty()) {
-            whereClause.append(" AND uuid = ?");
-        }
-
-        return whereClause.toString();
-    }
-
     private void fetchAndAddPunishments(StringBuilder punishmentRows, String executor, String player, int offset) throws SQLException {
-        StringBuilder baseQuery = new StringBuilder("SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (");
-        List<String> queries = new ArrayList<>();
-        List<Object> parameters = new ArrayList<>();
+        String query = DashboardQueries.buildModeratorPunishmentsQuery(usingFlexBans, executor, player, PAGE_SIZE, offset);
+        PreparedStatement stmt;
 
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
+        if (usingFlexBans) {
+            stmt = flexbansDatabase.prepareStatement(query);
+        } else if (usingLiteBans) {
+            stmt = Database.get().prepareStatement(query);
+        } else {
+            logger.severe("No database system is active.");
+            return;
         }
 
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        queries.add("SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ? " + buildWhereClause(player));
-        parameters.add(executor);
-        if (player != null && !player.isEmpty()) {
-            parameters.add(player);
-        }
-
-        baseQuery.append(String.join(" UNION ALL ", queries)).append(") AS t ORDER BY time DESC LIMIT ").append(PAGE_SIZE).append(" OFFSET ").append(offset);
-
-        try (PreparedStatement stmt = Database.get().prepareStatement(baseQuery.toString())) {
+        try (stmt) {
             int paramIndex = 1;
-            for (Object param : parameters) {
-                stmt.setString(paramIndex++, (String) param);
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
             }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setString(paramIndex++, executor);
+            if (player != null && !player.isEmpty()) {
+                stmt.setString(paramIndex++, player);
+            }
+
+            stmt.setInt(paramIndex++, PAGE_SIZE);
+            stmt.setInt(paramIndex++, offset);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -229,17 +221,19 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     }
 
     private void addPunishmentRow(ResultSet rs, StringBuilder punishmentRows) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
         String type = rs.getString("type").toLowerCase();
         String playerUUID = rs.getString("uuid");
         String reason = rs.getString("reason");
         String moderatorName = rs.getString("banned_by_name");
+
         long time = rs.getLong("time");
         long until = rs.getLong("until");
         boolean isIpBan = rs.getInt("ipban") == 1;
         int punishmentID = rs.getInt("id");
 
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnCount = metaData.getColumnCount();
         boolean hasRemovedByName = false;
         boolean hasRemovedByDate = false;
 
@@ -287,15 +281,15 @@ public class ModeratorHistoryHandler extends AbstractHandler {
                 type = "Kick";
             }
         }
-    
+
         String duration = DurationCalculator.calculateDuration(time, until);
-    
+
         String typeColorClass = getTypeColorClass(type);
-    
+
         boolean isExpiredByTime = until != -1 && until != 0 && until < System.currentTimeMillis();
         boolean isManuallyRemoved = removedByName != null && removedByDate != null && removedByDate.before(new java.util.Date());
         boolean isExplicitlyExpired = "#expired".equals(removedByName);
-    
+
         String status;
         String badgeColorClass;
         if (type.equals("Kick")) {
@@ -311,60 +305,60 @@ public class ModeratorHistoryHandler extends AbstractHandler {
             status = "Active";
             badgeColorClass = "flex items-center justify-center bg-green-500 text-white";
         }
-    
+
         try {
             punishmentRows.append("<tr onclick=\"window.location.href='/details/").append(uncapitalize(type)).append("s/").append(punishmentID).append("';\">")
-                        .append("<td class='px-6 py-4 whitespace-nowrap'>")
-                        .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
-                        .append(typeColorClass).append("'>").append(type).append("</span>")
-                        .append("</td>")
-                    
-                        // Player Name Column
-                        .append("<td class='px-6 py-4 whitespace-nowrap'>")
-                        .append("<img src='").append(playerHeadImage.getPlayerHeadUrl(playerName, "32")).append("' alt='Player Head' class='inline-block'> ")
-                        .append("<a href='/player/").append(playerName).append("' onclick='event.stopPropagation();' class='hover:underline'>")
-                        .append(playerName != null ? playerName : playerUUID).append("</a>")
-                        .append("</td>")
-                    
-                        // Moderator Name Column
-                        .append("<td class='px-6 py-4 whitespace-nowrap'>")
-                        .append("<img src='").append(playerHeadImage.getPlayerHeadUrl(moderatorName, "32")).append("' alt='Moderator Head' class='inline-block'> ")
-                        .append("<a href='/moderator/").append(moderatorName).append("' onclick='event.stopPropagation();' class='hover:underline'>")
-                        .append(moderatorName).append("</a>")
-                        .append("</td>")
-                    
-                        // Reason Column
-                        .append("<td class='px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis'>")
-                        .append(reason)
-                        .append("</td>")
-                    
-                        // Date Column
-                        .append("<td class='px-6 py-4'>")
-                        .append(date)
-                        .append("</td>")
-                    
-                        // Expiration Date Column
-                        .append("<td class='px-6 py-4'>")
-                        .append(expirationDate)
-                        .append("</td>")
-                    
-                        // Duration Column
-                        .append("<td class='px-6 py-4'>")
-                        .append(duration)
-                        .append("</td>")
-                    
-                        // Status Column with Badge
-                        .append("<td class='px-6 py-4 whitespace-nowrap'>")
-                        .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
-                        .append(badgeColorClass).append("'>").append(status).append("</span>")
-                        .append("</td>")
-                    
-                        .append("</tr>");
+                    .append("<td class='px-6 py-4 whitespace-nowrap'>")
+                    .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
+                    .append(typeColorClass).append("'>").append(type).append("</span>")
+                    .append("</td>")
+
+                    // Player Name Column
+                    .append("<td class='px-6 py-4 whitespace-nowrap'>")
+                    .append("<img src='").append(playerHeadImage.getPlayerHeadUrl(playerName, "32")).append("' alt='Player Head' class='inline-block'> ")
+                    .append("<a href='/player/").append(playerName).append("' onclick='event.stopPropagation();' class='hover:underline'>")
+                    .append(playerName != null ? playerName : playerUUID).append("</a>")
+                    .append("</td>")
+
+                    // Moderator Name Column
+                    .append("<td class='px-6 py-4 whitespace-nowrap'>")
+                    .append("<img src='").append(playerHeadImage.getPlayerHeadUrl(moderatorName, "32")).append("' alt='Moderator Head' class='inline-block'> ")
+                    .append("<a href='/moderator/").append(moderatorName).append("' onclick='event.stopPropagation();' class='hover:underline'>")
+                    .append(moderatorName).append("</a>")
+                    .append("</td>")
+
+                    // Reason Column
+                    .append("<td class='px-6 py-4 max-w-xs overflow-hidden overflow-ellipsis'>")
+                    .append(reason)
+                    .append("</td>")
+
+                    // Date Column
+                    .append("<td class='px-6 py-4'>")
+                    .append(date)
+                    .append("</td>")
+
+                    // Expiration Date Column
+                    .append("<td class='px-6 py-4'>")
+                    .append(expirationDate)
+                    .append("</td>")
+
+                    // Duration Column
+                    .append("<td class='px-6 py-4'>")
+                    .append(duration)
+                    .append("</td>")
+
+                    // Status Column with Badge
+                    .append("<td class='px-6 py-4 whitespace-nowrap'>")
+                    .append("<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full ")
+                    .append(badgeColorClass).append("'>").append(status).append("</span>")
+                    .append("</td>")
+
+                    .append("</tr>");
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }    
-    
+    }
+
     private String getTypeColorClass(String type) {
         switch (type) {
             case "IP-Ban":
@@ -388,7 +382,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
         if (input == null || input.isEmpty()) {
             return input;
         }
-        
+
         char firstChar = input.charAt(0);
         if (Character.isLetter(firstChar) && Character.isLowerCase(firstChar)) {
             return Character.toUpperCase(firstChar) + input.substring(1);

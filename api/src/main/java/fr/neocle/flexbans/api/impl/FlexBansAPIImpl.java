@@ -2,8 +2,13 @@ package fr.neocle.flexbans.api.impl;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.api.punishments.BanExecutor;
+import fr.neocle.flexbans.api.punishments.KickExecutor;
+import fr.neocle.flexbans.api.punishments.MuteExecutor;
+import fr.neocle.flexbans.api.punishments.UnbanExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
+import net.md_5.bungee.protocol.packet.Kick;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -16,6 +21,10 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     private final PlayersWhitelist playersWhitelist;
     private final DiscordWhitelist discordWhitelist;
     private static FlexBansAPI instance;
+    private static BanExecutor banExecutor;
+    private static MuteExecutor muteExecutor;
+    private static KickExecutor kickExecutor;
+    private static UnbanExecutor unbanExecutor;
 
     private FlexBansAPIImpl() {
         this.playersWhitelist = new PlayersWhitelist(configFile, logger, eventDispatcher);
@@ -36,6 +45,22 @@ public class FlexBansAPIImpl implements FlexBansAPI {
             throw new IllegalStateException("FlexBans API is not initialized");
         }
         return instance;
+    }
+
+    public static void setBanExecutor(BanExecutor executor) {
+        FlexBansAPIImpl.banExecutor = executor;
+    }
+
+    public static void setMuteExecutor(MuteExecutor executor) {
+        FlexBansAPIImpl.muteExecutor = executor;
+    }
+
+    public static void setKickExecutor(KickExecutor executor) {
+        FlexBansAPIImpl.kickExecutor = executor;
+    }
+
+    public static void setUnbanExecutor(UnbanExecutor executor) {
+        FlexBansAPIImpl.unbanExecutor = executor;
     }
 
     @Override
@@ -86,6 +111,38 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     @Override
     public DiscordWhitelist getDiscordWhitelist() {
         return discordWhitelist;
+    }
+
+    @Override
+    public BanExecutor getBanExecutor() {
+        if (banExecutor == null) {
+            throw new IllegalStateException("BanExecutor has not been initialized");
+        }
+        return banExecutor;
+    }
+
+    @Override
+    public MuteExecutor getMuteExecutor() {
+        if (muteExecutor == null) {
+            throw new IllegalStateException("BanExecutor has not been initialized");
+        }
+        return muteExecutor;
+    }
+
+    @Override
+    public KickExecutor getKickExecutor() {
+        if (kickExecutor == null) {
+            throw new IllegalStateException("KickExecutor has not been initialized");
+        }
+        return kickExecutor;
+    }
+
+    @Override
+    public UnbanExecutor getUnbanExecutor() {
+        if (unbanExecutor == null) {
+            throw new IllegalStateException("UnbanExecutor has not been initialized");
+        }
+        return unbanExecutor;
     }
 
 }

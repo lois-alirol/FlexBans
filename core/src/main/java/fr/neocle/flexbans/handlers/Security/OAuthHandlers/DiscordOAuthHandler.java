@@ -42,7 +42,7 @@ public class DiscordOAuthHandler {
         }
 
         String redirectUri = encodeUri((String) ConfigManager.getConfigValue("discord-oauth.redirect-uri"));
-        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + ConfigManager.getConfigValue("discord-oauth.redirect-uri") +
+        String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" + ConfigManager.getConfigValue("discord-oauth.client-id") +
                 "&redirect_uri=" + redirectUri +
                 "&response_type=code&scope=" + ConfigManager.getConfigValue("discord-oauth.scope");
 

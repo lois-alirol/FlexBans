@@ -7,6 +7,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
@@ -28,6 +29,9 @@ public class FlexBansVelocity {
     private final Logger logger;
     private Bootstrap bootstrap;
 
+    public static final MinecraftChannelIdentifier MUTE_QUERY_CHANNEL = MinecraftChannelIdentifier.from("muting:query");
+    public static final MinecraftChannelIdentifier MUTE_RESPONSE_CHANNEL = MinecraftChannelIdentifier.from("muting:response");
+
     @Inject
     public FlexBansVelocity(ProxyServer proxyServer, Metrics.Factory metricsFactory) {
         this.proxyServer = proxyServer;
@@ -42,13 +46,8 @@ public class FlexBansVelocity {
         int pluginId = 23869;
         @SuppressWarnings("unused")
         Metrics metrics = metricsFactory.make(this, pluginId);
-        metrics.addCustomChart(new Metrics.SimplePie("language", () -> {
-            return (String) ConfigManager.getConfigValue("language");
-        }));
-
-        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> {
-            return String.valueOf(Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.https")));
-        }));
+        metrics.addCustomChart(new Metrics.SimplePie("language", () -> (String) ConfigManager.getConfigValue("language")));
+        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> String.valueOf(Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.https")))));
 
         FlexBansAPIImpl.initialize(
                 Paths.get("plugins", "FlexBans", "config.yml"),
@@ -58,6 +57,11 @@ public class FlexBansVelocity {
 
         bootstrap = new Bootstrap();
         bootstrap.initialize(Paths.get("plugins", "FlexBans"), logger, "velocity", eventDispatcher, proxyServer);
+
+        FlexBansAPIImpl.setBanExecutor(bootstrap.getBanExecutor());
+        FlexBansAPIImpl.setMuteExecutor(bootstrap.getMuteExecutor());
+        FlexBansAPIImpl.setKickExecutor(bootstrap.getKickExecutor());
+        FlexBansAPIImpl.setUnbanExecutor(bootstrap.getUnbanExecutor());
 
         int port = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.port"));
         boolean webserverEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.enabled"));
@@ -69,6 +73,7 @@ public class FlexBansVelocity {
 
         registerCommands();
         registerListeners();
+        registerChannels();
 
         bootstrap.logServerStartupInfo(url, port, "Velocity", proxyServer.getVersion().getVersion(), webserverEnabled);
     }
@@ -98,11 +103,12 @@ public class FlexBansVelocity {
                 logger
         ));
 
-        commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer));
-        commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer));
-        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer));
-        commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer));
-        commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()));
+        commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer), "flexbans:ban");
+        commandManager.register("mute", new MuteCommand(bootstrap.getMuteExecutor(), proxyServer), "flexbans:mute");
+        commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer), "flexbans:kick");
+        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer), "flexbans:unban");
+        commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer), "flexbans:serverlock");
+        commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
     }
 
     private void registerListeners() {
@@ -112,5 +118,10 @@ public class FlexBansVelocity {
         eventManager.register(this, new WhitelistEvents(logger));
         eventManager.register(this, new DashboardEvents(logger));
         eventManager.register(this, new PlayerEvents(bootstrap, proxyServer));
+    }
+
+    private void registerChannels() {
+        proxyServer.getChannelRegistrar().register(MUTE_QUERY_CHANNEL);
+        proxyServer.getChannelRegistrar().register(MUTE_RESPONSE_CHANNEL);
     }
 }

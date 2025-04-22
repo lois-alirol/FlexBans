@@ -1,4 +1,4 @@
-package fr.neocle.flexbans.commands.punishments.kick;
+package fr.neocle.flexbans.commands.punishments.mute;
 
 import fr.neocle.flexbans.commands.punishments.Common;
 import fr.neocle.flexbans.database.DatabaseUtils;
@@ -10,14 +10,14 @@ import org.geysermc.floodgate.api.FloodgateApi;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-public class KickExecutor implements fr.neocle.flexbans.api.punishments.KickExecutor {
-    private final KickPlatformHandler platformHandler;
+public class MuteExecutor implements fr.neocle.flexbans.api.punishments.MuteExecutor {
+    private final MutePlatformHandler platformHandler;
     private final Broadcaster broadcaster;
     private final FloodgateApi floodgateApi;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final DatabaseUtils databaseUtils;
 
-    public KickExecutor(KickPlatformHandler platformHandler, Broadcaster broadcaster, UsernameUUIDConverters usernameUUIDConverters, DatabaseUtils databaseUtils) {
+    public MuteExecutor(MutePlatformHandler platformHandler, Broadcaster broadcaster, UsernameUUIDConverters usernameUUIDConverters, DatabaseUtils databaseUtils) {
         this.platformHandler = platformHandler;
         this.broadcaster = broadcaster;
         this.usernameUUIDConverters = usernameUUIDConverters;
@@ -25,7 +25,7 @@ public class KickExecutor implements fr.neocle.flexbans.api.punishments.KickExec
         this.floodgateApi = Common.isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
-    public void executeKick(String target, String sender, String reason, String serverOrigin, boolean silent, boolean ipScope, Consumer<String> messageSender) {
+    public void executeMute(String target, String sender, String duration, String reason, String serverScope, String serverOrigin, boolean silent, boolean ipScope, Consumer<String> messageSender) {
         UUID targetUUID = Common.resolveTargetUUID(target, floodgateApi, usernameUUIDConverters);
         if (targetUUID == null) {
             messageSender.accept("§cError: Player '" + target + "' does not exist.");
@@ -38,11 +38,6 @@ public class KickExecutor implements fr.neocle.flexbans.api.punishments.KickExec
             return;
         }
 
-        if (!platformHandler.isPlayerOnline(targetUUID)) {
-            messageSender.accept("§cError: Player '" + target + "' is not online.");
-            return;
-        }
-
         String senderName = sender != null && !sender.isEmpty() ? sender : "Console";
         UUID senderUUID = Common.parseUUID(usernameUUIDConverters.usernameToUUID(senderName));
         if (senderUUID == null) {
@@ -50,16 +45,22 @@ public class KickExecutor implements fr.neocle.flexbans.api.punishments.KickExec
             return;
         }
 
-        processKick(target, targetUUID, senderName, senderUUID, reason, serverOrigin, silent, ipScope);
+        processMute(target, targetUUID, senderName, senderUUID, duration, reason, serverScope, serverOrigin, silent, ipScope);
     }
 
-    private void processKick(String target, UUID targetUUID, String senderName, UUID senderUUID, String reason, String serverOrigin, boolean silent, boolean ipScope) {
-        String kickReason = reason != null && !reason.isEmpty() ? reason : LanguageManager.getMessageString("punishments.default-reason");
+    private void processMute(String target, UUID targetUUID, String senderName, UUID senderUUID, String duration, String reason, String serverScope, String serverOrigin, boolean silent, boolean ipScope) {
+        String muteReason = reason != null && !reason.isEmpty() ? reason : LanguageManager.getMessageString("punishments.default-reason");
+        long muteDuration = Common.parseDuration(duration);
 
-        platformHandler.applyKick(target, targetUUID, senderName, kickReason);
-        databaseUtils.getKicksManager().insertKick(targetUUID, target, senderUUID, senderName, kickReason, serverOrigin, silent, ipScope);
+        if (duration == null || duration.isEmpty()) {
+            duration = LanguageManager.getMessageString("punishments.infinite-duration");
+        }
+
+        platformHandler.applyMute(target, targetUUID, senderName, duration, muteReason, serverScope);
+        databaseUtils.getMutesManager().insertMute(targetUUID, target, senderUUID, senderName, muteReason, muteDuration, serverScope, serverOrigin, silent, ipScope);
+
         if (!silent) {
-            broadcaster.execute("§l§aKicking " + target + " - Reason: " + kickReason);
+            broadcaster.execute("§l§aMuting " + target + " for " + (muteDuration == -1 ? "permanently" : muteDuration + "ms") + " Reason: " + muteReason);
         }
     }
 }

@@ -10,7 +10,7 @@ import org.geysermc.floodgate.api.FloodgateApi;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-public class BanExecutor {
+public class BanExecutor implements fr.neocle.flexbans.api.punishments.BanExecutor {
     private final BanPlatformHandler platformHandler;
     private final Broadcaster broadcaster;
     private final FloodgateApi floodgateApi;

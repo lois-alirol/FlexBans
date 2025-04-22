@@ -19,7 +19,7 @@ public class CodeVerificationHandler extends AbstractHandler {
     private final Logger logger;
     private final UserManager userManager;
 
-    public CodeVerificationHandler(Logger logger, CodeGenerator codeGenerator, DatabaseUtils databaseUtils) {
+    public CodeVerificationHandler(Logger logger, DatabaseUtils databaseUtils) {
         this.logger = logger;
         this.userManager = databaseUtils.getUserManager();
     }
@@ -48,10 +48,10 @@ public class CodeVerificationHandler extends AbstractHandler {
             String userId = (String) request.getSession().getAttribute("userId");
             String playerName = (String) request.getSession().getAttribute("playerName");
             try {
-                if (userId != null && playerName == null) {
+                if (userId != null) {
                     userManager.insertDiscordId(userId);
                     userManager.insertVerificationCodeFromDiscordId(userId, verificationCode);
-                } else if (userId == null && playerName != null) {
+                } else if (playerName != null) {
                     userManager.insertVerificationCodeFromPlayerName(playerName, verificationCode);
                 }
             } catch (SQLException e) {

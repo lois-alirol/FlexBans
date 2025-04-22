@@ -28,6 +28,10 @@ public class InternalServerError extends ErrorHandler {
         int statusCode = response.getStatus();
         Throwable cause = (Throwable) request.getAttribute("javax.servlet.error.exception");
 
+        if (cause == null) {
+            cause = (Throwable) request.getAttribute("fr.neocle.flexbans.exception");
+        }
+
         if (statusCode == HttpServletResponse.SC_INTERNAL_SERVER_ERROR) {
             response.setContentType("text/html;charset=utf-8");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

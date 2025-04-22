@@ -32,13 +32,13 @@ public class AltCommand implements SimpleCommand {
         CommandSource source = invocation.source();
         String[] args = invocation.arguments();
 
-        if (!source.hasPermission("flexbans.command.ipconnections")) {
+        if (!source.hasPermission("flexbans.command.alt")) {
             source.sendMessage(Component.text("You don't have permission to use this command.").color(NamedTextColor.RED));
             return;
         }
 
         if (args.length < 1) {
-            source.sendMessage(Component.text("Usage: /ipconnections <player>").color(NamedTextColor.RED));
+            source.sendMessage(Component.text("Usage: /alt <player>").color(NamedTextColor.RED));
             return;
         }
 

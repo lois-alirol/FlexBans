@@ -13,7 +13,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 public class HttpsEnforcementHandler extends AbstractHandler {
     private final Logger logger;
 
-    public HttpsEnforcementHandler(Map<String, Object> config, Logger logger) {
+    public HttpsEnforcementHandler(Logger logger) {
         this.logger = logger;
     }
 

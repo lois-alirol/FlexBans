@@ -5,13 +5,19 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.ban.BanExecutor;
 import fr.neocle.flexbans.commands.punishments.ban.BanPlatformHandler;
+import fr.neocle.flexbans.commands.punishments.ban.platforms.BukkitBan;
 import fr.neocle.flexbans.commands.punishments.ban.platforms.BungeeBan;
 import fr.neocle.flexbans.commands.punishments.ban.platforms.VelocityBan;
 import fr.neocle.flexbans.commands.punishments.kick.KickExecutor;
 import fr.neocle.flexbans.commands.punishments.kick.KickPlatformHandler;
-import fr.neocle.flexbans.commands.punishments.kick.platforms.VelocityKick;
-import fr.neocle.flexbans.commands.punishments.kick.platforms.BungeeKick;
 import fr.neocle.flexbans.commands.punishments.kick.platforms.BukkitKick;
+import fr.neocle.flexbans.commands.punishments.kick.platforms.BungeeKick;
+import fr.neocle.flexbans.commands.punishments.kick.platforms.VelocityKick;
+import fr.neocle.flexbans.commands.punishments.mute.MuteExecutor;
+import fr.neocle.flexbans.commands.punishments.mute.MutePlatformHandler;
+import fr.neocle.flexbans.commands.punishments.mute.platforms.BukkitMute;
+import fr.neocle.flexbans.commands.punishments.mute.platforms.BungeeMute;
+import fr.neocle.flexbans.commands.punishments.mute.platforms.VelocityMute;
 import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
 import fr.neocle.flexbans.commands.servers.lock.ServerLockExecutor;
 import fr.neocle.flexbans.commands.servers.lock.ServerLockPlatformHandler;
@@ -34,6 +40,7 @@ import fr.neocle.flexbans.handlers.Security.Utils.DomainFilter;
 import fr.neocle.flexbans.handlers.Security.Utils.HttpsEnforcementHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.Broadcast.Broadcaster;
+import fr.neocle.flexbans.utils.Broadcast.BroadcasterBukkit;
 import fr.neocle.flexbans.utils.Broadcast.BroadcasterBungee;
 import fr.neocle.flexbans.utils.Broadcast.BroadcasterVelocity;
 import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
@@ -44,7 +51,7 @@ import fr.neocle.flexbans.utils.JettyReloader;
 import fr.neocle.flexbans.utils.LibsLoader;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
-import fr.neocle.flexbans.utils.Security.CodeGenerator;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.DefaultHandler;
@@ -60,6 +67,7 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Bootstrap {
@@ -83,7 +91,6 @@ public class Bootstrap {
     protected Object pluginInstance;
     protected DatabaseUtils databaseUtils;
     protected CodeVerificationHandler codeVerificationHandler;
-    protected CodeGenerator codeGenerator;
     protected LoginHandler loginHandler;
     protected RegisterHandler registerHandler;
     protected DiscordOAuthHandler discordOAuthHandler;
@@ -92,10 +99,12 @@ public class Bootstrap {
     protected JettyReloader jettyReloader;
     protected PlayerHeadImage playerHeadImage;
     protected BanExecutor banExecutor;
+    protected MuteExecutor muteExecutor;
     protected KickExecutor kickExecutor;
     protected UnbanExecutor unbanExecutor;
     protected ServerLockExecutor serverLockExecutor;
     protected BanPlatformHandler banPlatformHandler;
+    protected MutePlatformHandler mutePlatformHandler;
     protected KickPlatformHandler kickPlatformHandler;
     protected ServerLockPlatformHandler serverLockHandler;
     protected LibsLoader libsLoader;
@@ -140,10 +149,16 @@ public class Bootstrap {
         usernameUUIDConverters = new UsernameUUIDConverters();
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
 
-        indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage);
-        playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage);
-        moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage);
-        punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils);
+        boolean playerHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
+        boolean moderatorHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
+        boolean punishmentDetailsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
+
+        indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+
+        if (playerHistoryEnabled) playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+        if (moderatorHistoryEnabled) moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+        if (punishmentDetailsEnabled) punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+
         playerHeadHandler = new PlayerHeadHandler(dataFolder, notFoundError);
 
         scriptsHandler = new ScriptsHandler(notFoundError);
@@ -156,20 +171,25 @@ public class Bootstrap {
                 broadcaster = new BroadcasterBungee((net.md_5.bungee.api.ProxyServer) pluginInstance);
 
                 banPlatformHandler = new BungeeBan((net.md_5.bungee.api.ProxyServer) pluginInstance);
+                mutePlatformHandler = new BungeeMute((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 kickPlatformHandler = new BungeeKick((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 break;
-            case "spigot":
-                commandsExecution = new CommandsExecutionBukkit();
-                broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
 
-                banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
-                kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
+            case "spigot":
+                commandsExecution = new CommandsExecutionBukkit((JavaPlugin) pluginInstance);
+                broadcaster = new BroadcasterBukkit();
+
+                banPlatformHandler = new BukkitBan();
+                mutePlatformHandler = new BukkitMute();
+                kickPlatformHandler = new BukkitKick();
                 break;
+
             case "velocity":
                 commandsExecution = new CommandsExecutionVelocity((ProxyServer) pluginInstance);
                 broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
 
                 banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
+                mutePlatformHandler = new VelocityMute((ProxyServer) pluginInstance);
                 kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
                 serverLockHandler = new VelocityServerLock((ProxyServer) pluginInstance);
                 break;
@@ -178,13 +198,12 @@ public class Bootstrap {
                 return;
         }
 
-        revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution);
-        codeGenerator = new CodeGenerator();
-        codeVerificationHandler = new CodeVerificationHandler(logger, codeGenerator, databaseUtils);
+        revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution, logger);
+        codeVerificationHandler = new CodeVerificationHandler(logger, databaseUtils);
         registerHandler = new RegisterHandler(logger, databaseUtils, eventDispatcher);
         loginHandler = new LoginHandler(logger, databaseUtils, eventDispatcher);
         discordOAuthHandler = new DiscordOAuthHandler(databaseUtils, forbiddenError, eventDispatcher, logger);
-        newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils);
+        newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils, logger);
 
         authHandler = new AuthenticationHandler(
                 indexHandler,
@@ -194,7 +213,7 @@ public class Bootstrap {
                 playerHeadHandler,
                 scriptsHandler,
                 revokePunishmentHandler,
-                null,
+                newPunishmentHandler,
                 forbiddenError,
                 notFoundError,
                 databaseUtils,
@@ -205,9 +224,6 @@ public class Bootstrap {
                 eventDispatcher,
                 logger
         );
-
-        authHandler.setNewPunishmentHandler(newPunishmentHandler);
-
     }
 
     public void initializeLanguage() {
@@ -225,6 +241,7 @@ public class Bootstrap {
 
     public void initializeCommands() {
         banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
+        muteExecutor = new MuteExecutor(mutePlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
         kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
         unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils);
         serverLockExecutor = new ServerLockExecutor(serverLockHandler, broadcaster, usernameUUIDConverters, databaseUtils);
@@ -249,7 +266,7 @@ public class Bootstrap {
     public void startWebServer(int port) {
         Server server = new Server(port);
 
-        AbstractHandler securityHandler = new HttpsEnforcementHandler(config, logger);
+        AbstractHandler securityHandler = new HttpsEnforcementHandler(logger);
         ResourceHandler resourceHandler = new ResourceHandler();
         DomainFilter domainFilter = new DomainFilter(logger);
         HomeHandler homeHandler = new HomeHandler();
@@ -284,11 +301,13 @@ public class Bootstrap {
                 try {
                     server.join();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    logger.severe("Error while joining server thread: " + e.getMessage());
+                    logger.log(Level.SEVERE, "Detailed exception information", e);
                 }
             }).start();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.severe("Failed to start web server on port " + port + ": " + e.getMessage());
+            logger.log(Level.SEVERE, "Detailed exception information", e);
         }
     }
 
@@ -306,7 +325,9 @@ public class Bootstrap {
         if (isWebServerEnabled) {
             logger.info(yellow + "Webserver is running on " + lightYellow + address + ":" + port + reset);
         }
-        logger.info(yellow + "Running on platform: " + lightYellow + platform + " " + version + reset);
+        logger.info(yellow + "Platform: " + lightYellow + platform + " " + version + reset);
+        logger.info(yellow + "Developer: " + lightYellow + "Neocle" + reset);
+        logger.info(yellow + "Licensed to: " + lightYellow + "Not Implemented" + reset);
         logger.info(yellow + "=======================================================================" + reset);
     }
 
@@ -348,6 +369,10 @@ public class Bootstrap {
 
     public BanExecutor getBanExecutor() {
         return banExecutor;
+    }
+
+    public MuteExecutor getMuteExecutor() {
+        return muteExecutor;
     }
 
     public KickExecutor getKickExecutor() {

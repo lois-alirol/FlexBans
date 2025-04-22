@@ -260,17 +260,21 @@ public class AuthenticationHandler extends AbstractHandler {
         boolean pageHandled = false;
         String uri = request.getRequestURI();
 
-        if (uri.startsWith("/player/")) {
+        boolean playerHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
+        boolean moderatorHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
+        boolean punishmentDetailsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
+
+        if (uri.startsWith("/player/") && playerHistoryEnabled) {
             playerHistoryHandler.handle(uri, baseRequest, request, response);
             pageHandled = true;
             return;
 
-        } else if (uri.startsWith("/moderator/")) {
+        } else if (uri.startsWith("/moderator/") && moderatorHistoryEnabled) {
             moderatorHistoryHandler.handle(uri, baseRequest, request, response);
             pageHandled = true;
             return;
 
-        } else if (uri.startsWith("/details/")) {
+        } else if (uri.startsWith("/details/") && punishmentDetailsEnabled) {
             punishmentDetailsHandler.handle(uri, baseRequest, request, response);
             pageHandled = true;
             return;
@@ -311,15 +315,9 @@ public class AuthenticationHandler extends AbstractHandler {
         // TO DO
     }
 
-    public void setNewPunishmentHandler(NewPunishmentHandler newPunishmentHandler) {
-        this.newPunishmentHandler = newPunishmentHandler;
-    }
-
     @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
         Object rawValue = ConfigManager.getConfigValue("password-auth.allowed-players");
-
-        logger.info(rawValue.toString());
 
         if (rawValue instanceof List<?> list) {
             List<String> allowedPlayers = list.stream()

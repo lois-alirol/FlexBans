@@ -21,6 +21,31 @@ webserver:
   port: 8080
   url: "localhost"
   https: true
+  pages:
+    punishments:
+      punishment-execution-button: true
+      bans:
+        enabled: true
+        max-per-page: 20
+      mutes:
+        enabled: true
+        max-per-page: 20
+      warnings:
+        enabled: true
+        max-per-page: 20
+      kicks:
+        enabled: true
+        max-per-page: 20
+    details:
+      moderator:
+        enabled: true
+        max-per-page: 20
+      player:
+        enabled: true
+        max-per-page: 20
+      punishment:
+        enabled: true
+        revoke-button: true
 
 database:
   #H2, SQLITE or MYSQL are supported. You will most likely need MySQL if you run a multi-proxy instance.
@@ -33,7 +58,21 @@ database:
 
 
 punishments-system:
-  enabled: true
+  # set "built-in.enabled" to false if you want to use another punishment plugin
+  # there will be issues if you enabled both "built-in" and a plugin under the "hooks" section.
+  built-in:
+    enabled: true
+    bans:
+      enabled: true
+    mutes:
+      enabled: true
+    warnings:
+      enabled: true
+    kicks:
+      enabled: true
+
+  hooks:
+    litebans: false
 
 
 # Settings for how the server will appear on the web page.
@@ -41,7 +80,7 @@ server-display:
   # The name of the server that will be displayed.
   name: "Example"
   # URL to the server's icon image.
-  icon: "https://i.imgur.com/iweixVA.png"
+  logo: "https://i.imgur.com/iweixVA.png"
   # URL to the server's favicon.
   favicon: "https://i.imgur.com/iweixVA.png"
   # Primary branding color for the server (in hexadecimal format).
@@ -75,7 +114,3 @@ password-auth:
 
 # DO NOT TOUCH
 config_version: "1.0"
-
-thats-a-test:
-  string: "hey"
-  enabled: true

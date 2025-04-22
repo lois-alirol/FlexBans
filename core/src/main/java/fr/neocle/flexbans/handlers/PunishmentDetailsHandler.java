@@ -2,7 +2,9 @@ package fr.neocle.flexbans.handlers;
 
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.queries.DashboardQueries;
 import fr.neocle.flexbans.utils.DurationCalculator;
+import fr.neocle.flexbans.utils.HooksUtils;
 import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
 import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
 import fr.neocle.flexbans.utils.ResourceLoader;
@@ -17,19 +19,25 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Logger;
 
 public class PunishmentDetailsHandler extends AbstractHandler {
-    private final Logger logger = Logger.getLogger("PunishmentDetailsHandler");
+    private final Logger logger;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final PlayerHeadImage playerHeadImage;
-    private final DatabaseUtils databaseUtils;
+    private final DatabaseUtils flexbansDatabase;
 
-    public PunishmentDetailsHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils) {
+    private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
+    private final boolean usingLiteBans = HooksUtils.usingLiteBansSystem();
+
+    public PunishmentDetailsHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage,
+                                    DatabaseUtils databaseUtils, Logger logger) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
-        this.databaseUtils = databaseUtils;
+        this.flexbansDatabase = databaseUtils;
+        this.logger = logger;
     }
 
     @Override
@@ -56,7 +64,7 @@ public class PunishmentDetailsHandler extends AbstractHandler {
             return;
         }
 
-        String tableName = "litebans_" + punishmentType;
+        String tableName = DashboardQueries.getTableName(usingFlexBans, usingLiteBans, punishmentType);
 
         String modifiedPunishmentType = punishmentType;
         if (modifiedPunishmentType.endsWith("s")) {
@@ -70,11 +78,23 @@ public class PunishmentDetailsHandler extends AbstractHandler {
             return;
         }
 
-        try (PreparedStatement stmt = Database.get().prepareStatement(
-                "SELECT uuid, ip, reason, banned_by_uuid, banned_by_name, removed_by_uuid, removed_by_name, removed_by_reason, removed_by_date, " +
-                        "time, until, server_origin, active " +
-                        "FROM " + tableName + " WHERE id = ?")) {
-            stmt.setString(1, punishmentId);
+        String query = DashboardQueries.buildPunishmentDetailsQuery(usingFlexBans, tableName);
+        PreparedStatement stmt = null;
+
+        try {
+            if (usingFlexBans) {
+                stmt = flexbansDatabase.prepareStatement(query);
+            } else if (usingLiteBans) {
+                stmt = Database.get().prepareStatement(query);
+            } else {
+                logger.severe("No database system is active.");
+                return;
+            }
+        } catch (SQLException ignored) {
+        }
+
+        try (PreparedStatement finalStmt = stmt) {
+            finalStmt.setString(1, punishmentId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -88,16 +108,11 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                     long until = rs.getLong("until");
                     String serverOrigin = rs.getString("server_origin");
 
-                    Timestamp removedByDate = null;
-
                     boolean isExpiredByTime = false;
                     boolean isManuallyRemoved = false;
                     boolean isExplicitlyExpired = false;
 
-                    try {
-                        removedByDate = rs.getTimestamp("removed_by_date");
-                    } catch (SQLException e) {
-                    }
+                    Timestamp removedByDate = rs.getTimestamp("removed_by_date");
 
                     if (until != -1 && until != 0 && until < System.currentTimeMillis()) {
                         isExpiredByTime = true;
@@ -106,7 +121,7 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                     if (removedByName != null) {
                         if ("#expired".equals(removedByName)) {
                             isExplicitlyExpired = true;
-                        } else if (removedByDate != null && removedByDate.before(new java.util.Date())) {
+                        } else if (removedByDate != null && removedByDate.before(new Date())) {
                             isManuallyRemoved = true;
                         }
                     }
@@ -125,8 +140,8 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                         statusLabel = "<span class='px-3 py-1 inline-flex text-xl leading-5 font-semibold rounded-xl bg-green-500 text-white'>Active</span>";
                     }
 
-                    String date = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(time));
-                    String expirationDate = (until == 0 || until == -1) ? "Never" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(until));
+                    String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(time));
+                    String expirationDate = (until == 0 || until == -1) ? "Never" : new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(until));
 
                     if (removedByName != null) {
                         expirationDate += " (removed by " + removedByName + ")";
@@ -159,15 +174,16 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                         removalReason = "<tr><th class='w-1/3 bg-[#ccc] dark:bg-[#444]'>Un" + modifiedPunishmentType.toLowerCase() + " Reason</th><td>" + removedReason + "</td></tr>";
                     }
 
-                    String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
+                    String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
                     String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
                     String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
 
                     boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
                     boolean loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
+                    boolean revokationEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.revoke-button"));
 
                     String revokeButton = "";
-                    if ("Active".equals(status) && (oauthEnabled || loginEnabled)) {
+                    if ("Active".equalsIgnoreCase(status) && (oauthEnabled || loginEnabled) && revokationEnabled) {
                         revokeButton = "<div class=\"mt-8 text-center\">\r\n" +
                                 "    <button id=\"revoke-button\" class=\"bg-red-500 hover:bg-red-600 text-white py-2 px-6 rounded-lg\">\r\n" +
                                 "        <i class=\"fa-solid fa-ban mr-2\"></i> Revoke Punishment\r\n" +
@@ -176,11 +192,14 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                     }
 
                     String userId = (String) request.getSession().getAttribute("userId");
-                    String identifier = "None";
+                    String identifier = "";
+
                     if (userId == null) {
                         identifier = (String) request.getSession().getAttribute("playerName");
                     } else if (playerName == null) {
-                        identifier = databaseUtils.getUserManager().getUsernameFromDiscordId(userId);
+                        identifier = flexbansDatabase.getUserManager().getUsernameFromDiscordId(userId);
+                    } else if (playerName != null && userId != null) {
+                        identifier = (String) request.getSession().getAttribute("playerName");
                     }
 
                     htmlTemplate = htmlTemplate
@@ -199,7 +218,7 @@ public class PunishmentDetailsHandler extends AbstractHandler {
                             .replace("{{revoke_button}}", revokeButton)
                             .replace("{{punishment_id}}", punishmentId)
                             .replace("{{punishment_type}}", modifiedPunishmentType)
-                            .replace("{{server_icon}}", serverIcon)
+                            .replace("{{server_logo}}", serverLogo)
                             .replace("{{favicon}}", rawPlayerHead)
                             .replace("{{server_color}}", serverColor)
                             .replace("{{server_color_hover}}", serverColorDarker);
