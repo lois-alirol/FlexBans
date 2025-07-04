@@ -120,7 +120,7 @@ public class IndexHandler extends AbstractHandler {
         }
         
         String player = request.getParameter("player");
-        if (player != null && (!player.matches(UUID_32_PATTERN) || !player.matches(UUID_STANDARD_PATTERN))) {
+        if (player != null && !player.matches(UUID_32_PATTERN) && !player.matches(UUID_STANDARD_PATTERN)) {
             player = usernameUUIDConverters.usernameToUUID(player);
         }
         
