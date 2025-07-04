@@ -41,12 +41,322 @@ public class IndexHandler extends AbstractHandler {
 
     private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
     private final boolean usingLiteBans = HooksUtils.usingLiteBansSystem();
+    
+    // Constants for repeated strings and patterns
+    private static final String UUID_32_PATTERN = "^[0-9a-fA-F]{32}$";
+    private static final String UUID_STANDARD_PATTERN = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
+    private static final String CONSOLE_IDENTIFIER = "[console]";
+    private static final String CONSOLE_NAME = "Console";
+    private static final String HTML_TEMPLATE_PATH = "web/index.html";
+    private static final String REDIRECT_TO_INDEX = "/index";
+    
+    // Configuration holder inner class
+    private static class ServerConfiguration {
+        final String favicon;
+        final String logo;
+        final String color;
+        final String colorDarker;
+        final String name;
+        final String description;
+        
+        ServerConfiguration() {
+            this.favicon = (String) ConfigManager.getConfigValue("server-display.favicon");
+            this.logo = (String) ConfigManager.getConfigValue("server-display.logo");
+            this.color = (String) ConfigManager.getConfigValue("server-display.color");
+            this.colorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+            this.name = (String) ConfigManager.getConfigValue("server-display.name");
+            this.description = (String) ConfigManager.getConfigValue("server-display.description");
+        }
+    }
+    
+    // Feature configuration holder inner class
+    private static class FeatureConfiguration {
+        final boolean bansEnabled;
+        final boolean mutesEnabled;
+        final boolean kicksEnabled;
+        final boolean warningsEnabled;
+        final boolean oauthEnabled;
+        final boolean loginEnabled;
+        final boolean searchPlayerEnabled;
+        final boolean searchModeratorEnabled;
+        final boolean searchPunishmentEnabled;
+        final boolean punishmentExecutionEnabled;
+        
+        FeatureConfiguration() {
+            this.bansEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.bans.enabled"));
+            this.mutesEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.mutes.enabled"));
+            this.kicksEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.kicks.enabled"));
+            this.warningsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.warnings.enabled"));
+            this.oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
+            this.loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
+            this.searchPlayerEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
+            this.searchModeratorEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
+            this.searchPunishmentEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
+            this.punishmentExecutionEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.punishment-execution-button"));
+        }
+    }
 
     public IndexHandler(UsernameUUIDConverters usernameUUIDConverters, PlayerHeadImage playerHeadImage, DatabaseUtils databaseUtils, Logger logger) {
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.playerHeadImage = playerHeadImage;
         this.flexbansDatabase = databaseUtils;
         this.logger = logger;
+    }
+    
+    /**
+     * Validates and processes request parameters
+     */
+    private RequestParameters extractAndValidateParameters(HttpServletRequest request) {
+        String type = request.getParameter("type");
+        
+        int page = 1;
+        String pageParam = request.getParameter("page");
+        if (pageParam != null) {
+            try {
+                page = Integer.parseInt(pageParam);
+            } catch (NumberFormatException e) {
+                page = 1;
+            }
+        }
+        
+        String player = request.getParameter("player");
+        if (player != null && (!player.matches(UUID_32_PATTERN) || !player.matches(UUID_STANDARD_PATTERN))) {
+            player = usernameUUIDConverters.usernameToUUID(player);
+        }
+        
+        String executor = request.getParameter("executor");
+        if (executor != null && executor.equalsIgnoreCase(CONSOLE_IDENTIFIER)) {
+            executor = CONSOLE_NAME;
+        } else if (executor != null && (executor.matches(UUID_32_PATTERN) || executor.matches(UUID_STANDARD_PATTERN))) {
+            executor = usernameUUIDConverters.UUIDtoUsername(executor);
+        }
+        
+        String status = request.getParameter("status");
+        String on = request.getParameter("on");
+        String before = request.getParameter("before");
+        String after = request.getParameter("after");
+        
+        return new RequestParameters(type, page, player, executor, status, on, before, after);
+    }
+    
+    /**
+     * Builds category navigation buttons HTML
+     */
+    private CategoryButtons buildCategoryButtons(FeatureConfiguration features) {
+        String bansCategoryButton = "";
+        String mutesCategoryButton = "";
+        String kicksCategoryButton = "";
+        String warningsCategoryButton = "";
+        
+        if (features.bansEnabled) {
+            bansCategoryButton = """
+                        <a href="?type=bans"
+                           class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
+                           aria-label="View bans">
+                            <i class="fas fa-ban"></i> <span class="ml-4 text-lg">Bans</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{bans_count}}</span>
+                        </a>
+                    """;
+        }
+        
+        if (features.mutesEnabled) {
+            mutesCategoryButton = """
+                        <a href="?type=mutes"
+                           class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
+                           aria-label="View mutes">
+                            <i class="fas fa-microphone-slash"></i> <span class="ml-4 text-lg">Mutes</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{mutes_count}}</span>
+                        </a>
+                    """;
+        }
+        
+        if (features.kicksEnabled) {
+            kicksCategoryButton = """
+                        <a href="?type=kicks"
+                           class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
+                           aria-label="View kicks">
+                            <i class="fas fa-user-times"></i> <span class="ml-4 text-lg">Kicks</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{kicks_count}}</span>
+                        </a>
+                    """;
+        }
+        
+        if (features.warningsEnabled) {
+            warningsCategoryButton = """
+                        <a href="?type=warnings"
+                           class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
+                           aria-label="View warnings">
+                            <i class="fas fa-exclamation-circle"></i> <span class="ml-4 text-lg">Warnings</span>
+                            <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{warnings_count}}</span>
+                        </a>
+                    """;
+        }
+        
+        return new CategoryButtons(bansCategoryButton, mutesCategoryButton, kicksCategoryButton, warningsCategoryButton);
+    }
+    
+    /**
+     * Builds search sections HTML
+     */
+    private SearchSections buildSearchSections(FeatureConfiguration features) {
+        String usersDetailsSectionLabel = "";
+        String searchPlayerSection = "";
+        String searchModeratorSection = "";
+        String punishmentDetailsSectionLabel = "";
+        String searchPunishmentSection = "";
+        
+        if (features.searchPlayerEnabled || features.searchModeratorEnabled) {
+            usersDetailsSectionLabel = """
+                    <hr class="border-gray-600 my-4 w-3/4 mx-auto">
+                    <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Users Details</h2>
+                """;
+        }
+        
+        if (features.searchPlayerEnabled) {
+            searchPlayerSection = """
+                <div class="flex w-full max-w-md space-x-2">
+                    <input type="text" id="playerInput" placeholder="Search Player..."
+                           class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                    <button id="searchPlayerButton"
+                            class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </div>
+            """;
+        }
+        
+        if (features.searchModeratorEnabled) {
+            String moderatorMarginClass = features.searchPlayerEnabled ? "mt-4" : "";
+            searchModeratorSection = String.format("""
+                <div class="flex w-full max-w-md space-x-2 %s">
+                    <input type="text" id="moderatorInput" placeholder="Search Moderator..."
+                           class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                    <button id="searchModeratorButton"
+                            class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </div>
+            """, moderatorMarginClass);
+        }
+        
+        if (features.searchPunishmentEnabled) {
+            punishmentDetailsSectionLabel = """
+                <hr class="border-gray-600 my-4 w-3/4 mx-auto">
+                <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Punishments Details</h2>
+            """;
+            
+            searchPunishmentSection = """
+                <div class="flex w-full max-w-md space-x-2">
+                    <input type="text" id="punishmentInput" placeholder="Search {{punishment_type_capitalized}} ID..."
+                           class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
+                    <button id="searchPunishmentButton"
+                            class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
+                        <i class="fa-solid fa-search"></i>
+                    </button>
+                </div>
+            """;
+        }
+        
+        return new SearchSections(usersDetailsSectionLabel, searchPlayerSection, searchModeratorSection, 
+                                 punishmentDetailsSectionLabel, searchPunishmentSection);
+    }
+    
+    /**
+     * Builds new punishment button HTML
+     */
+    private String buildNewPunishmentButton(FeatureConfiguration features, ServerConfiguration serverConfig) {
+        if (features.punishmentExecutionEnabled && (features.oauthEnabled || features.loginEnabled)) {
+            return "<hr class=\"border-gray-600 my-4 w-3/4 mx-auto\">" +
+                   "<div class=\"flex w-full max-w-md space-x-2 justify-center\">" +
+                   "<a href=\"/new-punishment\" class=\"nav-item block py-2.5 px-4 mx-4 rounded-lg text-white bg-[" + 
+                   serverConfig.color + "] hover:bg-[" + serverConfig.colorDarker + "] relative\">" +
+                   "<i class=\"fa-solid fa-gavel\"></i> <span class=\"ml-4 text-lg\">New Punishment</span>" +
+                   "</a>" +
+                   "</div>";
+        }
+        return "";
+    }
+    
+    /**
+     * Fetches all punishment counts
+     */
+    private PunishmentCounts fetchPunishmentCounts() throws SQLException {
+        int bansCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "bans"));
+        int mutesCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "mutes"));
+        int kicksCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "kicks"));
+        int warningsCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "warnings"));
+        
+        return new PunishmentCounts(bansCount, mutesCount, kicksCount, warningsCount);
+    }
+    
+    /**
+     * Helper classes for data transfer
+     */
+    private static class RequestParameters {
+        final String type;
+        final int page;
+        final String player;
+        final String executor;
+        final String status;
+        final String on;
+        final String before;
+        final String after;
+        
+        RequestParameters(String type, int page, String player, String executor, String status, String on, String before, String after) {
+            this.type = type;
+            this.page = page;
+            this.player = player;
+            this.executor = executor;
+            this.status = status;
+            this.on = on;
+            this.before = before;
+            this.after = after;
+        }
+    }
+    
+    private static class CategoryButtons {
+        final String bans;
+        final String mutes;
+        final String kicks;
+        final String warnings;
+        
+        CategoryButtons(String bans, String mutes, String kicks, String warnings) {
+            this.bans = bans;
+            this.mutes = mutes;
+            this.kicks = kicks;
+            this.warnings = warnings;
+        }
+    }
+    
+    private static class SearchSections {
+        final String usersDetailsSectionLabel;
+        final String searchPlayerSection;
+        final String searchModeratorSection;
+        final String punishmentDetailsSectionLabel;
+        final String searchPunishmentSection;
+        
+        SearchSections(String usersDetailsSectionLabel, String searchPlayerSection, String searchModeratorSection,
+                      String punishmentDetailsSectionLabel, String searchPunishmentSection) {
+            this.usersDetailsSectionLabel = usersDetailsSectionLabel;
+            this.searchPlayerSection = searchPlayerSection;
+            this.searchModeratorSection = searchModeratorSection;
+            this.punishmentDetailsSectionLabel = punishmentDetailsSectionLabel;
+            this.searchPunishmentSection = searchPunishmentSection;
+        }
+    }
+    
+    private static class PunishmentCounts {
+        final int bans;
+        final int mutes;
+        final int kicks;
+        final int warnings;
+        
+        PunishmentCounts(int bans, int mutes, int kicks, int warnings) {
+            this.bans = bans;
+            this.mutes = mutes;
+            this.kicks = kicks;
+            this.warnings = warnings;
+        }
     }
 
     @Override
@@ -57,288 +367,155 @@ public class IndexHandler extends AbstractHandler {
             baseRequest.setHandled(true);
 
             if (!usingFlexBans && !usingLiteBans) {
-                ConfigurationException exception = new ConfigurationException(
-                        "FlexBans is wrongly configured and is not using any punishments provider. " +
-                                "If you are a server administrator, please check your config.");
-
-                request.setAttribute("javax.servlet.error.exception", exception);
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                handleDatabaseError(request, response, "FlexBans is wrongly configured and is not using any punishments provider. " +
+                        "If you are a server administrator, please check your config.");
                 return;
             }
 
-            boolean bansEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.bans.enabled"));
-            boolean mutesEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.mutes.enabled"));
-            boolean kicksEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.kicks.enabled"));
-            boolean warningsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.warnings.enabled"));
-
-            Set<String> enabledTypes = new LinkedHashSet<>();
-            if (bansEnabled) enabledTypes.add("bans");
-            if (mutesEnabled) enabledTypes.add("mutes");
-            if (kicksEnabled) enabledTypes.add("kicks");
-            if (warningsEnabled) enabledTypes.add("warnings");
-
-            String type = request.getParameter("type");
-            if (type == null || type.isEmpty()) {
-                if (!enabledTypes.isEmpty()) {
-                    type = enabledTypes.iterator().next();
-                    response.sendRedirect(request.getRequestURI() + "?type=" + type);
-                    return;
-                } else {
-                    response.getWriter().write("No punishment types are enabled.");
-                    return;
-                }
-            }
-
-            if ((type.equalsIgnoreCase("bans") && !bansEnabled) ||
-                    (type.equalsIgnoreCase("mutes") && !mutesEnabled) ||
-                    (type.equalsIgnoreCase("kicks") && !kicksEnabled) ||
-                    (type.equalsIgnoreCase("warnings") && !warningsEnabled)) {
-                response.sendRedirect("/index");
+            FeatureConfiguration features = new FeatureConfiguration();
+            Set<String> enabledTypes = getEnabledPunishmentTypes(features);
+            
+            if (enabledTypes.isEmpty()) {
+                handleDatabaseError(request, response, "FlexBans is wrongly configured and all punishments are disabled in the webserver. " +
+                        "If you are a server administrator, please check your config.");
                 return;
             }
 
-            int page = 1;
-            String pageParam = request.getParameter("page");
-            if (pageParam != null) {
-                try {
-                    page = Integer.parseInt(pageParam);
-                } catch (NumberFormatException e) {
-                    page = 1;
-                }
+            RequestParameters params = extractAndValidateParameters(request);
+            
+            // Handle type parameter validation and redirect
+            if (params.type == null || params.type.isEmpty()) {
+                response.sendRedirect(request.getRequestURI() + "?type=" + enabledTypes.iterator().next());
+                return;
+            }
+            
+            if (!isValidPunishmentType(params.type, features)) {
+                response.sendRedirect(REDIRECT_TO_INDEX);
+                return;
             }
 
-            String dbTable = DashboardQueries.getTableName(usingFlexBans, usingLiteBans, type);
-
-            String player = request.getParameter("player");
-            if (player != null && (!player.matches("^[0-9a-fA-F]{32}$") || !player.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
-                player = usernameUUIDConverters.usernameToUUID(player);
-            }
-
-            String executor = request.getParameter("executor");
-            if (executor != null && executor.equalsIgnoreCase("[console]")) {
-                executor = "Console";
-            } else if (executor != null && (executor.matches("^[0-9a-fA-F]{32}$") || executor.matches("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"))) {
-                executor = usernameUUIDConverters.UUIDtoUsername(executor);
-            }
-
-            String status = request.getParameter("status");
-            String on = request.getParameter("on");
-            String before = request.getParameter("before");
-            String after = request.getParameter("after");
-
-            String htmlTemplate = ResourceLoader.loadHtmlTemplate("web/index.html");
+            String htmlTemplate = ResourceLoader.loadHtmlTemplate(HTML_TEMPLATE_PATH);
             if (htmlTemplate == null) {
                 logger.warning("Unable to load HTML template for index page.");
                 response.getWriter().write("Error: Unable to load HTML template.");
                 return;
             }
 
-            StringBuilder punishmentRows = new StringBuilder();
-            int totalPages = 0;
-            int bansCount = 0;
-            int mutesCount = 0;
-            int kicksCount = 0;
-            int warningsCount = 0;
-
             try {
-                bansCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "bans"));
-                mutesCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "mutes"));
-                kicksCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "kicks"));
-                warningsCount = getPunishmentCount(DashboardQueries.getTableName(usingFlexBans, usingLiteBans, "warnings"));
-
-                totalPages = getTotalPages(dbTable, player, executor, status, on, before, after, type);
-
-                if (page > totalPages && totalPages > 0) {
-                    page = totalPages;
-                }
-
-                int pageSize = getPageSizeForType(type);
-                int offset = (page - 1) * pageSize;
-
-                String query = DashboardQueries.buildPunishmentsQuery(
-                        usingFlexBans, dbTable, player, executor, status, on, before, after, pageSize, offset
-                );
-
-                fetchAndAddPunishments(query, punishmentRows, type, false, player, executor, status, on, before, after, request);
-
+                ServerConfiguration serverConfig = new ServerConfiguration();
+                PunishmentCounts counts = fetchPunishmentCounts();
+                
+                StringBuilder punishmentRows = new StringBuilder();
+                int totalPages = processAndFetchPunishments(params, punishmentRows, request);
+                
+                String pageContent = buildFinalPageContent(htmlTemplate, features, serverConfig, 
+                                                         params, counts, punishmentRows, totalPages);
+                
+                response.getWriter().write(pageContent);
+                
             } catch (SQLException e) {
                 e.printStackTrace();
                 response.getWriter().write("Error: Unable to fetch punishment data.");
-                return;
             }
-
-            String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
-            String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
-            String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
-            String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
-            String serverName = (String) ConfigManager.getConfigValue("server-display.name");
-            String serverDescription = (String) ConfigManager.getConfigValue("server-display.description");
-
-            boolean oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
-            boolean loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
-
-            boolean searchPlayerEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
-            boolean searchModeratorEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
-            boolean searchPunishmentEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
-
-            boolean punishmentExecutionEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.punishments.punishment-execution-button"));
-
-            String bansCategoryButton = "";
-            String mutesCategoryButton = "";
-            String kicksCategoryButton = "";
-            String warningsCategoryButton = "";
-            String usersDetailsSectionLabel = "";
-            String searchPlayerSection = "";
-            String searchModeratorSection = "";
-            String punishmentDetailsSectionLabel = "";
-            String searchPunishmentSection = "";
-            String newPunishmentButton = "";
-
-            if (!bansEnabled && !mutesEnabled && !kicksEnabled && !warningsEnabled) {
-                ConfigurationException exception = new ConfigurationException(
-                        "FlexBans is wrongly configured and all punishments are disabled in the webserver. " +
-                                "If you are a server administrator, please check your config.");
-
-                request.setAttribute("javax.servlet.error.exception", exception);
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                return;
-            }
-
-            if (bansEnabled) {
-                bansCategoryButton = """
-                            <a href="?type=bans"
-                               class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
-                               aria-label="View bans">
-                                <i class="fas fa-ban"></i> <span class="ml-4 text-lg">Bans</span>
-                                <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{bans_count}}</span>
-                            </a>
-                        """;
-            }
-
-            if (mutesEnabled) {
-                mutesCategoryButton = """
-                            <a href="?type=mutes"
-                               class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
-                               aria-label="View mutes">
-                                <i class="fas fa-microphone-slash"></i> <span class="ml-4 text-lg">Mutes</span>
-                                <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{mutes_count}}</span>
-                            </a>
-                        """;
-            }
-
-            if (kicksEnabled) {
-                kicksCategoryButton = """
-                            <a href="?type=kicks"
-                               class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
-                               aria-label="View kicks">
-                                <i class="fas fa-user-times"></i> <span class="ml-4 text-lg">Kicks</span>
-                                <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{kicks_count}}</span>
-                            </a>
-                        """;
-            }
-
-            if (warningsEnabled) {
-                warningsCategoryButton = """
-                            <a href="?type=warnings"
-                               class="nav-item block py-2.5 px-4 mx-4 rounded-lg hover:bg-[#E6E6E6E6] dark:hover:bg-[#4B4B4BE6] relative"
-                               aria-label="View warnings">
-                                <i class="fas fa-exclamation-circle"></i> <span class="ml-4 text-lg">Warnings</span>
-                                <span class="absolute right-3 top-3 inline-flex items-center justify-center w-10 h-6 bg-zinc-500 text-white text-x font-semibold rounded-full">{{warnings_count}}</span>
-                            </a>
-                        """;
-            }
-
-            if (searchPlayerEnabled || searchModeratorEnabled) {
-                usersDetailsSectionLabel = """
-                        <hr class="border-gray-600 my-4 w-3/4 mx-auto">
-                        <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Users Details</h2>
-                    """;
-            }
-
-            if (searchPlayerEnabled) {
-                searchPlayerSection = """
-                    <div class="flex w-full max-w-md space-x-2">
-                        <input type="text" id="playerInput" placeholder="Search Player..."
-                               class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
-                        <button id="searchPlayerButton"
-                                class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
-                            <i class="fa-solid fa-search"></i>
-                        </button>
-                    </div>
-                """;
-            }
-
-            if (searchModeratorEnabled) {
-                String moderatorMarginClass = searchPlayerEnabled ? "mt-4" : "";
-
-                searchModeratorSection = String.format("""
-                    <div class="flex w-full max-w-md space-x-2 %s">
-                        <input type="text" id="moderatorInput" placeholder="Search Moderator..."
-                               class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
-                        <button id="searchModeratorButton"
-                                class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
-                            <i class="fa-solid fa-search"></i>
-                        </button>
-                    </div>
-                """, moderatorMarginClass);
-            }
-
-            if (searchPunishmentEnabled) {
-                punishmentDetailsSectionLabel = """
-                    <hr class="border-gray-600 my-4 w-3/4 mx-auto">
-                    <h2 class="text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2">Punishments Details</h2>
-                """;
-
-                searchPunishmentSection = """
-                    <div class="flex w-full max-w-md space-x-2">
-                        <input type="text" id="punishmentInput" placeholder="Search {{punishment_type_capitalized}} ID..."
-                               class="w-4/5 p-2 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] text-[#333333] dark:text-[#e0e0e0] rounded focus:outline-none focus:ring focus:ring-[{{server_color}}]">
-                        <button id="searchPunishmentButton"
-                                class="w-1/5 flex items-center justify-center p-2 bg-[{{server_color}}] text-white rounded hover:bg-[{{server_color_hover}}]">
-                            <i class="fa-solid fa-search"></i>
-                        </button>
-                    </div>
-                """;
-            }
-
-            if (punishmentExecutionEnabled && (oauthEnabled || loginEnabled)) {
-                newPunishmentButton = "<hr class=\"border-gray-600 my-4 w-3/4 mx-auto\">" +
-                        "<div class=\"flex w-full max-w-md space-x-2 justify-center\">" +
-                        "<a href=\"/new-punishment\" class=\"nav-item block py-2.5 px-4 mx-4 rounded-lg text-white bg-[" + serverColor + "] hover:bg-[" + serverColorDarker + "] relative\">" +
-                        "<i class=\"fa-solid fa-gavel\"></i> <span class=\"ml-4 text-lg\">New Punishment</span>" +
-                        "</a>" +
-                        "</div>";
-            }
-
-            String pageContent = htmlTemplate
-                    .replace("{{bans_category_button}}", bansCategoryButton)
-                    .replace("{{mutes_category_button}}", mutesCategoryButton)
-                    .replace("{{kicks_category_button}}", kicksCategoryButton)
-                    .replace("{{warnings_category_button}}", warningsCategoryButton)
-                    .replace("{{user_details_section_label}}", usersDetailsSectionLabel)
-                    .replace("{{search_player_section}}", searchPlayerSection)
-                    .replace("{{search_moderator_section}}", searchModeratorSection)
-                    .replace("{{punishment_details_section_label}}", punishmentDetailsSectionLabel)
-                    .replace("{{search_punishment_section}}", searchPunishmentSection)
-                    .replace("{{new_punishment_button}}", newPunishmentButton)
-                    .replace("{{punishment_rows}}", punishmentRows.toString())
-                    .replace("{{punishment_type}}", type)
-                    .replace("{{punishment_type_capitalized}}", capitalize(type))
-                    .replace("{{server_name}}", serverName)
-                    .replace("{{server_description}}", serverDescription)
-                    .replace("{{server_favicon}}", serverFavicon)
-                    .replace("{{server_color}}", serverColor)
-                    .replace("{{server_color_hover}}", serverColorDarker)
-                    .replace("{{server_logo}}", serverLogo)
-                    .replace("{{current_page}}", String.valueOf(page))
-                    .replace("{{total_pages}}", String.valueOf(totalPages))
-                    .replace("{{bans_count}}", String.valueOf(bansCount))
-                    .replace("{{mutes_count}}", String.valueOf(mutesCount))
-                    .replace("{{kicks_count}}", String.valueOf(kicksCount))
-                    .replace("{{warnings_count}}", String.valueOf(warningsCount));
-
-            response.getWriter().write(pageContent);
         }
+    }
+    
+    /**
+     * Handles database configuration errors
+     */
+    private void handleDatabaseError(HttpServletRequest request, HttpServletResponse response, String message) throws IOException {
+        ConfigurationException exception = new ConfigurationException(message);
+        request.setAttribute("javax.servlet.error.exception", exception);
+        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    }
+    
+    /**
+     * Gets the set of enabled punishment types
+     */
+    private Set<String> getEnabledPunishmentTypes(FeatureConfiguration features) {
+        Set<String> enabledTypes = new LinkedHashSet<>();
+        if (features.bansEnabled) enabledTypes.add("bans");
+        if (features.mutesEnabled) enabledTypes.add("mutes");
+        if (features.kicksEnabled) enabledTypes.add("kicks");
+        if (features.warningsEnabled) enabledTypes.add("warnings");
+        return enabledTypes;
+    }
+    
+    /**
+     * Validates if punishment type is enabled
+     */
+    private boolean isValidPunishmentType(String type, FeatureConfiguration features) {
+        return !((type.equalsIgnoreCase("bans") && !features.bansEnabled) ||
+                (type.equalsIgnoreCase("mutes") && !features.mutesEnabled) ||
+                (type.equalsIgnoreCase("kicks") && !features.kicksEnabled) ||
+                (type.equalsIgnoreCase("warnings") && !features.warningsEnabled));
+    }
+    
+    /**
+     * Processes and fetches punishment data
+     */
+    private int processAndFetchPunishments(RequestParameters params, StringBuilder punishmentRows, 
+                                         HttpServletRequest request) throws SQLException {
+        String dbTable = DashboardQueries.getTableName(usingFlexBans, usingLiteBans, params.type);
+        int totalPages = getTotalPages(dbTable, params.player, params.executor, params.status, 
+                                     params.on, params.before, params.after, params.type);
+        
+        int adjustedPage = params.page;
+        if (adjustedPage > totalPages && totalPages > 0) {
+            adjustedPage = totalPages;
+        }
+        
+        int pageSize = getPageSizeForType(params.type);
+        int offset = (adjustedPage - 1) * pageSize;
+        
+        String query = DashboardQueries.buildPunishmentsQuery(
+                usingFlexBans, dbTable, params.player, params.executor, params.status, 
+                params.on, params.before, params.after, pageSize, offset
+        );
+        
+        fetchAndAddPunishments(query, punishmentRows, params.type, false, params.player, 
+                             params.executor, params.status, params.on, params.before, 
+                             params.after, request);
+        
+        return totalPages;
+    }
+    
+    /**
+     * Builds the final page content with all replacements
+     */
+    private String buildFinalPageContent(String htmlTemplate, FeatureConfiguration features, 
+                                       ServerConfiguration serverConfig, RequestParameters params, 
+                                       PunishmentCounts counts, StringBuilder punishmentRows, int totalPages) {
+        CategoryButtons categoryButtons = buildCategoryButtons(features);
+        SearchSections searchSections = buildSearchSections(features);
+        String newPunishmentButton = buildNewPunishmentButton(features, serverConfig);
+        
+        return htmlTemplate
+                .replace("{{bans_category_button}}", categoryButtons.bans)
+                .replace("{{mutes_category_button}}", categoryButtons.mutes)
+                .replace("{{kicks_category_button}}", categoryButtons.kicks)
+                .replace("{{warnings_category_button}}", categoryButtons.warnings)
+                .replace("{{user_details_section_label}}", searchSections.usersDetailsSectionLabel)
+                .replace("{{search_player_section}}", searchSections.searchPlayerSection)
+                .replace("{{search_moderator_section}}", searchSections.searchModeratorSection)
+                .replace("{{punishment_details_section_label}}", searchSections.punishmentDetailsSectionLabel)
+                .replace("{{search_punishment_section}}", searchSections.searchPunishmentSection)
+                .replace("{{new_punishment_button}}", newPunishmentButton)
+                .replace("{{punishment_rows}}", punishmentRows.toString())
+                .replace("{{punishment_type}}", params.type)
+                .replace("{{punishment_type_capitalized}}", capitalize(params.type))
+                .replace("{{server_name}}", serverConfig.name)
+                .replace("{{server_description}}", serverConfig.description)
+                .replace("{{server_favicon}}", serverConfig.favicon)
+                .replace("{{server_color}}", serverConfig.color)
+                .replace("{{server_color_hover}}", serverConfig.colorDarker)
+                .replace("{{server_logo}}", serverConfig.logo)
+                .replace("{{current_page}}", String.valueOf(params.page))
+                .replace("{{total_pages}}", String.valueOf(totalPages))
+                .replace("{{bans_count}}", String.valueOf(counts.bans))
+                .replace("{{mutes_count}}", String.valueOf(counts.mutes))
+                .replace("{{kicks_count}}", String.valueOf(counts.kicks))
+                .replace("{{warnings_count}}", String.valueOf(counts.warnings));
     }
 
     private int getPageSizeForType(String type) {
