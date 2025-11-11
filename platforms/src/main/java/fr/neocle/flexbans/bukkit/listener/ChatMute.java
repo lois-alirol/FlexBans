@@ -1,16 +1,19 @@
 package fr.neocle.flexbans.bukkit.listener;
 
+import fr.neocle.flexbans.configs.ConfigManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -129,6 +132,54 @@ public class ChatMute implements Listener, PluginMessageListener {
             return;
         }
 
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+
+        MuteInfo muteInfo = mutedPlayers.get(uuid);
+        if (muteInfo == null) {
+            requestMuteStatus(player);
+            return;
+        }
+
+        if (muteInfo.until > 0 && System.currentTimeMillis() > muteInfo.until) {
+            mutedPlayers.remove(uuid);
+            requestMuteStatus(player);
+            return;
+        }
+
+        boolean blockAllCommands = Boolean.TRUE.equals(ConfigManager.getConfigValue("punishments-system.built-in.mutes.block-all-commands"));
+        String fullCommand = event.getMessage().substring(1).toLowerCase().trim();
+        String baseCommand = fullCommand.split(" ")[0];
+
+        boolean shouldBlock = blockAllCommands;
+
+        if (!blockAllCommands) {
+            Object configListObj = ConfigManager.getConfigValue("punishments-system.built-in.mutes.blocked-commands");
+            if (configListObj instanceof Iterable<?>) {
+                @SuppressWarnings("unchecked")
+                Iterable<String> blockedCommands = (Iterable<String>) configListObj;
+                for (String blocked : blockedCommands) {
+                    if (baseCommand.equalsIgnoreCase(blocked)) {
+                        shouldBlock = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!shouldBlock) return;
+
+        String rawMuteMessage = (String) ConfigManager.getConfigValue("punishments.mute.command-message");
+        if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
+            rawMuteMessage = "§cYou are muted and cannot use this command.";
+        }
+
+        player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(rawMuteMessage));
         event.setCancelled(true);
     }
 

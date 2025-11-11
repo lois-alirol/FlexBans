@@ -1,0 +1,140 @@
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+body.bg-light-bg {
+    background-color: #f4f4f4;
+    color: #333333;
+}
+
+.empty-state-container {
+    background: linear-gradient(135deg, rgba(75, 75, 75, 0.1) 0%, rgba(100, 100, 100, 0.1) 100%);
+    border-radius: 20px;
+    padding: 4rem 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
+    border: 2px dashed rgba(156, 163, 175, 0.3);
+}
+
+.empty-state-icon {
+    animation: pulse 2s infinite;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
+}
+
+.dark .empty-state-container {
+    background: linear-gradient(135deg, rgba(55, 65, 81, 0.2) 0%, rgba(75, 85, 99, 0.2) 100%);
+    border-color: rgba(107, 114, 128, 0.3);
+}
+
+.table-section {
+    transition: opacity 0.3s ease;
+}
+
+.hidden-section {
+    display: none !important;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(100, 100, 100, 0.7);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(150, 150, 150, 0.8);
+}
+
+::-webkit-scrollbar-track {
+    background-color: rgba(44, 44, 44, 0.3);
+    border-radius: 4px;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 100, 100, 0.7) rgba(44, 44, 44, 0.3);
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+th,
+td {
+    border: 1px solid rgba(75, 75, 75, 0.5);
+    padding: 16px;
+}
+
+thead th {
+    border-bottom: 2px solid rgba(100, 100, 100, 0.6);
+}
+
+.pagination-controls a, .pagination-controls span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+}
+
+.pagination-controls a.disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.pagination-controls a:hover {
+    background-color: #555;
+}
+
+.pagination-controls .current-page {
+    padding: 0.5rem 1rem;
+    margin: 0.2rem;
+    background-color: #4097e7;
+    color: white;
+    border-radius: 0.25rem;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.clear-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    font-size: 20px;
+}

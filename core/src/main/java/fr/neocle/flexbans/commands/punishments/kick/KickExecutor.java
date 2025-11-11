@@ -1,12 +1,15 @@
 package fr.neocle.flexbans.commands.punishments.kick;
 
+import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.Common;
+import fr.neocle.flexbans.commands.punishments.Common.PlayerInfo;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.utils.Broadcast.Broadcaster;
-import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
+import fr.neocle.flexbans.utils.broadcast.Broadcaster;
+import fr.neocle.flexbans.utils.player.UsernameUUIDConverters;
 import org.geysermc.floodgate.api.FloodgateApi;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -16,50 +19,114 @@ public class KickExecutor implements fr.neocle.flexbans.api.punishments.KickExec
     private final FloodgateApi floodgateApi;
     private final UsernameUUIDConverters usernameUUIDConverters;
     private final DatabaseUtils databaseUtils;
+    private final EventDispatcher eventDispatcher;
 
-    public KickExecutor(KickPlatformHandler platformHandler, Broadcaster broadcaster, UsernameUUIDConverters usernameUUIDConverters, DatabaseUtils databaseUtils) {
+    private final static String SILENT_PERMISSION = "flexbans.kick.silent";
+
+    public KickExecutor(KickPlatformHandler platformHandler,
+                        Broadcaster broadcaster,
+                        UsernameUUIDConverters usernameUUIDConverters,
+                        DatabaseUtils databaseUtils,
+                        EventDispatcher eventDispatcher) {
         this.platformHandler = platformHandler;
         this.broadcaster = broadcaster;
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.databaseUtils = databaseUtils;
+        this.eventDispatcher = eventDispatcher;
         this.floodgateApi = Common.isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
-    public void executeKick(String target, String sender, String reason, String serverOrigin, boolean silent, boolean ipScope, Consumer<String> messageSender) {
-        UUID targetUUID = Common.resolveTargetUUID(target, floodgateApi, usernameUUIDConverters);
-        if (targetUUID == null) {
-            messageSender.accept("§cError: Player '" + target + "' does not exist.");
+    public void executeKick(String target,
+                            String sender,
+                            String reason,
+                            String serverOrigin,
+                            boolean silent,
+                            boolean ipScope,
+                            Consumer<String> messageSender) {
+
+        Optional<PlayerInfo> targetInfo = Common.resolveTarget(target, messageSender, floodgateApi, usernameUUIDConverters);
+        if (targetInfo.isEmpty()) {
             return;
         }
 
-        target = usernameUUIDConverters.UUIDtoUsername(targetUUID.toString());
-        if (target == null || target.contains("Error")) {
-            messageSender.accept("§cError: Could not retrieve username.");
+        PlayerInfo targetPlayer = targetInfo.get();
+
+        if (!platformHandler.isPlayerOnline(targetPlayer.uuid())) {
+            messageSender.accept("§cError: Player '" + targetPlayer.name() + "' is not online.");
             return;
         }
 
-        if (!platformHandler.isPlayerOnline(targetUUID)) {
-            messageSender.accept("§cError: Player '" + target + "' is not online.");
+        Optional<PlayerInfo> senderInfo = Common.resolveSender(sender, messageSender, floodgateApi, usernameUUIDConverters);
+        if (senderInfo.isEmpty()) {
             return;
         }
 
-        String senderName = sender != null && !sender.isEmpty() ? sender : "Console";
-        UUID senderUUID = Common.parseUUID(usernameUUIDConverters.usernameToUUID(senderName));
-        if (senderUUID == null) {
-            messageSender.accept("§cError: Could not retrieve player's UUID.");
-            return;
-        }
-
-        processKick(target, targetUUID, senderName, senderUUID, reason, serverOrigin, silent, ipScope);
+        PlayerInfo senderPlayer = senderInfo.get();
+        processKick(targetPlayer, senderPlayer, reason, serverOrigin, silent, ipScope);
     }
 
-    private void processKick(String target, UUID targetUUID, String senderName, UUID senderUUID, String reason, String serverOrigin, boolean silent, boolean ipScope) {
-        String kickReason = reason != null && !reason.isEmpty() ? reason : LanguageManager.getMessageString("punishments.default-reason");
+    private void processKick(PlayerInfo target,
+                             PlayerInfo sender,
+                             String reason,
+                             String serverOrigin,
+                             boolean silent,
+                             boolean ipScope) {
 
-        platformHandler.applyKick(target, targetUUID, senderName, kickReason);
-        databaseUtils.getKicksManager().insertKick(targetUUID, target, senderUUID, senderName, kickReason, serverOrigin, silent, ipScope);
-        if (!silent) {
-            broadcaster.execute("§l§aKicking " + target + " - Reason: " + kickReason);
+        String kickReason = resolveReason(reason);
+
+        applyKickToSystem(target, sender, kickReason, serverOrigin, silent, ipScope);
+
+        broadcastKick(target.name(), sender.name(), kickReason, silent);
+    }
+
+    private String resolveReason(String reason) {
+        return (reason != null && !reason.isEmpty())
+                ? reason
+                : LanguageManager.getMessageString("punishments.default-reason");
+    }
+
+    private void applyKickToSystem(PlayerInfo target,
+                                   PlayerInfo sender,
+                                   String kickReason,
+                                   String serverOrigin,
+                                   boolean silent,
+                                   boolean ipScope) {
+
+        platformHandler.applyKick(target.name(), target.uuid(), sender.name(), kickReason);
+
+        databaseUtils.getKicksManager().insertKick(
+                target.uuid(), target.name(),
+                sender.uuid(), sender.name(),
+                kickReason, serverOrigin,
+                silent, ipScope
+        );
+
+        eventDispatcher.kickAddedEvent(
+                target.uuid(), target.name(),
+                sender.uuid(), sender.name(),
+                kickReason, serverOrigin,
+                silent, ipScope
+        );
+    }
+
+    private void broadcastKick(String targetName, String senderName, String reason, boolean silent) {
+        String rawMessage = LanguageManager.getMessageString(
+                        silent
+                                ? "punishments.kick.silent-broadcast-message"
+                                : "punishments.kick.broadcast-message"
+                )
+                .replace("%target%", targetName)
+                .replace("%reason%", reason)
+                .replace("%moderator%", senderName);
+
+        if (rawMessage != null && !rawMessage.isEmpty()) {
+            for (String line : rawMessage.split("\n")) {
+                if (silent) {
+                    broadcaster.execute(line, SILENT_PERMISSION);
+                } else {
+                    broadcaster.execute(line);
+                }
+            }
         }
     }
 }

@@ -28,37 +28,37 @@ public class DashboardQueries {
             "SELECT COUNT(*) FROM (%s) AS t";
 
     public static final String LITEBANS_MODERATOR_GET_PUNISHMENTS_QUERY_TEMPLATE =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
 
     public static final String LITEBANS_MODERATOR_BANS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, 'Ban' AS type FROM litebans_bans WHERE banned_by_name = ? %s";
 
     public static final String LITEBANS_MODERATOR_MUTES_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, 'Mute' AS type FROM litebans_mutes WHERE banned_by_name = ? %s";
 
     public static final String LITEBANS_MODERATOR_WARNINGS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, NULL AS removed_by_date, 'Warning' AS type FROM litebans_warnings WHERE banned_by_name = ? %s";
 
     public static final String LITEBANS_MODERATOR_KICKS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, NULL AS removed_by_date, 'Kick' AS type FROM litebans_kicks WHERE banned_by_name = ? %s";
 
     public static final String LITEBANS_PLAYER_COUNT_QUERY_TEMPLATE =
             "SELECT COUNT(*) FROM (%s) AS t";
 
     public static final String LITEBANS_PLAYER_GET_PUNISHMENTS_QUERY_TEMPLATE =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
 
     public static final String LITEBANS_PLAYER_BANS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Ban' AS type FROM litebans_bans WHERE uuid = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, 'Ban' AS type FROM litebans_bans WHERE uuid = ? %s";
 
     public static final String LITEBANS_PLAYER_MUTES_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, 'Mute' AS type FROM litebans_mutes WHERE uuid = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, until, removed_by_name, removed_by_date, 'Mute' AS type FROM litebans_mutes WHERE uuid = ? %s";
 
     public static final String LITEBANS_PLAYER_WARNINGS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Warning' AS type FROM litebans_warnings WHERE uuid = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, NULL AS removed_by_date, 'Warning' AS type FROM litebans_warnings WHERE uuid = ? %s";
 
     public static final String LITEBANS_PLAYER_KICKS_SUBQUERY =
-            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, 'Kick' AS type FROM litebans_kicks WHERE uuid = ? %s";
+            "SELECT id, uuid, reason, banned_by_name, ipban, time, NULL AS until, NULL AS removed_by_name, NULL AS removed_by_date, 'Kick' AS type FROM litebans_kicks WHERE uuid = ? %s";
 
     public static final String LITEBANS_PUNISHMENT_DETAILS_QUERY =
             "SELECT uuid, ipban, reason, banned_by_uuid, banned_by_name, removed_by_uuid, removed_by_name, " +
@@ -95,19 +95,19 @@ public class DashboardQueries {
     public static final String FLEXBANS_MODERATOR_GET_PUNISHMENTS_QUERY_TEMPLATE =
             "SELECT id, target_uuid AS uuid, reason, issuer_name AS banned_by_name, 0 AS ipban, time, " +
                     "CASE WHEN duration = -1 THEN -1 ELSE time + duration END AS until, " +
-                    "type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
+                    "status, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
 
     public static final String FLEXBANS_MODERATOR_BANS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, 'Ban' AS type FROM flexbans_bans WHERE issuer_name = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, status, 'Ban' AS type FROM flexbans_bans WHERE issuer_name = ? %s";
 
     public static final String FLEXBANS_MODERATOR_MUTES_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, 'Mute' AS type FROM flexbans_mutes WHERE issuer_name = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, status, 'Mute' AS type FROM flexbans_mutes WHERE issuer_name = ? %s";
 
     public static final String FLEXBANS_MODERATOR_WARNINGS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, 'Warning' AS type FROM flexbans_warnings WHERE issuer_name = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, status, 'Warning' AS type FROM flexbans_warnings WHERE issuer_name = ? %s";
 
     public static final String FLEXBANS_MODERATOR_KICKS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, 0 AS duration, 'Kick' AS type FROM flexbans_kicks WHERE issuer_name = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, 0 AS duration, NULL AS status, 'Kick' AS type FROM flexbans_kicks WHERE issuer_name = ? %s";
 
     public static final String FLEXBANS_PLAYER_COUNT_QUERY_TEMPLATE =
             "SELECT COUNT(*) FROM (%s) AS t";
@@ -115,25 +115,24 @@ public class DashboardQueries {
     public static final String FLEXBANS_PLAYER_GET_PUNISHMENTS_QUERY_TEMPLATE =
             "SELECT id, target_uuid AS uuid, reason, issuer_name AS banned_by_name, 0 AS ipban, time, " +
                     "CASE WHEN duration = -1 THEN -1 ELSE time + duration END AS until, " +
-                    "remover_name AS removed_by_name, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
+                    "remover_name AS removed_by_name, status, type FROM (%s) AS t ORDER BY time DESC LIMIT ? OFFSET ?";
 
     public static final String FLEXBANS_PLAYER_BANS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, 'Ban' AS type FROM flexbans_bans WHERE target_uuid = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, status, 'Ban' AS type FROM flexbans_bans WHERE target_uuid = ? %s";
 
     public static final String FLEXBANS_PLAYER_MUTES_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, 'Mute' AS type FROM flexbans_mutes WHERE target_uuid = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, status, 'Mute' AS type FROM flexbans_mutes WHERE target_uuid = ? %s";
 
     public static final String FLEXBANS_PLAYER_WARNINGS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, 'Warning' AS type FROM flexbans_warnings WHERE target_uuid = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, duration, remover_name, status, 'Warning' AS type FROM flexbans_warnings WHERE target_uuid = ? %s";
 
     public static final String FLEXBANS_PLAYER_KICKS_SUBQUERY =
-            "SELECT id, target_uuid, reason, issuer_name, time, 0 AS duration, NULL AS remover_name, 'Kick' AS type FROM flexbans_kicks WHERE target_uuid = ? %s";
+            "SELECT id, target_uuid, reason, issuer_name, time, 0 AS duration, NULL AS remover_name, NULL AS status, 'Kick' AS type FROM flexbans_kicks WHERE target_uuid = ? %s";
 
     public static final String FLEXBANS_PUNISHMENT_DETAILS_QUERY =
             "SELECT target_uuid AS uuid, ip_scope AS ipban, reason, issuer_uuid AS banned_by_uuid, issuer_name AS banned_by_name, remover_uuid AS removed_by_uuid, remover_name AS removed_by_name, " +
                     "removal_reason AS removed_by_reason, removal_time AS removed_by_date, time, CASE WHEN duration = -1 THEN -1 ELSE time + duration END AS until, server_origin, status " +
                     "FROM %s WHERE id = ?";
-
 
     public static String getCountPunishmentsQuery(boolean usingFlexBans, String tableName) {
         String queryTemplate = usingFlexBans ? FLEXBANS_COUNT_PUNISHMENTS : LITEBANS_COUNT_PUNISHMENTS;

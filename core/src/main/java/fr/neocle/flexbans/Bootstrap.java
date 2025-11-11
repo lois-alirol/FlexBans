@@ -19,38 +19,44 @@ import fr.neocle.flexbans.commands.punishments.mute.platforms.BukkitMute;
 import fr.neocle.flexbans.commands.punishments.mute.platforms.BungeeMute;
 import fr.neocle.flexbans.commands.punishments.mute.platforms.VelocityMute;
 import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
-import fr.neocle.flexbans.commands.servers.lock.ServerLockExecutor;
-import fr.neocle.flexbans.commands.servers.lock.ServerLockPlatformHandler;
-import fr.neocle.flexbans.commands.servers.lock.platforms.VelocityServerLock;
+import fr.neocle.flexbans.commands.punishments.unmute.UnmuteExecutor;
+import fr.neocle.flexbans.commands.server.lock.ServerLockExecutor;
+import fr.neocle.flexbans.commands.server.lock.ServerLockPlatformHandler;
+import fr.neocle.flexbans.commands.server.lock.platforms.VelocityServerLock;
 import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handlers.Errors.ForbiddenError;
-import fr.neocle.flexbans.handlers.Errors.InternalServerError;
-import fr.neocle.flexbans.handlers.Errors.NotFoundError;
 import fr.neocle.flexbans.handlers.*;
-import fr.neocle.flexbans.handlers.PostRequestHandlers.NewPunishmentHandler;
-import fr.neocle.flexbans.handlers.PostRequestHandlers.RevokePunishmentHandler;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
-import fr.neocle.flexbans.handlers.Security.CodeVerificationHandler;
-import fr.neocle.flexbans.handlers.Security.LoginHandler;
-import fr.neocle.flexbans.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
-import fr.neocle.flexbans.handlers.Security.RegisterHandler;
-import fr.neocle.flexbans.handlers.Security.Utils.DomainFilter;
-import fr.neocle.flexbans.handlers.Security.Utils.HttpsEnforcementHandler;
+import fr.neocle.flexbans.handlers.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handlers.errors.ForbiddenError;
+import fr.neocle.flexbans.handlers.errors.InternalServerError;
+import fr.neocle.flexbans.handlers.errors.NotFoundError;
+import fr.neocle.flexbans.handlers.post.NewPunishmentHandler;
+import fr.neocle.flexbans.handlers.post.RevokePunishmentHandler;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
+import fr.neocle.flexbans.handlers.security.CodeVerificationHandler;
+import fr.neocle.flexbans.handlers.security.LoginHandler;
+import fr.neocle.flexbans.handlers.security.RegisterHandler;
+import fr.neocle.flexbans.handlers.security.components.AuthComponents;
+import fr.neocle.flexbans.handlers.security.components.DatabaseComponents;
+import fr.neocle.flexbans.handlers.security.components.ErrorHandlers;
+import fr.neocle.flexbans.handlers.security.components.HandlerRegistry;
+import fr.neocle.flexbans.handlers.security.oauth.DiscordOAuthHandler;
+import fr.neocle.flexbans.handlers.security.utils.DomainFilter;
+import fr.neocle.flexbans.handlers.security.utils.HttpsEnforcementHandler;
+import fr.neocle.flexbans.license.LicenseChecker;
 import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.utils.Broadcast.Broadcaster;
-import fr.neocle.flexbans.utils.Broadcast.BroadcasterBukkit;
-import fr.neocle.flexbans.utils.Broadcast.BroadcasterBungee;
-import fr.neocle.flexbans.utils.Broadcast.BroadcasterVelocity;
-import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecution;
-import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionBukkit;
-import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionBungee;
-import fr.neocle.flexbans.utils.CommandsExecution.CommandsExecutionVelocity;
 import fr.neocle.flexbans.utils.JettyReloader;
 import fr.neocle.flexbans.utils.LibsLoader;
-import fr.neocle.flexbans.utils.Player.PlayerHeadImage;
-import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
+import fr.neocle.flexbans.utils.broadcast.Broadcaster;
+import fr.neocle.flexbans.utils.broadcast.BroadcasterBukkit;
+import fr.neocle.flexbans.utils.broadcast.BroadcasterBungee;
+import fr.neocle.flexbans.utils.broadcast.BroadcasterVelocity;
+import fr.neocle.flexbans.utils.commandsexecution.CommandsExecution;
+import fr.neocle.flexbans.utils.commandsexecution.CommandsExecutionBukkit;
+import fr.neocle.flexbans.utils.commandsexecution.CommandsExecutionBungee;
+import fr.neocle.flexbans.utils.commandsexecution.CommandsExecutionVelocity;
+import fr.neocle.flexbans.utils.player.PlayerHeadImage;
+import fr.neocle.flexbans.utils.player.UsernameUUIDConverters;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -60,9 +66,7 @@ import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.server.session.SessionHandler;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -83,7 +87,8 @@ public class Bootstrap {
     protected RevokePunishmentHandler revokePunishmentHandler;
     protected NewPunishmentHandler newPunishmentHandler;
     protected PlayerHeadHandler playerHeadHandler;
-    protected ScriptsHandler scriptsHandler;
+    protected JavascriptHandler javascriptHandler;
+    protected CssHandler cssHandler;
     protected ForbiddenError forbiddenError;
     protected NotFoundError notFoundError;
     protected File pluginFolder;
@@ -102,6 +107,7 @@ public class Bootstrap {
     protected MuteExecutor muteExecutor;
     protected KickExecutor kickExecutor;
     protected UnbanExecutor unbanExecutor;
+    protected UnmuteExecutor unmuteExecutor;
     protected ServerLockExecutor serverLockExecutor;
     protected BanPlatformHandler banPlatformHandler;
     protected MutePlatformHandler mutePlatformHandler;
@@ -110,6 +116,7 @@ public class Bootstrap {
     protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
     protected UsernameUUIDConverters usernameUUIDConverters;
+    protected PunishmentSSEHandler punishmentSSEHandler;
 
     public void initialize(Path dataFolder, Logger logger, String platform, EventDispatcher eventDispatcher, Object pluginInstance) {
         this.dataFolder = dataFolder;
@@ -124,20 +131,14 @@ public class Bootstrap {
             libsLoader.ensureSQLiteAvailable();
             libsLoader.ensureMySQLAvailable();
 
-            if (!Files.exists(dataFolder)) {
-                Files.createDirectories(dataFolder);
-                logger.info("Created FlexBans directory.");
-            }
-
             ConfigManager.initialize(logger, dataFolder);
-            WebhooksConfigManager.initialize(logger, dataFolder);
 
             initializeDatabase(config);
             initializeHandlers(platform);
             initializeAPI(eventDispatcher);
             initializeCommands();
             initializeLanguage();
-        } catch (IOException | URISyntaxException | SQLException e) {
+        } catch (URISyntaxException | SQLException e) {
             logger.severe("Error setting up FlexBans: " + e.getMessage());
         }
     }
@@ -155,13 +156,16 @@ public class Bootstrap {
 
         indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
 
-        if (playerHistoryEnabled) playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
-        if (moderatorHistoryEnabled) moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
-        if (punishmentDetailsEnabled) punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+        if (playerHistoryEnabled)
+            playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
+        if (moderatorHistoryEnabled)
+            moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
+        if (punishmentDetailsEnabled)
+            punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
 
         playerHeadHandler = new PlayerHeadHandler(dataFolder, notFoundError);
-
-        scriptsHandler = new ScriptsHandler(notFoundError);
+        javascriptHandler = new JavascriptHandler(notFoundError);
+        cssHandler = new CssHandler(notFoundError);
 
         CommandsExecution commandsExecution;
 
@@ -169,7 +173,6 @@ public class Bootstrap {
             case "bungee":
                 commandsExecution = new CommandsExecutionBungee();
                 broadcaster = new BroadcasterBungee((net.md_5.bungee.api.ProxyServer) pluginInstance);
-
                 banPlatformHandler = new BungeeBan((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 mutePlatformHandler = new BungeeMute((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 kickPlatformHandler = new BungeeKick((net.md_5.bungee.api.ProxyServer) pluginInstance);
@@ -178,7 +181,6 @@ public class Bootstrap {
             case "spigot":
                 commandsExecution = new CommandsExecutionBukkit((JavaPlugin) pluginInstance);
                 broadcaster = new BroadcasterBukkit();
-
                 banPlatformHandler = new BukkitBan();
                 mutePlatformHandler = new BukkitMute();
                 kickPlatformHandler = new BukkitKick();
@@ -187,7 +189,6 @@ public class Bootstrap {
             case "velocity":
                 commandsExecution = new CommandsExecutionVelocity((ProxyServer) pluginInstance);
                 broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
-
                 banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
                 mutePlatformHandler = new VelocityMute((ProxyServer) pluginInstance);
                 kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
@@ -204,26 +205,45 @@ public class Bootstrap {
         loginHandler = new LoginHandler(logger, databaseUtils, eventDispatcher);
         discordOAuthHandler = new DiscordOAuthHandler(databaseUtils, forbiddenError, eventDispatcher, logger);
         newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils, logger);
+        punishmentSSEHandler = new PunishmentSSEHandler();
 
-        authHandler = new AuthenticationHandler(
+        HandlerRegistry handlerRegistry = new HandlerRegistry(
                 indexHandler,
                 playerHistoryHandler,
                 moderatorHistoryHandler,
                 punishmentDetailsHandler,
                 playerHeadHandler,
-                scriptsHandler,
+                javascriptHandler,
+                cssHandler,
                 revokePunishmentHandler,
                 newPunishmentHandler,
+                punishmentSSEHandler
+        );
+
+        ErrorHandlers errorHandlers = new ErrorHandlers(
                 forbiddenError,
-                notFoundError,
-                databaseUtils,
+                notFoundError
+        );
+
+        DatabaseComponents databaseComponents = new DatabaseComponents(
+                databaseUtils
+        );
+
+        AuthComponents authComponents = new AuthComponents(
                 codeVerificationHandler,
                 registerHandler,
                 loginHandler,
-                discordOAuthHandler,
-                eventDispatcher,
-                logger
+                discordOAuthHandler
         );
+
+        authHandler = new AuthenticationHandler.Builder()
+                .handlerRegistry(handlerRegistry)
+                .errorHandlers(errorHandlers)
+                .databaseComponents(databaseComponents)
+                .authComponents(authComponents)
+                .eventDispatcher(eventDispatcher)
+                .logger(logger)
+                .build();
     }
 
     public void initializeLanguage() {
@@ -240,11 +260,14 @@ public class Bootstrap {
     }
 
     public void initializeCommands() {
-        banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
-        muteExecutor = new MuteExecutor(mutePlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
-        kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils);
-        unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils);
-        serverLockExecutor = new ServerLockExecutor(serverLockHandler, broadcaster, usernameUUIDConverters, databaseUtils);
+        banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher, punishmentSSEHandler);
+        muteExecutor = new MuteExecutor(mutePlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
+        kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
+
+        unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher,  punishmentSSEHandler);
+        unmuteExecutor = new UnmuteExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher,  punishmentSSEHandler);
+
+        serverLockExecutor = new ServerLockExecutor(serverLockHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
     }
 
     public void initializeAPI(EventDispatcher eventDispatcher) {
@@ -254,6 +277,7 @@ public class Bootstrap {
     public void initializeDatabase(Map<String, Object> config) throws SQLException {
         String type = (String) ConfigManager.getConfigValue("database.type");
         String host = (String) ConfigManager.getConfigValue("database.hostname");
+
         int port = Integer.parseInt((String) ConfigManager.getConfigValue("database.port"));
         String database = (String) ConfigManager.getConfigValue("database.database");
         String username = (String) ConfigManager.getConfigValue("database.username");
@@ -316,6 +340,9 @@ public class Bootstrap {
         String lightYellow = "\u001B[38;5;228m";
         String reset = "\u001B[0m";
 
+        String buyerId = LicenseChecker.getDiscordId((String) ConfigManager.getConfigValue("license-key"));
+        String buyerName = discordOAuthHandler.getUsernameFromId(buyerId);
+
         logger.info(yellow + "    ________          ____                  " + reset);
         logger.info(yellow + "   / ____/ /__  _  __/ __ )____ _____  _____" + reset);
         logger.info(yellow + "  / /_  / / _ \\| |/_/ __  / __ `/ __ \\/ ___/" + reset);
@@ -327,7 +354,7 @@ public class Bootstrap {
         }
         logger.info(yellow + "Platform: " + lightYellow + platform + " " + version + reset);
         logger.info(yellow + "Developer: " + lightYellow + "Neocle" + reset);
-        logger.info(yellow + "Licensed to: " + lightYellow + "Not Implemented" + reset);
+        logger.info(yellow + "Licensed to: " + lightYellow + "@" + buyerName + reset);
         logger.info(yellow + "=======================================================================" + reset);
     }
 
@@ -383,8 +410,14 @@ public class Bootstrap {
         return unbanExecutor;
     }
 
+    public UnmuteExecutor getUnmuteExecutor() { return unmuteExecutor; }
+
     public ServerLockExecutor getServerLockExecutor() {
         return serverLockExecutor;
+    }
+
+    public PunishmentSSEHandler getPunishmentSSEHandler() {
+        return punishmentSSEHandler;
     }
 
     public String getVersion() {

@@ -5,12 +5,8 @@
     "authors": [
       "Neocle"
     ],
-    "main": "fr.neocle.flexbans.FlexBansVelocity",
+    "main": "fr.neocle.flexbans.velocity.FlexBansVelocity",
     "dependencies": [
-      {
-        "id": "velocity",
-        "optional": false
-      },
       {
         "id": "litebans",
         "optional": true

@@ -1,17 +1,15 @@
 package fr.neocle.flexbans.handlers;
 
+import fr.neocle.flexbans.handlers.errors.NotFoundError;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
-
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
-
-import fr.neocle.flexbans.handlers.Errors.NotFoundError;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class PlayerHeadHandler extends AbstractHandler {
     private final Path dataFolder;
@@ -27,7 +25,7 @@ public class PlayerHeadHandler extends AbstractHandler {
         if (target.startsWith("/player-heads/")) {
             String filename = target.replace("/player-heads/", "");
             File playerHeadFile = new File(dataFolder.toFile(), "cache/heads/" + filename + ".png");
-            
+
             if (playerHeadFile.exists() && playerHeadFile.isFile()) {
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.setContentType("image/png");

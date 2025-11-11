@@ -1,7 +1,7 @@
 package fr.neocle.flexbans.bukkit.commands.SubCommands;
 
-import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;

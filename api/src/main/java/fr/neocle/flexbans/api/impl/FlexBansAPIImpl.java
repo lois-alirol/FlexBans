@@ -2,13 +2,10 @@ package fr.neocle.flexbans.api.impl;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.events.EventDispatcher;
-import fr.neocle.flexbans.api.punishments.BanExecutor;
-import fr.neocle.flexbans.api.punishments.KickExecutor;
-import fr.neocle.flexbans.api.punishments.MuteExecutor;
-import fr.neocle.flexbans.api.punishments.UnbanExecutor;
+import fr.neocle.flexbans.api.punishments.*;
+import fr.neocle.flexbans.api.server.ServerLockExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
-import net.md_5.bungee.protocol.packet.Kick;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -25,6 +22,8 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     private static MuteExecutor muteExecutor;
     private static KickExecutor kickExecutor;
     private static UnbanExecutor unbanExecutor;
+    private static UnmuteExecutor unmuteExecutor;
+    private static ServerLockExecutor serverLockExecutor;
 
     private FlexBansAPIImpl() {
         this.playersWhitelist = new PlayersWhitelist(configFile, logger, eventDispatcher);
@@ -61,6 +60,12 @@ public class FlexBansAPIImpl implements FlexBansAPI {
 
     public static void setUnbanExecutor(UnbanExecutor executor) {
         FlexBansAPIImpl.unbanExecutor = executor;
+    }
+
+    public static void setUnmuteExecutor(UnmuteExecutor executor) { FlexBansAPIImpl.unmuteExecutor = executor; }
+
+    public static void setServerLockExecutor(ServerLockExecutor executor) {
+        FlexBansAPIImpl.serverLockExecutor = executor;
     }
 
     @Override
@@ -143,6 +148,14 @@ public class FlexBansAPIImpl implements FlexBansAPI {
             throw new IllegalStateException("UnbanExecutor has not been initialized");
         }
         return unbanExecutor;
+    }
+
+    @Override
+    public ServerLockExecutor getServerLockExecutor() {
+        if (serverLockExecutor == null) {
+            throw new IllegalStateException("UnbanExecutor has not been initialized");
+        }
+        return serverLockExecutor;
     }
 
 }

@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.api.events;
 
+import java.util.UUID;
+
 public interface EventDispatcher {
     void userWhitelistedEvent(String userId);
 
@@ -16,4 +18,16 @@ public interface EventDispatcher {
     void discordUserLoginEvent(String userId, String userAgent, String ipAddress);
 
     void logoutEvent(String playerName, String userId, String userAgent, String ipAddress);
+
+    void banAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName,
+                       String reason, long duration, String serverScope,
+                       String serverOrigin, boolean silent, boolean ipScope);
+
+    void muteAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName,
+                        String reason, long duration, String serverScope,
+                        String serverOrigin, boolean silent, boolean ipScope);
+
+    void kickAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName,
+                        String reason, String serverOrigin,
+                        boolean silent, boolean ipScope);
 }

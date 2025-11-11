@@ -2,9 +2,8 @@ package fr.neocle.flexbans.bungee.commands.SubCommands;
 
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.handlers.IndexHandler;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.utils.ResourceLoader;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 

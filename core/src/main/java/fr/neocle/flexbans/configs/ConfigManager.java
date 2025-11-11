@@ -153,6 +153,10 @@ public class ConfigManager {
         return configData.getOrDefault(key, key);
     }
 
+    public static int getConfigInt(String key) {
+        return Integer.parseInt((String) ConfigManager.getConfigValue(key));
+    }
+
     public static Map<String, Object> getConfig() {
         return configData;
     }

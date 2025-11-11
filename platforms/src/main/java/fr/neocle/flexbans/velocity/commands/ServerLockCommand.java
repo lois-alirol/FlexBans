@@ -4,7 +4,7 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
-import fr.neocle.flexbans.commands.servers.lock.ServerLockExecutor;
+import fr.neocle.flexbans.commands.server.lock.ServerLockExecutor;
 import net.kyori.adventure.text.Component;
 
 import java.util.ArrayList;

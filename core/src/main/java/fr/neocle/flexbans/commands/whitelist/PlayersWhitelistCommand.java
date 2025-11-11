@@ -3,9 +3,7 @@ package fr.neocle.flexbans.commands.whitelist;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
 import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
-
-import java.util.Map;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
 
 public abstract class PlayersWhitelistCommand {
     private final PlayersWhitelist whitelist;

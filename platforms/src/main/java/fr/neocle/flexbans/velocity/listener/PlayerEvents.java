@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
@@ -11,10 +12,11 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.neocle.flexbans.Bootstrap;
-import fr.neocle.flexbans.database.Punishments.BansManager;
-import fr.neocle.flexbans.database.Punishments.HistoryManager;
-import fr.neocle.flexbans.database.Punishments.MutesManager;
-import fr.neocle.flexbans.database.Servers.ServerLocksManager;
+import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.database.punishments.BansManager;
+import fr.neocle.flexbans.database.punishments.HistoryManager;
+import fr.neocle.flexbans.database.punishments.MutesManager;
+import fr.neocle.flexbans.database.servers.ServerLocksManager;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.DateCalculator;
 import net.kyori.adventure.text.Component;
@@ -89,7 +91,8 @@ public class PlayerEvents {
                     .replace("%expiration-date%", endDate != null ? endDate : "Unknown")
                     .replace("%time-left%", timeLeft != null ? timeLeft : "Permanent");
 
-            Component formattedBanMessage = miniMessage.deserialize(rawBanMessage);
+            String cleanedMessage = rawBanMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+            Component formattedBanMessage = miniMessage.deserialize(cleanedMessage);
 
             player.disconnect(formattedBanMessage);
             return;
@@ -113,7 +116,8 @@ public class PlayerEvents {
                     .replace("%expiration-date%", endDate != null ? endDate : "Unknown")
                     .replace("%time-left%", timeLeft != null ? timeLeft : "Permanent");
 
-            Component formattedBanMessage = miniMessage.deserialize(rawBanMessage);
+            String cleanedMessage = rawBanMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+            Component formattedBanMessage = miniMessage.deserialize(cleanedMessage);
 
             if (player.getCurrentServer().isEmpty()) {
                 player.disconnect(formattedBanMessage);
@@ -136,7 +140,8 @@ public class PlayerEvents {
                     .replace("%moderator%", serverLocksManager.getIssuer("Global"))
                     .replace("%date%", DateCalculator.formatTimestamp(serverLocksManager.getTime("Global")));
 
-            Component formattedLockMessage = miniMessage.deserialize(rawLockMessage);
+            String cleanedMessage = rawLockMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+            Component formattedLockMessage = miniMessage.deserialize(cleanedMessage);
 
             player.disconnect(formattedLockMessage);
         }
@@ -148,7 +153,8 @@ public class PlayerEvents {
                     .replace("%moderator%", serverLocksManager.getIssuer(serverName))
                     .replace("%date%", DateCalculator.formatTimestamp(serverLocksManager.getTime(serverName)));
 
-            Component formattedLockMessage = miniMessage.deserialize(rawLockMessage);
+            String cleanedMessage = rawLockMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+            Component formattedLockMessage = miniMessage.deserialize(cleanedMessage);
 
             if (player.getCurrentServer().isEmpty()) {
                 player.disconnect(formattedLockMessage);
@@ -193,8 +199,10 @@ public class PlayerEvents {
                         .replace("%time-left%", DateCalculator.formatExpiration(time, duration));
             }
 
+            String cleanedMessage = rawMuteMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+
             MiniMessage miniMessage = MiniMessage.miniMessage();
-            Component formattedMuteMessage = miniMessage.deserialize(rawMuteMessage);
+            Component formattedMuteMessage = miniMessage.deserialize(cleanedMessage);
 
             player.sendMessage(formattedMuteMessage);
             sendMuteSignal(player, true, serverName);
@@ -254,5 +262,68 @@ public class PlayerEvents {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Subscribe
+    public void onCommandExecute(CommandExecuteEvent event) {
+        if (!(event.getCommandSource() instanceof Player player)) return;
+
+        UUID playerUUID = player.getUniqueId();
+        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
+        String serverName = player.getCurrentServer()
+                .map(s -> s.getServer().getServerInfo().getName())
+                .orElse(null);
+
+        boolean isMuted = mutesManager.isPlayerMuted(playerUUID, null)
+                || (serverName != null && mutesManager.isPlayerMuted(playerUUID, serverName))
+                || mutesManager.isIpMuted(playerIp, null)
+                || (serverName != null && mutesManager.isIpMuted(playerIp, serverName));
+
+        if (!isMuted) return;
+
+        boolean blockAllCommands = Boolean.TRUE.equals(ConfigManager.getConfigValue("punishments-system.built-in.mutes.block-all-commands"));
+        String fullCommand = event.getCommand().toLowerCase().trim();
+        String baseCommand = fullCommand.split(" ")[0];
+
+        boolean shouldBlock = blockAllCommands;
+
+        if (!blockAllCommands) {
+            Object configListObj = ConfigManager.getConfigValue("punishments-system.built-in.mutes.blocked-commands");
+            if (configListObj instanceof Iterable<?>) {
+                @SuppressWarnings("unchecked")
+                Iterable<String> blockedCommands = (Iterable<String>) configListObj;
+                for (String blocked : blockedCommands) {
+                    if (baseCommand.equalsIgnoreCase(blocked)) {
+                        shouldBlock = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!shouldBlock) return;
+
+        String reason = mutesManager.getReason(playerUUID, serverName);
+        String issuer = mutesManager.getIssuer(playerUUID, serverName);
+        long time = mutesManager.getTime(playerUUID, serverName);
+        long duration = mutesManager.getDuration(playerUUID, serverName);
+
+        String rawMuteMessage = LanguageManager.getMessageString("punishments.mute.command-message");
+        if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
+            rawMuteMessage = "§cYou are muted and cannot use this command.";
+        } else {
+            rawMuteMessage = rawMuteMessage
+                    .replace("%reason%", reason != null ? reason : "No reason specified")
+                    .replace("%moderator%", issuer != null ? issuer : "Console")
+                    .replace("%date%", DateCalculator.formatTimestamp(time))
+                    .replace("%duration%", DateCalculator.formatDuration(duration))
+                    .replace("%expiration-date%", duration <= 0 ? "Never" : DateCalculator.formatTimestamp(time + duration))
+                    .replace("%time-left%", DateCalculator.formatExpiration(time, duration));
+        }
+
+        String cleanedMessage = rawMuteMessage.replaceFirst("(?s)\\n\\s*\\z", "");
+
+        player.sendMessage(MiniMessage.miniMessage().deserialize(cleanedMessage));
+        event.setResult(CommandExecuteEvent.CommandResult.denied());
     }
 }

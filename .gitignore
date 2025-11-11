@@ -2,3 +2,7 @@ target
 .codegpt
 .vscode
 .idea
+/buildSrc/
+.gradle
+.codegpt
+build

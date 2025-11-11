@@ -2,13 +2,11 @@ package fr.neocle.flexbans.bukkit.commands.SubCommands.PlayersWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.commands.whitelist.PlayersWhitelistCommand;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-
-import java.util.Map;
 
 public class RemovePlayer implements CommandExecutor {
     private final PlayersWhitelistCommand whitelistMethods;

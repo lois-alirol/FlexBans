@@ -1,0 +1,18 @@
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+body.bg-light-bg {
+    background-color: #f4f4f4;
+    color: #333333;
+}
+
+.disabled {
+    background-color: #d4d4d4 !important;
+    pointer-events: none;
+}

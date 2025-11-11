@@ -3,9 +3,7 @@ package fr.neocle.flexbans.commands.whitelist;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
-
-import java.util.Map;
+import fr.neocle.flexbans.handlers.security.oauth.DiscordOAuthHandler;
 
 public abstract class DiscordWhitelistCommand {
     private final DiscordWhitelist whitelist;

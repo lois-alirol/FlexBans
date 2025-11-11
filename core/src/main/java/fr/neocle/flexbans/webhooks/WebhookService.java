@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.webhooks;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ public class WebhookService {
                             String authorUrl, String authorIcon, String thumbnailUrl, String title, String titleUrl,
                             String description, List<Map<String, Object>> fields, String imageUrl, String footerText,
                             String footerIcon, boolean timestamp) {
+
         if (url == null || url.isEmpty()) {
             logger.warning("Webhook URL is not set.");
             return;
@@ -29,15 +31,15 @@ public class WebhookService {
         }
 
         if (embedEnabled) {
-            EmbedObject embed = new EmbedObject()
+            Webhook.EmbedObject embed = new Webhook.EmbedObject()
                     .setTitle(title)
                     .setUrl(titleUrl)
                     .setDescription(description);
 
             if (color != null && !color.isEmpty()) {
                 try {
-                    embed.setColor(color);
-                } catch (IllegalArgumentException e) {
+                    embed.setColor(Color.decode(color.startsWith("#") ? color : "#" + color));
+                } catch (NumberFormatException e) {
                     logger.warning("Invalid color format: " + color);
                 }
             }
@@ -63,13 +65,12 @@ public class WebhookService {
                     String fieldName = (String) field.get("name");
                     String fieldValue = (String) field.get("value");
                     boolean fieldInline = Boolean.parseBoolean(String.valueOf(field.getOrDefault("inline", "false")));
-
                     embed.addField(fieldName, fieldValue, fieldInline);
                 }
             }
 
             if (timestamp) {
-                embed.setTimestamp();
+                embed.setTimestamp(java.time.OffsetDateTime.now().toString());
             }
 
             webhook.addEmbed(embed);

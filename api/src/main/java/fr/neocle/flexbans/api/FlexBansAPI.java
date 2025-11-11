@@ -3,10 +3,8 @@ package fr.neocle.flexbans.api;
 import java.util.List;
 
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
-import fr.neocle.flexbans.api.punishments.BanExecutor;
-import fr.neocle.flexbans.api.punishments.KickExecutor;
-import fr.neocle.flexbans.api.punishments.MuteExecutor;
-import fr.neocle.flexbans.api.punishments.UnbanExecutor;
+import fr.neocle.flexbans.api.punishments.*;
+import fr.neocle.flexbans.api.server.ServerLockExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
 
@@ -96,4 +94,6 @@ public interface FlexBansAPI {
     KickExecutor getKickExecutor();
 
     UnbanExecutor getUnbanExecutor();
+
+    ServerLockExecutor getServerLockExecutor();
 }

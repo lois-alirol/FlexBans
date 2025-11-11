@@ -54,6 +54,7 @@ commands:
 punishments:
   default-reason: "No reason provided"
   infinite-duration: "Infinite ∞"
+  silent-prefix: "<#919191>[Silent] "
   ban:
     disconnect-message: |
       <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>
@@ -67,6 +68,21 @@ punishments:
       <gray>You can appeal at:
       <u><white>https://discord.gg/zN5kfrW2UQ
 
+    broadcast-message: |
+      <#ff4747>%target% was banned from the network!
+
+      <gray>• Reason: <white>%reason%
+      <gray>• Banned by: <white>%moderator%
+      <gray>• Duration: <white>%duration%
+
+    silent-broadcast-message: |
+      <i><gray>[SILENT]
+      <i><#ff4747>%target% was banned from the network!
+
+      <i><gray>• Reason: <white>%reason%
+      <i><gray>• Banned by: <white>%moderator%
+      <i><gray>• Duration: <white>%duration%
+
   kick:
     disconnect-message: |
       <bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold>
@@ -78,6 +94,19 @@ punishments:
       <gray>You can contact us at:
       <u><white>https://discord.gg/zN5kfrW2UQ
 
+    broadcast-message: |
+      <#ff4747>%target% was kicked from the network!
+
+      <gray>• Reason: <white>%reason%
+      <gray>• Kicked by: <white>%moderator%
+
+    silent-broadcast-message: |
+      <i><gray>[SILENT]
+      <i><#ff4747>%target% was kicked from the network!
+
+      <i><gray>• Reason: <white>%reason%
+      <i><gray>• Kicked by: <white>%moderator%
+
   mute:
     alert-message: |
       <#ff4747>ʏᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ᴍᴜᴛᴇᴅ ᴏɴ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ!
@@ -87,6 +116,26 @@ punishments:
       <#ff4747>ʏᴏᴜ ᴀʀᴇ ᴍᴜᴛᴇᴅ ᴏɴ ᴛʜɪꜱ ꜱᴇʀᴠᴇʀ!
       <gray>| Reason: <white>%reason%
       <gray>| Muted by: <white>%moderator%
+    command-message: |
+      <#ff4747>ʏᴏᴜ ᴀʀᴇ ᴍᴜᴛᴇᴅ ᴀɴᴅ ᴄᴀɴ'ᴛ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ!
+      <gray>| Reason: <white>%reason%
+      <gray>| Muted by: <white>%moderator%
+
+    broadcast-message: |
+      <#ff4747>%target% was muted from the network!
+
+      <gray>• Reason: <white>%reason%
+      <gray>• Muted by: <white>%moderator%
+      <gray>• Duration: <white>%duration%
+
+    silent-broadcast-message: |
+      <i><gray>[SILENT]
+      <i><#ff4747>%target% was muted from the network!
+
+      <i><gray>• Reason: <white>%reason%
+      <i><gray>• Muted by: <white>%moderator%
+      <i><gray>• Duration: <white>%duration%
+
 
 
 
@@ -101,3 +150,18 @@ server-locks:
     
     <gray>You can contact us at:
     <u><white>https://discord.gg/zN5kfrW2UQ
+
+  broadcast-message: |
+    <#ff4747>%server% was locked!
+
+    <gray>• Reason: <white>%reason%
+    <gray>• Locked by: <white>%moderator%
+    <gray>• Duration: <white>%duration%
+
+  silent-broadcast-message: |
+    <i><gray>[SILENT]
+    <i><#ff4747>%server% was locked!
+
+    <i><gray>• Reason: <white>%reason%
+    <i><gray>• Locked by: <white>%moderator%
+    <i><gray>• Duration: <white>%duration%

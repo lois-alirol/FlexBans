@@ -154,4 +154,10 @@ public class LanguageManager {
             return new BaseComponent[]{new TextComponent(legacyMessage)};
         }
     }
+
+    public static void reload(String lang) {
+        ensureLanguageFilesExist();
+        languageData.clear();
+        loadLanguage(lang);
+    }
 }

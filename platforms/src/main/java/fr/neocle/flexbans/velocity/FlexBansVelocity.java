@@ -5,7 +5,6 @@ import com.velocitypowered.api.event.EventManager;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
-import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import fr.neocle.flexbans.Bootstrap;
@@ -13,16 +12,22 @@ import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.configs.WebhooksConfigManager;
+import fr.neocle.flexbans.license.LicenseChecker;
+import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.utils.HooksUtils;
+import fr.neocle.flexbans.utils.IpUtils;
 import fr.neocle.flexbans.velocity.commands.*;
-import fr.neocle.flexbans.velocity.listener.DashboardEvents;
-import fr.neocle.flexbans.velocity.listener.PlayerEvents;
-import fr.neocle.flexbans.velocity.listener.WhitelistEvents;
+import fr.neocle.flexbans.velocity.listener.*;
+import litebans.api.Events;
 
 import javax.inject.Inject;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
-@Plugin(id = "flexbans", name = "FlexBans", version = "1.0-SNAPSHOT", authors = {"Neocle"})
 public class FlexBansVelocity {
     private final ProxyServer proxyServer;
     private final Metrics.Factory metricsFactory;
@@ -40,7 +45,33 @@ public class FlexBansVelocity {
     }
 
     @Subscribe
-    public void onProxyInitialization(ProxyInitializeEvent event) {
+    public void onProxyInitialization(ProxyInitializeEvent event) throws IOException {
+        FlexLogger.init(logger);
+
+        Path dataFolder = Paths.get("plugins", "FlexBans");
+        if (!Files.exists(dataFolder)) {
+            Files.createDirectories(dataFolder);
+            FlexLogger.info("Created FlexBans directory.");
+        }
+
+        ConfigManager.initialize(logger, dataFolder);
+        WebhooksConfigManager.initialize(logger, dataFolder);
+
+        String ip = IpUtils.getPublicIP();
+        String licenseKey = (String) ConfigManager.getConfigValue("license-key");
+        boolean isLicenseValid = LicenseChecker.isLicenseValid(licenseKey, ip);
+
+        if (!isLicenseValid) {
+            FlexLogger.error("      / \\\\");
+            FlexLogger.error("     /   \\\\");
+            FlexLogger.error("    /  |  \\\\     Your license key is invalid!");
+            FlexLogger.error("   /   |   \\\\    Make sure you followed setup instructions correctly");
+            FlexLogger.error("  /         \\\\   You must join Neocle Resources discord server to get your key");
+            FlexLogger.error(" /     o     \\\\");
+            FlexLogger.error("/_____________\\\\");
+            return;
+        }
+
         EventDispatcher eventDispatcher = new VelocityEventDispatcher(proxyServer);
 
         int pluginId = 23869;
@@ -56,12 +87,13 @@ public class FlexBansVelocity {
         );
 
         bootstrap = new Bootstrap();
-        bootstrap.initialize(Paths.get("plugins", "FlexBans"), logger, "velocity", eventDispatcher, proxyServer);
+        bootstrap.initialize(dataFolder, logger, "velocity", eventDispatcher, proxyServer);
 
         FlexBansAPIImpl.setBanExecutor(bootstrap.getBanExecutor());
         FlexBansAPIImpl.setMuteExecutor(bootstrap.getMuteExecutor());
         FlexBansAPIImpl.setKickExecutor(bootstrap.getKickExecutor());
         FlexBansAPIImpl.setUnbanExecutor(bootstrap.getUnbanExecutor());
+        FlexBansAPIImpl.setUnmuteExecutor(bootstrap.getUnmuteExecutor());
 
         int port = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.port"));
         boolean webserverEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.enabled"));
@@ -80,15 +112,15 @@ public class FlexBansVelocity {
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
-        logger.info("Shutting down schedulers...");
+        FlexLogger.info("Shutting down schedulers...");
         bootstrap.getDatabaseUtils().shutdown();
         bootstrap.getPlayerHeadImage().shutdown();
 
-        logger.info("FlexBans disabled successfully!");
+        FlexLogger.info("FlexBans disabled successfully!");
     }
 
     private void registerCommands() {
-        logger.info("Registering commands...");
+        FlexLogger.info("Registering commands...");
         CommandManager commandManager = proxyServer.getCommandManager();
         commandManager.register(commandManager.metaBuilder("flexbans").aliases("fb").build(), new BaseCommandVelocity(
                 bootstrap.getAPI(),
@@ -107,17 +139,25 @@ public class FlexBansVelocity {
         commandManager.register("mute", new MuteCommand(bootstrap.getMuteExecutor(), proxyServer), "flexbans:mute");
         commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer), "flexbans:kick");
         commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer), "flexbans:unban");
+        commandManager.register("unmute", new UnmuteCommand(bootstrap.getUnmuteExecutor(), proxyServer), "flexbans:unmute");
         commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer), "flexbans:serverlock");
         commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
     }
 
     private void registerListeners() {
-        logger.info("Registering listeners...");
+        FlexLogger.info("Registering listeners...");
         EventManager eventManager = proxyServer.getEventManager();
 
         eventManager.register(this, new WhitelistEvents(logger));
         eventManager.register(this, new DashboardEvents(logger));
         eventManager.register(this, new PlayerEvents(bootstrap, proxyServer));
+
+        if (HooksUtils.usingLiteBansSystem()) {
+            LiteBansEvents listener = new LiteBansEvents(bootstrap.getDatabaseUtils());
+            Events.get().register(listener);
+        } else if (HooksUtils.usingFlexBansSystem()) {
+            eventManager.register(this, new FlexBansEvents(bootstrap.getDatabaseUtils(), bootstrap.getPunishmentSSEHandler()));
+        }
     }
 
     private void registerChannels() {

@@ -390,6 +390,30 @@ public class DatabaseQueries {
                 """
     );
 
+    private static final Map<String, String> CREATE_PLAYERS_TABLE = Map.of(
+            "mysql", """
+                    CREATE TABLE IF NOT EXISTS players (
+                        uuid VARCHAR(36) NOT NULL,
+                        username VARCHAR(16) NOT NULL,
+                        PRIMARY KEY (uuid)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                    """,
+            "sqlite", """
+                    CREATE TABLE IF NOT EXISTS players (
+                        uuid TEXT PRIMARY KEY,
+                        username TEXT NOT NULL,
+                        CHECK (length(username) <= 16),
+                        CHECK (length(uuid) <= 36)
+                    );
+                    """,
+            "h2", """
+                    CREATE TABLE IF NOT EXISTS players (
+                        uuid VARCHAR(36) PRIMARY KEY,
+                        username VARCHAR(16) NOT NULL
+                    );
+                    """
+    );
+
     public static String getCreateTableQuery(String dbType, String tableName) {
         return switch (tableName.toLowerCase()) {
             case "users" -> CREATE_USERS_TABLE.get(dbType.toLowerCase());
@@ -400,6 +424,7 @@ public class DatabaseQueries {
             case "kicks" -> CREATE_KICKS_TABLE.get(dbType.toLowerCase());
             case "warnings" -> CREATE_WARNINGS_TABLE.get(dbType.toLowerCase());
             case "server_locks" -> CREATE_SERVER_LOCKS_TABLE.get(dbType.toLowerCase());
+            case "players" -> CREATE_PLAYERS_TABLE.get(dbType.toLowerCase());
             default -> throw new IllegalArgumentException("Unknown table: " + tableName);
         };
     }

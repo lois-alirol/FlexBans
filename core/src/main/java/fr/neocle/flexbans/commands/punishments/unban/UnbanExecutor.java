@@ -1,65 +1,112 @@
 package fr.neocle.flexbans.commands.punishments.unban;
 
+import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.commands.punishments.Common;
+import fr.neocle.flexbans.commands.punishments.Common.PlayerInfo;
 import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.handlers.api.PunishmentSSEHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.utils.Broadcast.Broadcaster;
-import fr.neocle.flexbans.utils.Player.UsernameUUIDConverters;
+import fr.neocle.flexbans.utils.broadcast.Broadcaster;
+import fr.neocle.flexbans.utils.player.UsernameUUIDConverters;
 import org.geysermc.floodgate.api.FloodgateApi;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 public class UnbanExecutor implements fr.neocle.flexbans.api.punishments.UnbanExecutor {
     private final Broadcaster broadcaster;
-    private final FloodgateApi floodgateApi;
-    private final UsernameUUIDConverters usernameUUIDConverters;
     private final DatabaseUtils databaseUtils;
+    private final UsernameUUIDConverters usernameUUIDConverters;
+    private final FloodgateApi floodgateApi;
+    private final EventDispatcher eventDispatcher;
+    private final PunishmentSSEHandler punishmentSSEHandler;
 
-    public UnbanExecutor(Broadcaster broadcaster, UsernameUUIDConverters usernameUUIDConverters, DatabaseUtils databaseUtils) {
+    private static final String SILENT_PERMISSION = "flexbans.unban.silent";
+
+    public UnbanExecutor(Broadcaster broadcaster,
+                         UsernameUUIDConverters usernameUUIDConverters,
+                         DatabaseUtils databaseUtils,
+                         EventDispatcher eventDispatcher,
+                         PunishmentSSEHandler punishmentSSEHandler) {
         this.broadcaster = broadcaster;
         this.usernameUUIDConverters = usernameUUIDConverters;
         this.databaseUtils = databaseUtils;
+        this.eventDispatcher = eventDispatcher;
+        this.punishmentSSEHandler = punishmentSSEHandler;
+
         this.floodgateApi = Common.isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
-    public void executeUnban(String target, String remover, String scope, String reason, boolean silent, Consumer<String> messageSender) {
-        UUID targetUUID = Common.resolveTargetUUID(target, floodgateApi, usernameUUIDConverters);
-        if (targetUUID == null) {
-            messageSender.accept("§cError: Player '" + target + "' does not exist.");
+    public void executeUnban(String target,
+                             String sender,
+                             String reason,
+                             String serverScope,
+                             boolean silent,
+                             Consumer<String> messageSender) {
+
+        Optional<PlayerInfo> targetInfo = Common.resolveTarget(target, messageSender, floodgateApi, usernameUUIDConverters);
+        if (targetInfo.isEmpty()) {
             return;
         }
 
-        target = usernameUUIDConverters.UUIDtoUsername(targetUUID.toString());
-        if (target == null || target.contains("Error")) {
-            messageSender.accept("§cError: Could not retrieve username.");
+        Optional<PlayerInfo> senderInfo = Common.resolveSender(sender, messageSender, floodgateApi, usernameUUIDConverters);
+        if (senderInfo.isEmpty()) {
             return;
         }
 
-        String removerName = remover != null && !remover.isEmpty() ? remover : "Console";
-        UUID removerUUID = Common.parseUUID(usernameUUIDConverters.usernameToUUID(removerName));
-        if (removerUUID == null) {
-            messageSender.accept("§cError: Could not retrieve player's UUID.");
+        PlayerInfo targetPlayer = targetInfo.get();
+        PlayerInfo senderPlayer = senderInfo.get();
+
+        if (!databaseUtils.getBansManager().isPlayerBanned(targetPlayer.uuid(), serverScope)) {
+            messageSender.accept(LanguageManager.getMessageString("punishments.unban.not-banned")
+                    .replace("%target%", targetPlayer.name()));
             return;
         }
 
-        if (scope.equalsIgnoreCase("Global")) {
-            scope = null;
-        }
-
-        if (databaseUtils.getBansManager().isPlayerBanned(targetUUID, scope)) {
-            processUnban(target, targetUUID, removerName, removerUUID, reason, silent);
-        } else {
-            messageSender.accept("§cThis player is not banned on this server");
-        }
+        processUnban(targetPlayer, senderPlayer, reason, serverScope, silent);
     }
 
-    private void processUnban(String target, UUID targetUUID, String removerName, UUID removerUUID, String reason, boolean silent) {
-        String unbanReason = reason != null && !reason.isEmpty() ? reason : LanguageManager.getMessageString("punishments.default-unban-reason");
+    private void processUnban(PlayerInfo target,
+                              PlayerInfo sender,
+                              String reason,
+                              String serverScope,
+                              boolean silent) {
 
-        databaseUtils.getBansManager().removeBan(targetUUID, removerUUID, removerName, unbanReason);
-        if (!silent) {
-            broadcaster.execute("§l§aUnbanning " + target + ". Reason: " + unbanReason);
+        String unbanReason = resolveReason(reason);
+
+        databaseUtils.getBansManager().removeBan(target.uuid(), sender.uuid(), sender.name(), unbanReason);
+
+        /*eventDispatcher.unbanAddedEvent(target.uuid(), target.name(), sender.uuid(), sender.name(), unbanReason, serverScope, silent);
+        punishmentSSEHandler.sendUnbanUpdate(target.uuid(), sender.name(), unbanReason, serverScope);*/
+
+        broadcastUnban(target.name(), sender.name(), unbanReason, silent);
+    }
+
+    private String resolveReason(String reason) {
+        return (reason != null && !reason.isEmpty())
+                ? reason
+                : LanguageManager.getMessageString("punishments.default-unban-reason");
+    }
+
+    private void broadcastUnban(String targetName, String senderName, String reason, boolean silent) {
+        String rawMessage = LanguageManager.getMessageString(
+                        silent
+                                ? "punishments.unban.silent-broadcast-message"
+                                : "punishments.unban.broadcast-message"
+                )
+                .replace("%target%", targetName)
+                .replace("%moderator%", senderName)
+                .replace("%reason%", reason);
+
+        if (rawMessage != null && !rawMessage.isEmpty()) {
+            for (String line : rawMessage.split("\n")) {
+                if (silent) {
+                    broadcaster.execute(line, SILENT_PERMISSION);
+                } else {
+                    broadcaster.execute(line);
+                }
+            }
         }
     }
 }

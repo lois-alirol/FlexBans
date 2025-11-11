@@ -6,11 +6,11 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handlers.IndexHandler;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
-import fr.neocle.flexbans.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
+import fr.neocle.flexbans.handlers.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.JettyReloader;
-import fr.neocle.flexbans.velocity.commands.SubCommands.*;
+import fr.neocle.flexbans.velocity.commands.subcommands.*;
 
 import java.nio.file.Path;
 import java.util.Collections;

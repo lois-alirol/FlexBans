@@ -2,12 +2,10 @@ package fr.neocle.flexbans.bungee.commands.SubCommands.DiscordWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.commands.whitelist.DiscordWhitelistCommand;
-import fr.neocle.flexbans.handlers.Security.OAuthHandlers.DiscordOAuthHandler;
+import fr.neocle.flexbans.handlers.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
-
-import java.util.Map;
 
 public class AddUser extends Command {
     private final DiscordWhitelistCommand whitelistMethods;

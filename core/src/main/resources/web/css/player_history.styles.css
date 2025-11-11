@@ -1,0 +1,62 @@
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark {
+    background-color: #121212;
+    color: #ffffff;
+}
+
+body.bg-light-bg {
+    background-color: #f4f4f4;
+    color: #333333;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(100, 100, 100, 0.7);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(150, 150, 150, 0.8);
+}
+
+::-webkit-scrollbar-track {
+    background-color: rgba(44, 44, 44, 0.3);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 100, 100, 0.7) rgba(44, 44, 44, 0.3);
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+th,
+td {
+    border: 1px solid rgba(75, 75, 75, 0.5);
+    padding: 16px;
+}
+
+thead th {
+    border-bottom: 2px solid rgba(100, 100, 100, 0.6);
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}

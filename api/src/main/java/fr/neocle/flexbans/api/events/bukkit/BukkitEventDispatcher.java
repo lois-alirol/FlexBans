@@ -12,6 +12,8 @@ import fr.neocle.flexbans.api.events.bukkit.whitelist.UserWhitelistedEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import java.util.UUID;
+
 public class BukkitEventDispatcher implements EventDispatcher {
     private final Plugin plugin;
 
@@ -65,5 +67,20 @@ public class BukkitEventDispatcher implements EventDispatcher {
     public void logoutEvent(String playerName, String userId, String userAgent, String ipAddress) {
         LogoutEvent event = new LogoutEvent(playerName, userId, userAgent, ipAddress);
         Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(event));
+    }
+
+    @Override
+    public void banAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, long duration, String serverScope, String serverOrigin, boolean silent, boolean ipScope) {
+
+    }
+
+    @Override
+    public void muteAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, long duration, String serverScope, String serverOrigin, boolean silent, boolean ipScope) {
+
+    }
+
+    @Override
+    public void kickAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, String serverOrigin, boolean silent, boolean ipScope) {
+
     }
 }

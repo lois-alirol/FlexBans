@@ -1,7 +1,7 @@
 package fr.neocle.flexbans.bungee.commands.SubCommands;
 
-import fr.neocle.flexbans.database.Dashboard.UserManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;

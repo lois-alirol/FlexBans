@@ -12,6 +12,7 @@
 # If you are using a hosting solution like Pterodactyl, 
 # make sure to allocate a new port in the "Network" tab of your panel.
 license-key: "X"
+debug-mode: false
 
 # 'locale' will set the language to the same as the system language
 language: "en_US"
@@ -58,21 +59,56 @@ database:
 
 
 punishments-system:
-  # set "built-in.enabled" to false if you want to use another punishment plugin
-  # there will be issues if you enabled both "built-in" and a plugin under the "hooks" section.
   built-in:
     enabled: true
+    notify-moderators: true
+    log-to-console: true
+
     bans:
       enabled: true
+      broadcast: true
+      ip-ban: true
+      allow-temp-bans: true
+      notify-on-join: true
+      exempt-permission: "flexbans.bypass.ban"
+
     mutes:
       enabled: true
+      block-all-commands: true
+      blocked-commands:
+        - "/msg"
+        - "/whisper"
+      notify-on-chat: true
+      exempt-permission: "flexbans.bypass.mute"
+
     warnings:
       enabled: true
+      max-warnings-before-action: 3
+      action-on-limit: "ban"
+      reset-after-days: 30
+      notify-player: true
+
     kicks:
       enabled: true
+      broadcast: false
+      notify-player: true
+      exempt-permission: "flexbans.bypass.kick"
 
-  hooks:
-    litebans: false
+    reason-presets:
+      enabled: true
+      list:
+        - "Inappropriate language"
+        - "Cheating or unfair advantage"
+        - "Harassment or bullying"
+        - "Advertising other servers"
+        - "Griefing or trolling"
+        - "Spamming or flooding chat"
+
+    audit-logging:
+      enabled: true
+      log-file: "logs/punishments.log"
+      include-reason: true
+      include-moderator: true
 
 
 # Settings for how the server will appear on the web page.

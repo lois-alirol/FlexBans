@@ -11,6 +11,8 @@ import fr.neocle.flexbans.api.events.bungee.whitelist.UserUnwhitelistedEvent;
 import fr.neocle.flexbans.api.events.bungee.whitelist.UserWhitelistedEvent;
 import net.md_5.bungee.api.plugin.Plugin;
 
+import java.util.UUID;
+
 public class BungeeEventDispatcher implements EventDispatcher {
     private final Plugin plugin;
 
@@ -64,5 +66,20 @@ public class BungeeEventDispatcher implements EventDispatcher {
     public void logoutEvent(String playerName, String userId, String userAgent, String ipAddress) {
         LogoutEvent event = new LogoutEvent(playerName, userId, userAgent, ipAddress);
         plugin.getProxy().getPluginManager().callEvent(event);
+    }
+
+    @Override
+    public void banAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, long duration, String serverScope, String serverOrigin, boolean silent, boolean ipScope) {
+
+    }
+
+    @Override
+    public void muteAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, long duration, String serverScope, String serverOrigin, boolean silent, boolean ipScope) {
+
+    }
+
+    @Override
+    public void kickAddedEvent(UUID targetUUID, String targetName, UUID senderUUID, String senderName, String reason, String serverOrigin, boolean silent, boolean ipScope) {
+
     }
 }

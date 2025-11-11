@@ -7,6 +7,7 @@
     <title>{{player_name}} Punishments</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/player_history.styles.css">
     <script src="https://cdn.tailwindcss.com/"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <meta property="og:title" content="{{player_name}} Punishments">
@@ -15,151 +16,52 @@
     <meta name="theme-color" content="{{server_color}}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{favicon}}">
     <script src="/js/dark-mode-init.js"></script>
-    <style>
-        body {
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        body.dark {
-            background-color: #121212;
-            color: #ffffff;
-        }
-
-        body.bg-light-bg {
-            background-color: #f4f4f4;
-            color: #333333;
-        }
-    </style>
-    <style>
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background-color: rgba(100, 100, 100, 0.7);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(150, 150, 150, 0.8);
-        }
-
-        ::-webkit-scrollbar-track {
-            background-color: rgba(44, 44, 44, 0.3);
-        }
-
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(100, 100, 100, 0.7) rgba(44, 44, 44, 0.3);
-        }
-
-        table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
-
-        th,
-        td {
-            border: 1px solid rgba(75, 75, 75, 0.5);
-            padding: 16px;
-        }
-
-        thead th {
-            border-bottom: 2px solid rgba(100, 100, 100, 0.6);
-        }
-
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        input[type="number"] {
-            -moz-appearance: textfield;
-            appearance: textfield;
-        }
-    </style>
 </head>
 
 <body class="bg-white text-[#333333] dark:text-[#e0e0e0] dark:bg-[#1c1c1c]">
 
-    <div class="max-w-7xl mx-auto p-5">
+<div class="max-w-7xl mx-auto p-5">
 
-        <a href="/index" class="absolute top-0 left-0 mt-2 ml-2 bg-[{{server_color}}] text-white py-2 px-4 rounded-lg hover:bg-[{{server_color_hover}}]">
-            <i class="fa-solid fa-arrow-left mr-2"></i> Back to Index
-        </a>    
+    {{back_to_index_button}}
 
-        <h1 class="text-center text-black dark:text-white text-3xl font-bold">{{player_name}} Recent Punishments</h1>
+    <h1 class="text-center text-black dark:text-white text-3xl font-bold">{{player_name}} Recent Punishments</h1>
 
-        <!-- Search and Filter -->
-        <div class="search mb-2 mt-5 flex items-center">
-            <div class="relative w-full">
-                <input type="text" id="moderatorSearchInput" placeholder="Search Moderator..."
-                       class="w-full p-3.5 pl-12 bg-[#f0f0f0cc] dark:bg-[#3b3b3bcc] rounded-lg shadow-custom focus:outline-none">
-                <i class="fa-solid fa-gavel absolute left-4 top-1/2 transform -translate-y-1/2 text-[#333333] dark:text-[#e0e0e0]"></i>
-            </div>
-        </div>
-    
-        <!-- Actions Table -->
-        <div>
-            <table id="punishmentTable" class="table-auto w-full bg-[#ffffffe6] dark:bg-[#2c2c2ce6] text-[#333333] dark:text-[#e0e0e0] rounded-lg overflow-hidden shadow-custom">
-                <thead>
-                    <tr class="bg-[#ccc] dark:bg-[#444] text-left text-slate-800 dark:text-slate-300">
-                        <th class="px-4 py-2">Type</th>
-                        <th class="px-4 py-2">Player</th>
-                        <th class="px-4 py-2">Executor</th>
-                        <th class="px-4 py-2">Reason</th>
-                        <th class="px-4 py-2">Execution Date</th>
-                        <th class="px-4 py-2">Expiration Date</th>
-                        <th class="px-4 py-2">Duration</th>
-                        <th class="px-4 py-2">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{punishment_rows}}
-                </tbody>
-            </table>
-        </div>
+    {{search_moderator_section}}
 
-        <!-- Pagination -->
-        <div class="flex justify-center mt-8 gap-4">
-            <a href="#" id="prevPage" class="bg-[#c1c1c1] dark:bg-[#444] text-white py-2 px-4 rounded-md hover:bg-gray-600 disabled:bg-gray-500">
-                <i class="fa-solid fa-angles-left"></i>
-            </a>
-            <input type="number" id="pageInput" min="1" max="{{total_pages}}" value="{{current_page}}" class="text-center w-16 bg-[#c1c1c1] dark:bg-[#444] text-black dark:text-white p-2 rounded-md">
-            <a href="#" id="nextPage" class="bg-[#c1c1c1] dark:bg-[#444] text-white py-2 px-4 rounded-md hover:bg-gray-600 disabled:bg-gray-500">
-                <i class="fa-solid fa-angles-right"></i>
-            </a>
-        </div>
+    {{table_content}}
 
-    </div>
+    {{empty_state_content}}
 
-    <script src="/js/dark-mode-toggle.js"></script>
-    <script src="/js/mod-search-clear.js"></script>
-    <script src="/js/search-filters.js"></script>
-    <script>
-        $(document).ready(function () {
-            const currentPage = parseInt("{{current_page}}");
-            const totalPages = parseInt("{{total_pages}}");
-            const moderator = "{{moderator_username}}";
+    {{pagination_content}}
 
+</div>
+
+<script src="/js/dark-mode-toggle.js"></script>
+<script src="/js/mod-search-clear.js"></script>
+<script src="/js/search-filters.js"></script>
+<script>
+    $(document).ready(function () {
+        const currentPage = parseInt("{{current_page}}");
+        const totalPages = parseInt("{{total_pages}}");
+        const player = "{{player_name}}";
+
+        if ($('#prevPage').length > 0) {
             if (currentPage === 1) {
                 $('#prevPage').addClass('disabled').attr('href', '#').removeAttr('href');
             } else {
-                $('#prevPage').attr('href', `/moderator/${moderator}?page=${currentPage - 1}`);
+                $('#prevPage').attr('href', `/player/${player}?page=${currentPage - 1}`);
             }
 
             if (currentPage === totalPages) {
                 $('#nextPage').addClass('disabled').attr('href', '#').removeAttr('href');
             } else {
-                $('#nextPage').attr('href', `/moderator/${moderator}?page=${currentPage + 1}`);
+                $('#nextPage').attr('href', `/player/${player}?page=${currentPage + 1}`);
             }
 
             $('#pageInput').on('input', function () {
                 const inputPage = parseInt($(this).val());
                 if (inputPage >= 1 && inputPage <= totalPages) {
-                    window.location.href = `/moderator/${moderator}?page=${inputPage}`;
+                    window.location.href = `/player/${player}?page=${inputPage}`;
                 }
             });
 
@@ -169,8 +71,9 @@
                     $(this).val(currentPage);
                 }
             });
-        });
-    </script>
+        }
+    });
+</script>
 
 </body>
 

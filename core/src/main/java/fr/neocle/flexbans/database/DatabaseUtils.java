@@ -1,12 +1,12 @@
 package fr.neocle.flexbans.database;
 
-import fr.neocle.flexbans.database.Dashboard.SessionManager;
-import fr.neocle.flexbans.database.Dashboard.UserManager;
-import fr.neocle.flexbans.database.Punishments.BansManager;
-import fr.neocle.flexbans.database.Punishments.HistoryManager;
-import fr.neocle.flexbans.database.Punishments.KicksManager;
-import fr.neocle.flexbans.database.Punishments.MutesManager;
-import fr.neocle.flexbans.database.Servers.ServerLocksManager;
+import fr.neocle.flexbans.database.dashboard.SessionManager;
+import fr.neocle.flexbans.database.dashboard.UserManager;
+import fr.neocle.flexbans.database.punishments.BansManager;
+import fr.neocle.flexbans.database.punishments.HistoryManager;
+import fr.neocle.flexbans.database.punishments.KicksManager;
+import fr.neocle.flexbans.database.punishments.MutesManager;
+import fr.neocle.flexbans.database.servers.ServerLocksManager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,11 +23,15 @@ public class DatabaseUtils {
     private final HistoryManager historyManager;
     private final ServerLocksManager serverLocksManager;
     private final DatabaseCleanupTask cleanupTask;
+    private final DatabaseBackupTask backupTask;
     private final String databaseType;
+    private final String pluginFolderPath;
     private String jdbcUrl;
 
     public DatabaseUtils(String pluginFolderPath, String databaseType, String host, int port, String databaseName, String username, String password, Logger logger) {
         this.databaseType = databaseType.toLowerCase();
+        this.pluginFolderPath = pluginFolderPath;
+
         switch (this.databaseType) {
             case "mysql":
                 jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + databaseName + "?connectTimeout=5000&socketTimeout=5000";
@@ -56,6 +60,7 @@ public class DatabaseUtils {
         this.serverLocksManager = new ServerLocksManager(dbManager, logger);
         this.sessionManager = new SessionManager(dbManager, logger);
         this.cleanupTask = new DatabaseCleanupTask(dbManager);
+        this.backupTask = new DatabaseBackupTask(pluginFolderPath, databaseType, logger);
     }
 
     public void initialize() throws SQLException {
@@ -66,6 +71,7 @@ public class DatabaseUtils {
             DatabaseInitializer.initializeDatabase(connection, databaseType);
 
             cleanupTask.startSessionCleanupTask();
+            backupTask.startBackupCreationTask();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -78,6 +84,7 @@ public class DatabaseUtils {
 
     public void shutdown() {
         cleanupTask.shutdown();
+        backupTask.shutdown();
         bansManager.shutdown();
     }
 

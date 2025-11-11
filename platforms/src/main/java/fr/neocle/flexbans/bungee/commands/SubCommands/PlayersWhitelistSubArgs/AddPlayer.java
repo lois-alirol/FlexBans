@@ -2,12 +2,10 @@ package fr.neocle.flexbans.bungee.commands.SubCommands.PlayersWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.commands.whitelist.PlayersWhitelistCommand;
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
-
-import java.util.Map;
 
 public class AddPlayer extends Command {
     private final PlayersWhitelistCommand whitelistMethods;

@@ -1,19 +1,18 @@
 package fr.neocle.flexbans.bungee.commands.SubCommands;
 
-import fr.neocle.flexbans.handlers.Security.AuthenticationHandler;
+import fr.neocle.flexbans.api.FlexBansAPI;
+import fr.neocle.flexbans.bungee.commands.SubCommands.PlayersWhitelistSubArgs.AddPlayer;
+import fr.neocle.flexbans.bungee.commands.SubCommands.PlayersWhitelistSubArgs.RemovePlayer;
+import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
+import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
 import net.md_5.bungee.api.plugin.TabExecutor;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
-
-import fr.neocle.flexbans.api.FlexBansAPI;
-import fr.neocle.flexbans.bungee.commands.SubCommands.PlayersWhitelistSubArgs.AddPlayer;
-import fr.neocle.flexbans.bungee.commands.SubCommands.PlayersWhitelistSubArgs.RemovePlayer;
-import fr.neocle.flexbans.locale.LanguageManager;
 
 public class PlayersWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
@@ -44,7 +43,7 @@ public class PlayersWhitelist extends Command implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> suggestions = new ArrayList<>();
-        
+
         if (args.length == 1) {
             String input = args[0].toLowerCase();
             for (String subCommand : subCommands.keySet()) {
