@@ -244,9 +244,9 @@ public class AuthenticationHandler extends AbstractHandler {
         boolean pageHandled = false;
         String uri = request.getRequestURI();
 
-        boolean playerHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
-        boolean moderatorHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
-        boolean punishmentDetailsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
+        boolean playerHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.player.enabled");
+        boolean moderatorHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.moderator.enabled");
+        boolean punishmentDetailsEnabled = ConfigManager.getBoolean("webserver.pages.details.punishment.enabled");
 
         if (uri.startsWith("/player/") && playerHistoryEnabled) {
             handlerRegistry.getPlayerHistoryHandler().handle(uri, baseRequest, request, response);
@@ -308,17 +308,8 @@ public class AuthenticationHandler extends AbstractHandler {
     public void updateConfig() {
     }
 
-    @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        Object rawValue = ConfigManager.getConfigValue("password-auth.allowed-players");
-
-        if (rawValue instanceof List<?> list) {
-            List<String> allowedPlayers = list.stream()
-                    .map(Object::toString)
-                    .toList();
-            return allowedPlayers.contains(playerName);
-        }
-
-        return false;
+        List<String> allowedPlayers = ConfigManager.getList("password-auth.allowed-players");
+        return allowedPlayers.contains(playerName);
     }
 }

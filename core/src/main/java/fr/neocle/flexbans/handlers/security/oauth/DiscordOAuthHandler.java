@@ -16,6 +16,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class DiscordOAuthHandler {
@@ -27,9 +28,7 @@ public class DiscordOAuthHandler {
     private final ForbiddenError forbiddenError;
     private final Logger logger;
 
-    private final boolean oauthEnabled = Boolean.parseBoolean(
-            (String) ConfigManager.getConfigValue("discord-oauth.enabled")
-    );
+    private final boolean oauthEnabled = ConfigManager.getBoolean("discord-oauth.enabled");
 
     public DiscordOAuthHandler(DatabaseUtils databaseUtils, ForbiddenError forbiddenError,
                                EventDispatcher eventDispatcher, Logger logger) {
@@ -44,11 +43,11 @@ public class DiscordOAuthHandler {
             return;
         }
 
-        String redirectUri = encodeUri((String) ConfigManager.getConfigValue("discord-oauth.redirect-uri"));
+        String redirectUri = encodeUri(ConfigManager.getString("discord-oauth.redirect-uri"));
         String authUrl = "https://discord.com/api/oauth2/authorize?client_id=" +
-                ConfigManager.getConfigValue("discord-oauth.client-id") +
+                ConfigManager.getString("discord-oauth.client-id") +
                 "&redirect_uri=" + redirectUri +
-                "&response_type=code&scope=" + ConfigManager.getConfigValue("discord-oauth.scope");
+                "&response_type=code&scope=" + ConfigManager.getString("discord-oauth.scope");
 
         response.sendRedirect(authUrl);
     }
@@ -103,9 +102,9 @@ public class DiscordOAuthHandler {
         connection.setRequestMethod("POST");
         connection.setDoOutput(true);
 
-        String redirectUri = encodeUri((String) ConfigManager.getConfigValue("discord-oauth.redirect-uri"));
-        String params = "client_id=" + ConfigManager.getConfigValue("discord-oauth.client-id") +
-                "&client_secret=" + ConfigManager.getConfigValue("discord-oauth.client-secret") +
+        String redirectUri = encodeUri(ConfigManager.getString("discord-oauth.redirect-uri"));
+        String params = "client_id=" + ConfigManager.getString("discord-oauth.client-id") +
+                "&client_secret=" + ConfigManager.getString("discord-oauth.client-secret") +
                 "&grant_type=authorization_code" +
                 "&code=" + code +
                 "&redirect_uri=" + redirectUri;
@@ -147,8 +146,7 @@ public class DiscordOAuthHandler {
 
     @SuppressWarnings("unchecked")
     public boolean isUserAllowed(String userId) {
-        String allowedUsers = String.join(",", (Iterable<String>)
-                ConfigManager.getConfigValue("discord-oauth.allowed-users"));
+        List<String> allowedUsers = ConfigManager.getList("discord-oauth.allowed-users");
         return allowedUsers.contains(userId);
     }
 

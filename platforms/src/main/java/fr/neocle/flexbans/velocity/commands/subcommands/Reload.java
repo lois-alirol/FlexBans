@@ -53,7 +53,7 @@ public class Reload implements SimpleCommand {
                 ConfigManager.reload();
                 WebhooksConfigManager.reload();
 
-                String lang = (String) ConfigManager.getConfigValue("language");
+                String lang = ConfigManager.getString("language");
                 LanguageManager.reload(lang);
 
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));

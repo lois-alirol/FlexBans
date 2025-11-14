@@ -2,10 +2,7 @@ package fr.neocle.flexbans.database;
 
 import fr.neocle.flexbans.database.dashboard.SessionManager;
 import fr.neocle.flexbans.database.dashboard.UserManager;
-import fr.neocle.flexbans.database.punishments.BansManager;
-import fr.neocle.flexbans.database.punishments.HistoryManager;
-import fr.neocle.flexbans.database.punishments.KicksManager;
-import fr.neocle.flexbans.database.punishments.MutesManager;
+import fr.neocle.flexbans.database.punishments.*;
 import fr.neocle.flexbans.database.servers.ServerLocksManager;
 
 import java.sql.Connection;
@@ -20,6 +17,7 @@ public class DatabaseUtils {
     private final BansManager bansManager;
     private final MutesManager mutesManager;
     private final KicksManager kicksManager;
+    private final WarningsManager warningsManager;
     private final HistoryManager historyManager;
     private final ServerLocksManager serverLocksManager;
     private final DatabaseCleanupTask cleanupTask;
@@ -56,6 +54,7 @@ public class DatabaseUtils {
         this.bansManager = new BansManager(dbManager, logger);
         this.mutesManager = new MutesManager(dbManager, logger);
         this.kicksManager = new KicksManager(dbManager, logger);
+        this.warningsManager = new WarningsManager(dbManager, logger);
         this.historyManager = new HistoryManager(dbManager, logger);
         this.serverLocksManager = new ServerLocksManager(dbManager, logger);
         this.sessionManager = new SessionManager(dbManager, logger);
@@ -111,6 +110,8 @@ public class DatabaseUtils {
     public KicksManager getKicksManager() {
         return kicksManager;
     }
+
+    public WarningsManager getWarningsManager() { return warningsManager; }
 
     public HistoryManager getHistoryManager() {
         return historyManager;

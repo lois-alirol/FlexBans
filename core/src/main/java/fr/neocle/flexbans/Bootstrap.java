@@ -20,9 +20,13 @@ import fr.neocle.flexbans.commands.punishments.mute.platforms.BungeeMute;
 import fr.neocle.flexbans.commands.punishments.mute.platforms.VelocityMute;
 import fr.neocle.flexbans.commands.punishments.unban.UnbanExecutor;
 import fr.neocle.flexbans.commands.punishments.unmute.UnmuteExecutor;
+import fr.neocle.flexbans.commands.punishments.warning.WarningExecutor;
+import fr.neocle.flexbans.commands.punishments.warning.WarningPlatformHandler;
+import fr.neocle.flexbans.commands.punishments.warning.platforms.VelocityWarning;
 import fr.neocle.flexbans.commands.server.lock.ServerLockExecutor;
 import fr.neocle.flexbans.commands.server.lock.ServerLockPlatformHandler;
 import fr.neocle.flexbans.commands.server.lock.platforms.VelocityServerLock;
+import fr.neocle.flexbans.commands.server.unlock.ServerUnlockExecutor;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handlers.*;
@@ -43,7 +47,8 @@ import fr.neocle.flexbans.handlers.security.components.HandlerRegistry;
 import fr.neocle.flexbans.handlers.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.handlers.security.utils.DomainFilter;
 import fr.neocle.flexbans.handlers.security.utils.HttpsEnforcementHandler;
-import fr.neocle.flexbans.license.LicenseChecker;
+import fr.neocle.flexbans.internal.LicenseChecker;
+import fr.neocle.flexbans.internal.UpdateChecker;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.utils.JettyReloader;
 import fr.neocle.flexbans.utils.LibsLoader;
@@ -106,12 +111,15 @@ public class Bootstrap {
     protected BanExecutor banExecutor;
     protected MuteExecutor muteExecutor;
     protected KickExecutor kickExecutor;
+    protected WarningExecutor warningExecutor;
     protected UnbanExecutor unbanExecutor;
     protected UnmuteExecutor unmuteExecutor;
     protected ServerLockExecutor serverLockExecutor;
+    protected ServerUnlockExecutor serverUnlockExecutor;
     protected BanPlatformHandler banPlatformHandler;
     protected MutePlatformHandler mutePlatformHandler;
     protected KickPlatformHandler kickPlatformHandler;
+    protected WarningPlatformHandler warningPlatformHandler;
     protected ServerLockPlatformHandler serverLockHandler;
     protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
@@ -138,6 +146,8 @@ public class Bootstrap {
             initializeAPI(eventDispatcher);
             initializeCommands();
             initializeLanguage();
+
+            new UpdateChecker(getVersion(), logger).start();
         } catch (URISyntaxException | SQLException e) {
             logger.severe("Error setting up FlexBans: " + e.getMessage());
         }
@@ -150,9 +160,9 @@ public class Bootstrap {
         usernameUUIDConverters = new UsernameUUIDConverters();
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
 
-        boolean playerHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.player.enabled"));
-        boolean moderatorHistoryEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.moderator.enabled"));
-        boolean punishmentDetailsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.enabled"));
+        boolean playerHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.player.enabled");
+        boolean moderatorHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.moderator.enabled");
+        boolean punishmentDetailsEnabled = ConfigManager.getBoolean("webserver.pages.details.punishment.enabled");
 
         indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
 
@@ -176,6 +186,7 @@ public class Bootstrap {
                 banPlatformHandler = new BungeeBan((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 mutePlatformHandler = new BungeeMute((net.md_5.bungee.api.ProxyServer) pluginInstance);
                 kickPlatformHandler = new BungeeKick((net.md_5.bungee.api.ProxyServer) pluginInstance);
+                warningPlatformHandler = null;
                 break;
 
             case "spigot":
@@ -184,6 +195,7 @@ public class Bootstrap {
                 banPlatformHandler = new BukkitBan();
                 mutePlatformHandler = new BukkitMute();
                 kickPlatformHandler = new BukkitKick();
+                warningPlatformHandler = null;
                 break;
 
             case "velocity":
@@ -192,6 +204,8 @@ public class Bootstrap {
                 banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
                 mutePlatformHandler = new VelocityMute((ProxyServer) pluginInstance);
                 kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
+                warningPlatformHandler = new VelocityWarning((ProxyServer) pluginInstance);
+
                 serverLockHandler = new VelocityServerLock((ProxyServer) pluginInstance);
                 break;
             default:
@@ -247,7 +261,7 @@ public class Bootstrap {
     }
 
     public void initializeLanguage() {
-        String lang = (String) ConfigManager.getConfigValue("language");
+        String lang = ConfigManager.getString("language");
 
         if ("locale".equalsIgnoreCase(lang)) {
             Locale defaultLocale = Locale.getDefault();
@@ -263,11 +277,13 @@ public class Bootstrap {
         banExecutor = new BanExecutor(banPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher, punishmentSSEHandler);
         muteExecutor = new MuteExecutor(mutePlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
         kickExecutor = new KickExecutor(kickPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
+        warningExecutor = new WarningExecutor(warningPlatformHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher, punishmentSSEHandler);
 
         unbanExecutor = new UnbanExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher,  punishmentSSEHandler);
         unmuteExecutor = new UnmuteExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher,  punishmentSSEHandler);
 
         serverLockExecutor = new ServerLockExecutor(serverLockHandler, broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
+        serverUnlockExecutor = new ServerUnlockExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
     }
 
     public void initializeAPI(EventDispatcher eventDispatcher) {
@@ -275,13 +291,13 @@ public class Bootstrap {
     }
 
     public void initializeDatabase(Map<String, Object> config) throws SQLException {
-        String type = (String) ConfigManager.getConfigValue("database.type");
-        String host = (String) ConfigManager.getConfigValue("database.hostname");
+        String type = ConfigManager.getString("database.type");
+        String host = ConfigManager.getString("database.hostname");
 
-        int port = Integer.parseInt((String) ConfigManager.getConfigValue("database.port"));
-        String database = (String) ConfigManager.getConfigValue("database.database");
-        String username = (String) ConfigManager.getConfigValue("database.username");
-        String password = (String) ConfigManager.getConfigValue("database.password");
+        int port = ConfigManager.getInt("database.port");
+        String database = ConfigManager.getString("database.database");
+        String username = ConfigManager.getString("database.username");
+        String password = ConfigManager.getString("database.password");
 
         databaseUtils = new DatabaseUtils("./plugins/FlexBans", type, host, port, database, username, password, logger);
         databaseUtils.initialize();
@@ -340,7 +356,7 @@ public class Bootstrap {
         String lightYellow = "\u001B[38;5;228m";
         String reset = "\u001B[0m";
 
-        String buyerId = LicenseChecker.getDiscordId((String) ConfigManager.getConfigValue("license-key"));
+        String buyerId = LicenseChecker.getDiscordId(ConfigManager.getString("license-key"));
         String buyerName = discordOAuthHandler.getUsernameFromId(buyerId);
 
         logger.info(yellow + "    ________          ____                  " + reset);
@@ -406,6 +422,8 @@ public class Bootstrap {
         return kickExecutor;
     }
 
+    public WarningExecutor getWarningExecutor() { return warningExecutor; }
+
     public UnbanExecutor getUnbanExecutor() {
         return unbanExecutor;
     }
@@ -416,11 +434,15 @@ public class Bootstrap {
         return serverLockExecutor;
     }
 
+    public ServerUnlockExecutor getServerUnlockExecutor() {
+        return serverUnlockExecutor;
+    }
+
     public PunishmentSSEHandler getPunishmentSSEHandler() {
         return punishmentSSEHandler;
     }
 
     public String getVersion() {
-        return "1.0.0-SNAPSHOT";
+        return "0.9.9-SNAPSHOT";
     }
 }

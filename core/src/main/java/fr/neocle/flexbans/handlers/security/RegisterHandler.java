@@ -49,12 +49,12 @@ public class RegisterHandler extends AbstractHandler {
                 return;
             }
 
-            String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
-            String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
-            String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
-            String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
-            String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
-            String serverName = (String) ConfigManager.getConfigValue("server-display.name");
+            String serverIcon = ConfigManager.getString("server-display.icon");
+            String serverFavicon = ConfigManager.getString("server-display.favicon");
+            String serverLogo = ConfigManager.getString("server-display.logo");
+            String serverColor = ConfigManager.getString("server-display.color");
+            String serverColorDarker = ConfigManager.getString("server-display.darker-color");
+            String serverName = ConfigManager.getString("server-display.name");
 
             String pageContent = htmlTemplate
                     .replace("{{server_name}}", serverName)
@@ -164,17 +164,8 @@ public class RegisterHandler extends AbstractHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
     public boolean isPlayerAllowed(String playerName) {
-        Object rawValue = ConfigManager.getConfigValue("password-auth.allowed-players");
-
-        if (rawValue instanceof List<?> list) {
-            List<String> allowedPlayers = list.stream()
-                    .map(Object::toString)
-                    .toList();
-            return allowedPlayers.contains(playerName);
-        }
-
-        return false;
+        List<String> allowedPlayers = ConfigManager.getList("password-auth.allowed-players");
+        return allowedPlayers.contains(playerName);
     }
 }

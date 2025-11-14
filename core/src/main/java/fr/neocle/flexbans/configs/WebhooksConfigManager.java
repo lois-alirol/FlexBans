@@ -153,6 +153,123 @@ public class WebhooksConfigManager {
         return webhooksConfigData.getOrDefault(key, key);
     }
 
+    // ====== PRIMITIVE GETTERS ======
+
+    public static String getString(String key) {
+        Object value = getConfigValue(key);
+        return value != null ? value.toString() : "";
+    }
+
+    public static int getInt(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.intValue();
+        if (value instanceof String s) {
+            try { return Integer.parseInt(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid int value for key: " + key);
+        return 0;
+    }
+
+    public static boolean getBoolean(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Boolean b) return b;
+        if (value instanceof String s) return Boolean.parseBoolean(s);
+
+        logger.warning("Invalid boolean value for key: " + key);
+        return false;
+    }
+
+    public static long getLong(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.longValue();
+        if (value instanceof String s) {
+            try { return Long.parseLong(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid long value for key: " + key);
+        return 0L;
+    }
+
+    public static double getDouble(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.doubleValue();
+        if (value instanceof String s) {
+            try { return Double.parseDouble(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid double value for key: " + key);
+        return 0.0;
+    }
+
+    public static float getFloat(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.floatValue();
+        if (value instanceof String s) {
+            try { return Float.parseFloat(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid float value for key: " + key);
+        return 0f;
+    }
+
+    public static short getShort(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.shortValue();
+        if (value instanceof String s) {
+            try { return Short.parseShort(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid short value for key: " + key);
+        return (short) 0;
+    }
+
+    public static byte getByte(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Number n) return n.byteValue();
+        if (value instanceof String s) {
+            try { return Byte.parseByte(s); } catch (Exception ignored) {}
+        }
+        logger.warning("Invalid byte value for key: " + key);
+        return (byte) 0;
+    }
+
+    public static char getChar(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Character c) return c;
+        if (value instanceof String s && s.length() == 1) return s.charAt(0);
+
+        logger.warning("Invalid char value for key: " + key);
+        return '\0';
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> getList(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof List<?> list) {
+            List<String> result = new ArrayList<>();
+            for (Object obj : list) result.add(String.valueOf(obj));
+            return result;
+        }
+
+        return new ArrayList<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> getMap(String key) {
+        Object value = getConfigValue(key);
+
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+
+        return new HashMap<>();
+    }
+
     public static Map<String, Object> getConfig() {
         return webhooksConfigData;
     }

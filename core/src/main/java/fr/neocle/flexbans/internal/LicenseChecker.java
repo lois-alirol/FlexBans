@@ -1,4 +1,4 @@
-package fr.neocle.flexbans.license;
+package fr.neocle.flexbans.internal;
 
 import java.io.IOException;
 import java.io.InputStream;

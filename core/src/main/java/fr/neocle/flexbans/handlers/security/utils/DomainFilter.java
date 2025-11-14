@@ -31,7 +31,7 @@ public class DomainFilter extends AbstractHandler {
     }
 
     public String getAllowedHost() {
-        String url = (String) ConfigManager.getConfigValue("webserver.url");
+        String url = ConfigManager.getString("webserver.url");
 
         if (url == null) {
             logger.severe("No URL specified in the configuration. It is required to properly access the web interface.");

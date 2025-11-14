@@ -45,12 +45,12 @@ public class InternalServerError extends ErrorHandler {
             return;
         }
 
-        String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
-        String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
-        String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
-        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
-        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
-        String serverName = (String) ConfigManager.getConfigValue("server-display.name");
+        String serverIcon = ConfigManager.getString("server-display.icon");
+        String serverFavicon = ConfigManager.getString("server-display.favicon");
+        String serverLogo = ConfigManager.getString("server-display.logo");
+        String serverColor = ConfigManager.getString("server-display.color");
+        String serverColorDarker = ConfigManager.getString("server-display.darker-color");
+        String serverName = ConfigManager.getString("server-display.name");
 
         String stackTrace = "";
         if (cause != null) {

@@ -4,6 +4,7 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.punishments.*;
 import fr.neocle.flexbans.api.server.ServerLockExecutor;
+import fr.neocle.flexbans.api.server.ServerUnlockExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
 
@@ -21,9 +22,11 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     private static BanExecutor banExecutor;
     private static MuteExecutor muteExecutor;
     private static KickExecutor kickExecutor;
+    private static WarningExecutor warningExecutor;
     private static UnbanExecutor unbanExecutor;
     private static UnmuteExecutor unmuteExecutor;
     private static ServerLockExecutor serverLockExecutor;
+    private static ServerUnlockExecutor serverUnlockExecutor;
 
     private FlexBansAPIImpl() {
         this.playersWhitelist = new PlayersWhitelist(configFile, logger, eventDispatcher);
@@ -58,6 +61,8 @@ public class FlexBansAPIImpl implements FlexBansAPI {
         FlexBansAPIImpl.kickExecutor = executor;
     }
 
+    public static void setWarningExecutor(WarningExecutor executor) { FlexBansAPIImpl.warningExecutor = executor; }
+
     public static void setUnbanExecutor(UnbanExecutor executor) {
         FlexBansAPIImpl.unbanExecutor = executor;
     }
@@ -66,6 +71,10 @@ public class FlexBansAPIImpl implements FlexBansAPI {
 
     public static void setServerLockExecutor(ServerLockExecutor executor) {
         FlexBansAPIImpl.serverLockExecutor = executor;
+    }
+
+    public static void setServerUnlockExecutor(ServerUnlockExecutor executor) {
+        FlexBansAPIImpl.serverUnlockExecutor = executor;
     }
 
     @Override
@@ -143,6 +152,14 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     }
 
     @Override
+    public WarningExecutor getWarningExecutor() {
+        if (warningExecutor == null) {
+            throw new IllegalStateException("WarningExecutor has not been initialized");
+        }
+        return warningExecutor;
+    }
+
+    @Override
     public UnbanExecutor getUnbanExecutor() {
         if (unbanExecutor == null) {
             throw new IllegalStateException("UnbanExecutor has not been initialized");
@@ -151,11 +168,27 @@ public class FlexBansAPIImpl implements FlexBansAPI {
     }
 
     @Override
+    public UnmuteExecutor getUnmuteExecutor() {
+        if (unmuteExecutor == null) {
+            throw new IllegalStateException("UnmuteExecutor has not been initialized");
+        }
+        return unmuteExecutor;
+    }
+
+    @Override
     public ServerLockExecutor getServerLockExecutor() {
         if (serverLockExecutor == null) {
-            throw new IllegalStateException("UnbanExecutor has not been initialized");
+            throw new IllegalStateException("ServerLockExecutor has not been initialized");
         }
         return serverLockExecutor;
+    }
+
+    @Override
+    public ServerUnlockExecutor getServerUnlockExecutor() {
+        if (serverUnlockExecutor == null) {
+            throw new IllegalStateException("ServerUnlockExecutor has not been initialized");
+        }
+        return serverUnlockExecutor;
     }
 
 }

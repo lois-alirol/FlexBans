@@ -152,29 +152,25 @@ public class ChatMute implements Listener, PluginMessageListener {
             return;
         }
 
-        boolean blockAllCommands = Boolean.TRUE.equals(ConfigManager.getConfigValue("punishments-system.built-in.mutes.block-all-commands"));
+        boolean blockAllCommands = ConfigManager.getBoolean("punishments-system.built-in.mutes.block-all-commands");
         String fullCommand = event.getMessage().substring(1).toLowerCase().trim();
         String baseCommand = fullCommand.split(" ")[0];
 
         boolean shouldBlock = blockAllCommands;
 
         if (!blockAllCommands) {
-            Object configListObj = ConfigManager.getConfigValue("punishments-system.built-in.mutes.blocked-commands");
-            if (configListObj instanceof Iterable<?>) {
-                @SuppressWarnings("unchecked")
-                Iterable<String> blockedCommands = (Iterable<String>) configListObj;
-                for (String blocked : blockedCommands) {
-                    if (baseCommand.equalsIgnoreCase(blocked)) {
-                        shouldBlock = true;
-                        break;
-                    }
+            List<String> blockedCommands = ConfigManager.getList("punishments-system.built-in.mutes.blocked-commands");
+            for (String blocked : blockedCommands) {
+                if (baseCommand.equalsIgnoreCase(blocked)) {
+                    shouldBlock = true;
+                    break;
                 }
             }
         }
 
         if (!shouldBlock) return;
 
-        String rawMuteMessage = (String) ConfigManager.getConfigValue("punishments.mute.command-message");
+        String rawMuteMessage = ConfigManager.getString("punishments.mute.command-message");
         if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
             rawMuteMessage = "§cYou are muted and cannot use this command.";
         }

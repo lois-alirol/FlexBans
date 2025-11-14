@@ -2,6 +2,7 @@ package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
+import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
@@ -24,6 +25,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.UUID;
 
 public class PlayerEvents {
@@ -281,22 +283,18 @@ public class PlayerEvents {
 
         if (!isMuted) return;
 
-        boolean blockAllCommands = Boolean.TRUE.equals(ConfigManager.getConfigValue("punishments-system.built-in.mutes.block-all-commands"));
+        boolean blockAllCommands = ConfigManager.getBoolean("punishments-system.built-in.mutes.block-all-commands");
         String fullCommand = event.getCommand().toLowerCase().trim();
         String baseCommand = fullCommand.split(" ")[0];
 
         boolean shouldBlock = blockAllCommands;
 
         if (!blockAllCommands) {
-            Object configListObj = ConfigManager.getConfigValue("punishments-system.built-in.mutes.blocked-commands");
-            if (configListObj instanceof Iterable<?>) {
-                @SuppressWarnings("unchecked")
-                Iterable<String> blockedCommands = (Iterable<String>) configListObj;
-                for (String blocked : blockedCommands) {
-                    if (baseCommand.equalsIgnoreCase(blocked)) {
-                        shouldBlock = true;
-                        break;
-                    }
+            List<String> blockedCommands = ConfigManager.getList("punishments-system.built-in.mutes.blocked-commands");
+            for (String blocked : blockedCommands) {
+                if (baseCommand.equalsIgnoreCase(blocked)) {
+                    shouldBlock = true;
+                    break;
                 }
             }
         }

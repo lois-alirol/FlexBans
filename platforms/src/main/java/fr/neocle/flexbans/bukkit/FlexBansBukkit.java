@@ -50,9 +50,9 @@ public class FlexBansBukkit extends JavaPlugin {
         @SuppressWarnings("unused")
         Metrics metrics = new Metrics(this, pluginId);
 
-        int port = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.port"));
-        boolean webserverEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.enabled"));
-        String url = (String) ConfigManager.getConfigValue("webserver.url");
+        int port = ConfigManager.getInt("webserver.port");
+        boolean webserverEnabled = ConfigManager.getBoolean("webserver.enabled");
+        String url = ConfigManager.getString("webserver.url");
 
         if (webserverEnabled) {
             bootstrap.startWebServer(port);

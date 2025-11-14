@@ -13,7 +13,7 @@ public class FlexLogger {
     }
 
     public static boolean isDebugMode() {
-        return Boolean.parseBoolean((String) ConfigManager.getConfigValue("debug-mode"));
+        return ConfigManager.getBoolean("debug-mode");
     }
 
     public static void info(String message) {

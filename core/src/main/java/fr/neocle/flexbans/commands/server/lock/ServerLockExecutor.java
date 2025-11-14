@@ -55,7 +55,7 @@ public class ServerLockExecutor implements fr.neocle.flexbans.api.server.ServerL
 
     private void handleExistingLock(String serverName, Consumer<String> messageSender) {
         if (databaseUtils.getServerLocksManager().isServerLocked(serverName)) {
-            messageSender.accept("§cError: This server is already locked.");
+            messageSender.accept("This server is already locked. Overriding");
         }
     }
 

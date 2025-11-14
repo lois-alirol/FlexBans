@@ -259,17 +259,17 @@ public class PunishmentDetailsHandler extends AbstractHandler {
 
     private ServerConfig loadServerConfig() {
         return new ServerConfig(
-                (String) ConfigManager.getConfigValue("server-display.logo"),
-                (String) ConfigManager.getConfigValue("server-display.color"),
-                (String) ConfigManager.getConfigValue("server-display.darker-color")
+                ConfigManager.getString("server-display.logo"),
+                ConfigManager.getString("server-display.color"),
+                ConfigManager.getString("server-display.darker-color")
         );
     }
 
     private UIConfig loadUIConfig() {
         return new UIConfig(
-                Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled")),
-                Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled")),
-                Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.pages.details.punishment.revoke-button"))
+                ConfigManager.getBoolean("discord-oauth.enabled"),
+                ConfigManager.getBoolean("password-auth.enabled"),
+                ConfigManager.getBoolean("webserver.pages.details.punishment.revoke-button")
         );
     }
 

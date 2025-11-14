@@ -6,13 +6,13 @@ import litebans.api.exception.MissingImplementationException;
 
 public class HooksUtils {
     public static boolean usingFlexBansSystem() {
-        return Boolean.parseBoolean((String) ConfigManager.getConfigValue("punishments-system.built-in.enabled"));
+        return ConfigManager.getBoolean("punishments-system.built-in.enabled");
     }
 
     public static boolean usingLiteBansSystem() {
         return isLiteBansLoaded()
-                && !Boolean.parseBoolean((String) ConfigManager.getConfigValue("punishments-system.built-in.enabled"))
-                && Boolean.parseBoolean((String) ConfigManager.getConfigValue("punishments-system.hooks.litebans"))
+                && !ConfigManager.getBoolean("punishments-system.built-in.enabled")
+                && ConfigManager.getBoolean("punishments-system.hooks.litebans")
                 && isLiteBansAvailable();
     }
 

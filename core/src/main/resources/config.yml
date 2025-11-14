@@ -83,9 +83,22 @@ punishments-system:
 
     warnings:
       enabled: true
-      max-warnings-before-action: 3
-      action-on-limit: "ban"
-      reset-after-days: 30
+      actions:
+        enabled: true
+        action-thresholds:
+          3:
+            type: "MUTE"
+            duration: 1h
+            broadcast: true
+          5:
+            type: "BAN"
+            duration: 15d
+            broadcast: true
+          10:
+            type: "BAN"
+            duration: PERMANENT
+            broadcast: true
+      expires-after-days: 30
       notify-player: true
 
     kicks:

@@ -13,7 +13,7 @@ import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.configs.WebhooksConfigManager;
-import fr.neocle.flexbans.license.LicenseChecker;
+import fr.neocle.flexbans.internal.LicenseChecker;
 import fr.neocle.flexbans.logger.FlexLogger;
 import fr.neocle.flexbans.utils.HooksUtils;
 import fr.neocle.flexbans.utils.IpUtils;
@@ -58,7 +58,7 @@ public class FlexBansVelocity {
         WebhooksConfigManager.initialize(logger, dataFolder);
 
         String ip = IpUtils.getPublicIP();
-        String licenseKey = (String) ConfigManager.getConfigValue("license-key");
+        String licenseKey = ConfigManager.getString("license-key");
         boolean isLicenseValid = LicenseChecker.isLicenseValid(licenseKey, ip);
 
         if (!isLicenseValid) {
@@ -77,8 +77,8 @@ public class FlexBansVelocity {
         int pluginId = 23869;
         @SuppressWarnings("unused")
         Metrics metrics = metricsFactory.make(this, pluginId);
-        metrics.addCustomChart(new Metrics.SimplePie("language", () -> (String) ConfigManager.getConfigValue("language")));
-        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> String.valueOf(Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.https")))));
+        metrics.addCustomChart(new Metrics.SimplePie("language", () -> ConfigManager.getString("language")));
+        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> String.valueOf(ConfigManager.getBoolean("webserver.https"))));
 
         FlexBansAPIImpl.initialize(
                 Paths.get("plugins", "FlexBans", "config.yml"),
@@ -92,12 +92,16 @@ public class FlexBansVelocity {
         FlexBansAPIImpl.setBanExecutor(bootstrap.getBanExecutor());
         FlexBansAPIImpl.setMuteExecutor(bootstrap.getMuteExecutor());
         FlexBansAPIImpl.setKickExecutor(bootstrap.getKickExecutor());
+
         FlexBansAPIImpl.setUnbanExecutor(bootstrap.getUnbanExecutor());
         FlexBansAPIImpl.setUnmuteExecutor(bootstrap.getUnmuteExecutor());
 
-        int port = Integer.parseInt((String) ConfigManager.getConfigValue("webserver.port"));
-        boolean webserverEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.enabled"));
-        String url = (String) ConfigManager.getConfigValue("webserver.url");
+        FlexBansAPIImpl.setServerLockExecutor(bootstrap.getServerLockExecutor());
+        FlexBansAPIImpl.setServerUnlockExecutor(bootstrap.getServerUnlockExecutor());
+
+        int port = ConfigManager.getInt("webserver.port");
+        boolean webserverEnabled = ConfigManager.getBoolean("webserver.enabled");
+        String url = ConfigManager.getString("webserver.url");
 
         if (webserverEnabled) {
             bootstrap.startWebServer(port);
@@ -138,9 +142,11 @@ public class FlexBansVelocity {
         commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer), "flexbans:ban");
         commandManager.register("mute", new MuteCommand(bootstrap.getMuteExecutor(), proxyServer), "flexbans:mute");
         commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer), "flexbans:kick");
+        commandManager.register("warning",  new WarningCommand(bootstrap.getWarningExecutor(), proxyServer), "warn", "flexbans:warning", "flexbans:warn");
         commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer), "flexbans:unban");
         commandManager.register("unmute", new UnmuteCommand(bootstrap.getUnmuteExecutor(), proxyServer), "flexbans:unmute");
         commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer), "flexbans:serverlock");
+        commandManager.register("serverunlock", new ServerUnlockCommand(bootstrap.getServerUnlockExecutor(), proxyServer), "flexbans:serverunlock");
         commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
     }
 

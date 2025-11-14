@@ -7,8 +7,8 @@ public class AuthConfig {
     private final boolean loginEnabled;
 
     public AuthConfig() {
-        this.oauthEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("discord-oauth.enabled"));
-        this.loginEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("password-auth.enabled"));
+        this.oauthEnabled = ConfigManager.getBoolean("discord-oauth.enabled");
+        this.loginEnabled = ConfigManager.getBoolean("password-auth.enabled");
     }
 
     public boolean isOauthEnabled() {

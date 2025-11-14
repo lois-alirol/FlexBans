@@ -16,7 +16,7 @@ public class HttpsEnforcementHandler extends AbstractHandler {
     }
 
     public String getAllowedURL() {
-        String url = (String) ConfigManager.getConfigValue("webserver.url");
+        String url = ConfigManager.getString("webserver.url");
 
         if (url == null) {
             logger.severe("No URL specified in the configuration. It is required to properly access the web interface.");
@@ -28,7 +28,7 @@ public class HttpsEnforcementHandler extends AbstractHandler {
     @Override
     public void handle(String target, org.eclipse.jetty.server.Request baseRequest, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        boolean httpsEnabled = Boolean.parseBoolean((String) ConfigManager.getConfigValue("webserver.https"));
+        boolean httpsEnabled = ConfigManager.getBoolean("webserver.https");
 
         if (httpsEnabled) {
             String forwardedProto = request.getHeader("X-Forwarded-Proto");

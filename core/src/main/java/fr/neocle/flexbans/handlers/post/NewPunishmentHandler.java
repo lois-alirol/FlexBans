@@ -50,11 +50,11 @@ public class NewPunishmentHandler extends AbstractHandler {
             return;
         }
 
-        String serverIcon = (String) ConfigManager.getConfigValue("server-display.icon");
-        String serverFavicon = (String) ConfigManager.getConfigValue("server-display.favicon");
-        String serverLogo = (String) ConfigManager.getConfigValue("server-display.logo");
-        String serverColor = (String) ConfigManager.getConfigValue("server-display.color");
-        String serverColorDarker = (String) ConfigManager.getConfigValue("server-display.darker-color");
+        String serverIcon = ConfigManager.getString("server-display.icon");
+        String serverFavicon = ConfigManager.getString("server-display.favicon");
+        String serverLogo = ConfigManager.getString("server-display.logo");
+        String serverColor = ConfigManager.getString("server-display.color");
+        String serverColorDarker = ConfigManager.getString("server-display.darker-color");
 
         String userId = (String) request.getSession().getAttribute("userId");
         String playerName = (String) request.getSession().getAttribute("playerName");

@@ -38,10 +38,10 @@ public class IndexHandler extends AbstractHandler {
     private final DatabaseUtils flexbansDatabase;
 
     private static final Map<String, Integer> PAGE_SIZES = Map.of(
-            "bans", ConfigManager.getConfigInt("webserver.pages.punishments.bans.max-per-page"),
-            "mutes", ConfigManager.getConfigInt("webserver.pages.punishments.mutes.max-per-page"),
-            "warnings", ConfigManager.getConfigInt("webserver.pages.punishments.warnings.max-per-page"),
-            "kicks", ConfigManager.getConfigInt("webserver.pages.punishments.kicks.max-per-page")
+            "bans", ConfigManager.getInt("webserver.pages.punishments.bans.max-per-page"),
+            "mutes", ConfigManager.getInt("webserver.pages.punishments.mutes.max-per-page"),
+            "warnings", ConfigManager.getInt("webserver.pages.punishments.warnings.max-per-page"),
+            "kicks", ConfigManager.getInt("webserver.pages.punishments.kicks.max-per-page")
     );
 
     private final boolean usingFlexBans = HooksUtils.usingFlexBansSystem();
@@ -121,10 +121,10 @@ public class IndexHandler extends AbstractHandler {
 
     private PunishmentConfig loadPunishmentConfig() {
         Map<String, Boolean> enabled = Map.of(
-                "bans", getConfigBoolean("webserver.pages.punishments.bans.enabled"),
-                "mutes", getConfigBoolean("webserver.pages.punishments.mutes.enabled"),
-                "kicks", getConfigBoolean("webserver.pages.punishments.kicks.enabled"),
-                "warnings", getConfigBoolean("webserver.pages.punishments.warnings.enabled")
+                "bans", ConfigManager.getBoolean("webserver.pages.punishments.bans.enabled"),
+                "mutes", ConfigManager.getBoolean("webserver.pages.punishments.mutes.enabled"),
+                "kicks", ConfigManager.getBoolean("webserver.pages.punishments.kicks.enabled"),
+                "warnings", ConfigManager.getBoolean("webserver.pages.punishments.warnings.enabled")
         );
 
         Set<String> enabledTypes = new LinkedHashSet<>();
@@ -133,10 +133,6 @@ public class IndexHandler extends AbstractHandler {
                 .forEach(entry -> enabledTypes.add(entry.getKey()));
 
         return new PunishmentConfig(enabled, enabledTypes);
-    }
-
-    private boolean getConfigBoolean(String key) {
-        return Boolean.parseBoolean((String) ConfigManager.getConfigValue(key));
     }
 
     private RequestParams extractRequestParams(HttpServletRequest request, PunishmentConfig config) {
@@ -334,12 +330,12 @@ public class IndexHandler extends AbstractHandler {
 
     private ServerConfig loadServerConfig() {
         return new ServerConfig(
-                (String) ConfigManager.getConfigValue("server-display.favicon"),
-                (String) ConfigManager.getConfigValue("server-display.logo"),
-                (String) ConfigManager.getConfigValue("server-display.color"),
-                (String) ConfigManager.getConfigValue("server-display.darker-color"),
-                (String) ConfigManager.getConfigValue("server-display.name"),
-                (String) ConfigManager.getConfigValue("server-display.description")
+                ConfigManager.getString("server-display.favicon"),
+                ConfigManager.getString("server-display.logo"),
+                ConfigManager.getString("server-display.color"),
+                ConfigManager.getString("server-display.darker-color"),
+                ConfigManager.getString("server-display.name"),
+                ConfigManager.getString("server-display.description")
         );
     }
 
@@ -365,12 +361,12 @@ public class IndexHandler extends AbstractHandler {
         String kicksCategoryButton = config.enabled.get("kicks") ? createCategoryButton("kicks", "fas fa-user-times", "Kicks", "{{kicks_count}}") : "";
         String warningsCategoryButton = config.enabled.get("warnings") ? createCategoryButton("warnings", "fas fa-exclamation-circle", "Warnings", "{{warnings_count}}") : "";
 
-        boolean searchPlayerEnabled = getConfigBoolean("webserver.pages.details.player.enabled");
-        boolean searchModeratorEnabled = getConfigBoolean("webserver.pages.details.moderator.enabled");
-        boolean searchPunishmentEnabled = getConfigBoolean("webserver.pages.details.punishment.enabled");
-        boolean punishmentExecutionEnabled = getConfigBoolean("webserver.pages.punishments.punishment-execution-button");
-        boolean oauthEnabled = getConfigBoolean("discord-oauth.enabled");
-        boolean loginEnabled = getConfigBoolean("password-auth.enabled");
+        boolean searchPlayerEnabled = ConfigManager.getBoolean("webserver.pages.details.player.enabled");
+        boolean searchModeratorEnabled = ConfigManager.getBoolean("webserver.pages.details.moderator.enabled");
+        boolean searchPunishmentEnabled = ConfigManager.getBoolean("webserver.pages.details.punishment.enabled");
+        boolean punishmentExecutionEnabled = ConfigManager.getBoolean("webserver.pages.punishments.punishment-execution-button");
+        boolean oauthEnabled = ConfigManager.getBoolean("discord-oauth.enabled");
+        boolean loginEnabled = ConfigManager.getBoolean("password-auth.enabled");
 
         String usersDetailsSectionLabel = (searchPlayerEnabled || searchModeratorEnabled) ?
                 "<hr class=\"border-gray-600 my-4 w-3/4 mx-auto\"><h2 class=\"text-xl font-semibold text-[#333333] dark:text-[#e0e0e0] mb-2\">Users Details</h2>" : "";

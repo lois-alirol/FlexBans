@@ -30,7 +30,7 @@ public class ModeratorHistoryHandler extends AbstractHandler {
     private final DatabaseUtils flexbansDatabase;
     private final NotFoundError notFoundError;
 
-    private static final int PAGE_SIZE = ConfigManager.getConfigInt("webserver.pages.details.moderator.max-per-page");
+    private static final int PAGE_SIZE = ConfigManager.getInt("webserver.pages.details.moderator.max-per-page");
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private static final Map<String, String> TYPE_COLOR_CLASSES = Map.of(
@@ -306,8 +306,8 @@ public class ModeratorHistoryHandler extends AbstractHandler {
 
     private ServerConfig loadServerConfig() {
         return new ServerConfig(
-                (String) ConfigManager.getConfigValue("server-display.color"),
-                (String) ConfigManager.getConfigValue("server-display.darker-color")
+                ConfigManager.getString("server-display.color"),
+                ConfigManager.getString("server-display.darker-color")
         );
     }
 
