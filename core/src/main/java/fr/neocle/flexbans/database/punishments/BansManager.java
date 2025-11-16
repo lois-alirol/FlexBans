@@ -95,57 +95,105 @@ public class BansManager {
         }
     }
 
-    public void removeBan(UUID targetUUID, UUID removerUUID, String removerUsername, String removalReason) {
-        String query = "UPDATE flexbans_bans SET remover_uuid = ?, remover_name = ?, removal_reason = ?, removal_time = ?, status = 'removed' WHERE target_uuid = ? AND status = 'active'";
+    public void removeBan(UUID targetUUID,
+                          UUID removerUUID,
+                          String removerUsername,
+                          String removalReason,
+                          String serverScope) {
+
+        boolean scoped = serverScope != null
+                && !serverScope.equalsIgnoreCase("global");
+
+        String sql;
+
+        if (scoped) {
+            sql = """
+            UPDATE flexbans_bans
+            SET remover_uuid = ?,
+                remover_name = ?,
+                removal_reason = ?,
+                removal_time = ?,
+                status = 'removed'
+            WHERE target_uuid = ?
+              AND status = 'active'
+              AND server_scope = ?
+        """;
+        } else {
+            sql = """
+            UPDATE flexbans_bans
+            SET remover_uuid = ?,
+                remover_name = ?,
+                removal_reason = ?,
+                removal_time = ?,
+                status = 'removed'
+            WHERE target_uuid = ?
+              AND status = 'active'
+        """;
+        }
 
         try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
+             PreparedStatement stmt = connection.prepareStatement(sql)) {
+
+            long now = System.currentTimeMillis();
+
             stmt.setString(1, removerUUID.toString());
             stmt.setString(2, removerUsername);
             stmt.setString(3, removalReason);
-            stmt.setLong(4, System.currentTimeMillis());
+            stmt.setLong(4, now);
             stmt.setString(5, targetUUID.toString());
+
+            if (scoped) {
+                stmt.setString(6, serverScope);
+            }
+
             stmt.executeUpdate();
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
     public boolean isPlayerBanned(UUID uuid, String serverName) {
-        if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
-            try (Connection connection = dbManager.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(
-                         "SELECT * FROM flexbans_bans WHERE target_uuid = ? AND server_scope = ? AND status = 'active'"
-                 )) {
 
-                statement.setString(1, uuid.toString());
-                statement.setString(2, serverName);
+        final boolean scoped = serverName != null
+                && !serverName.isEmpty()
+                && !serverName.equalsIgnoreCase("global");
 
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        return true;
-                    }
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        final String sql;
+
+        if (scoped) {
+            // 2 parameters: uuid AND scope
+            sql = """
+            SELECT 1 FROM flexbans_bans
+            WHERE target_uuid = ?
+              AND status = 'active'
+              AND (server_scope = ? OR UPPER(server_scope) = 'GLOBAL')
+        """;
+        } else {
+            // 1 parameter: uuid only
+            sql = """
+            SELECT 1 FROM flexbans_bans
+            WHERE target_uuid = ?
+              AND status = 'active'
+        """;
         }
 
         try (Connection connection = dbManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(
-                     "SELECT * FROM flexbans_bans WHERE target_uuid = ? AND server_scope = 'Global' AND status = 'active'"
-             )) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, uuid.toString());
 
-            try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next();
+            if (scoped) {
+                statement.setString(2, serverName);
             }
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-
-        return false;
     }
 
     public boolean isIpBanned(String ip, String serverName) {

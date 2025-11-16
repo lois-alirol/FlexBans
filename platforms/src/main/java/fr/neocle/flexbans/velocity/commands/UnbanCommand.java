@@ -65,7 +65,7 @@ public class UnbanCommand implements SimpleCommand {
 
         String reason = reasonParts.isEmpty() ? "" : String.join(" ", reasonParts);
 
-        unbanExecutor.executeUnban(target, sender, scope, reason, silent, message -> source.sendMessage(Component.text(message)));
+        unbanExecutor.executeUnban(target, sender, reason, scope, silent, message -> source.sendMessage(Component.text(message)));
     }
 
     @Override

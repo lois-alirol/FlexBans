@@ -75,7 +75,13 @@ public class UnbanExecutor implements fr.neocle.flexbans.api.punishments.UnbanEx
 
         String unbanReason = resolveReason(reason);
 
-        databaseUtils.getBansManager().removeBan(target.uuid(), sender.uuid(), sender.name(), unbanReason);
+        databaseUtils.getBansManager().removeBan(
+                target.uuid(),
+                sender.uuid(),
+                sender.name(),
+                unbanReason,
+                serverScope
+        );
 
         /*eventDispatcher.unbanAddedEvent(target.uuid(), target.name(), sender.uuid(), sender.name(), unbanReason, serverScope, silent);
         punishmentSSEHandler.sendUnbanUpdate(target.uuid(), sender.name(), unbanReason, serverScope);*/
