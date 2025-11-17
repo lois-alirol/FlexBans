@@ -5,6 +5,7 @@ import fr.neocle.flexbans.api.events.EventDispatcher;
 import fr.neocle.flexbans.api.events.bukkit.BukkitEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.bukkit.commands.BaseCommandBukkit;
+import fr.neocle.flexbans.bukkit.commands.TestCommand;
 import fr.neocle.flexbans.bukkit.listener.ChatMute;
 import fr.neocle.flexbans.configs.ConfigManager;
 import fr.neocle.flexbans.bukkit.listener.DashboardEvents;
@@ -74,6 +75,9 @@ public class FlexBansBukkit extends JavaPlugin {
         getLogger().warning("/_____________\\\\");
 
         setupBackendImplementation();
+
+        getCommand("test").setExecutor(new TestCommand());
+        getServer().getPluginManager().registerEvents(new TestCommand(), this);
     }
 
     private void setupBackendImplementation() {

@@ -5,7 +5,7 @@
 com-gitlab-ruany-litebansapi = "0.5.0"
 com-h2database-h2 = "2.2.224"
 com-velocitypowered-velocity-api = "3.3.0-SNAPSHOT"
-io-papermc-paper-paper-api = "1.21-R0.1-SNAPSHOT"
+io-papermc-paper-paper-api = "1.21.8-R0.1-SNAPSHOT"
 javax-servlet-javax-servlet-api = "3.1.0"
 mysql-mysql-connector-java = "8.0.33"
 net-kyori-adventure-api = "4.19.0"

@@ -6,6 +6,10 @@ version: 1.0-SNAPSHOT
 author: Neocle
 
 commands:
+  test:
+    description: Test command for FlexBans
+    usage: /test
+
   flexbans:
     description: Main command for FlexBans plugin.
     usage: "/flexbans <subcommand>"
