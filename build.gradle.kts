@@ -3,8 +3,7 @@ plugins {
 }
 
 allprojects {
-    group = "fr.neocle"
-    version = "1.0-SNAPSHOT"
+    version = property("project.version").toString()
 
     repositories {
         mavenLocal()
