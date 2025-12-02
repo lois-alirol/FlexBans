@@ -1,23 +1,26 @@
-package fr.neocle.flexbans.velocity.commands.subcommands;
+package fr.neocle.flexbans.common.commands.subcommands;
 
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.command.SimpleCommand;
+import fr.neocle.flexbans.common.commands.ICommandExecutor;
+import fr.neocle.flexbans.common.commands. ICommandInvocation;
+import fr.neocle.flexbans.common.commands.ICommandSource;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Logger;
 
-public class Help implements SimpleCommand {
+public class HelpCommand implements ICommandExecutor {
     private final Logger logger;
 
-    public Help(Logger logger) {
+    public HelpCommand(Logger logger) {
         this.logger = logger;
     }
 
     @Override
-    public void execute(Invocation invocation) {
-        CommandSource source = invocation.source();
+    public void execute(ICommandInvocation invocation) {
+        ICommandSource source = invocation.getSource();
 
         if (!source.hasPermission("flexbans.help")) {
             source.sendMessage(LanguageManager.getMessageComponent("commands.no-permission"));
@@ -35,5 +38,10 @@ public class Help implements SimpleCommand {
         for (String line : lines) {
             source.sendMessage(miniMessage.deserialize(line));
         }
+    }
+
+    @Override
+    public List<String> suggest(ICommandInvocation invocation) {
+        return Collections.emptyList();
     }
 }

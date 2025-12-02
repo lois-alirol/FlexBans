@@ -1,62 +1,37 @@
 package fr.neocle.flexbans.velocity.commands.subcommands;
 
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.command. SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.api.FlexBansAPI;
-import fr.neocle.flexbans.handlers.security.AuthenticationHandler;
-import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.velocity.commands.subcommands.whitelist.players.AddPlayer;
-import fr.neocle.flexbans.velocity.commands.subcommands.whitelist.players.RemovePlayer;
+import fr.neocle.flexbans.common.commands.subcommands.PlayersWhitelistCommand;
+import fr.neocle.flexbans.common.commands.subcommands.whitelist.PlayersAddPlayerCommand;
+import fr.neocle.flexbans.common.commands.subcommands.whitelist.PlayersRemovePlayerCommand;
+import fr.neocle.flexbans.handlers. security.AuthenticationHandler;
+import fr.neocle.flexbans.velocity.commands.adapters.VelocityCommandInvocation;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public class PlayersWhitelist implements SimpleCommand {
-    private final Map<String, SimpleCommand> subCommands = new HashMap<>();
+public class PlayersWhitelist extends PlayersWhitelistCommand implements SimpleCommand {
 
     public PlayersWhitelist(FlexBansAPI api, ProxyServer proxyServer, AuthenticationHandler authenticationHandler) {
-        subCommands.put("add", new AddPlayer(api, authenticationHandler));
-        subCommands.put("remove", new RemovePlayer(api, authenticationHandler));
+        registerSubCommand("add", new PlayersAddPlayerCommand(api, authenticationHandler));
+        registerSubCommand("remove", new PlayersRemovePlayerCommand(api, authenticationHandler));
     }
 
     @Override
-    public void execute(Invocation invocation) {
-        String[] args = invocation.arguments();
-        CommandSource source = invocation.source();
-
-        if (args.length == 1) {
-            source.sendMessage(LanguageManager.getMessageComponent("commands.players-whitelist.usage"));
-            return;
-        }
-
-        String subCommand = args[1].toLowerCase();
-        SimpleCommand command = subCommands.get(subCommand);
-
-        if (command != null) {
-            command.execute(invocation);
-        } else {
-            source.sendMessage(LanguageManager.getMessageComponent("commands.players-whitelist.usage"));
-        }
+    public void execute(SimpleCommand. Invocation invocation) {
+        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
+        super.execute(wrappedInvocation);
     }
 
     @Override
-    public List<String> suggest(Invocation invocation) {
-        String[] args = invocation.arguments();
+    public List<String> suggest(SimpleCommand.Invocation invocation) {
+        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
+        return super.suggest(wrappedInvocation);
+    }
 
-        if (args.length == 2) {
-            return subCommands.keySet().stream().toList();
-        }
-
-        if (args.length == 3) {
-            String input = args[2].toLowerCase();
-            return subCommands.keySet().stream()
-                    .filter(option -> option.startsWith(input))
-                    .toList();
-        }
-
-        return Collections.emptyList();
+    @Override
+    public boolean hasPermission(SimpleCommand.Invocation invocation) {
+        return invocation.source().hasPermission("flexbans.players-whitelist");
     }
 }

@@ -21,6 +21,7 @@ repositories {
 
 dependencies {
     implementation(project(":flexbans-core"))
+    implementation(project(":flexbans-common"))
     implementation(project(":flexbans-api"))
 
     implementation("org.eclipse.jetty:jetty-server:9.4.56.v20240826")
