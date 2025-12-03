@@ -1,6 +1,6 @@
 package fr.neocle.flexbans.logger;
 
-import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.config.ConfigManager;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

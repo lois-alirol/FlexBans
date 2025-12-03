@@ -1,16 +1,16 @@
 package fr.neocle.flexbans.bukkit;
 
 import fr.neocle.flexbans.Bootstrap;
-import fr.neocle.flexbans.api.events.EventDispatcher;
-import fr.neocle.flexbans.api.events.bukkit.BukkitEventDispatcher;
+import fr.neocle.flexbans.api.event.EventDispatcher;
+import fr.neocle.flexbans.api.event.bukkit.BukkitEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
-import fr.neocle.flexbans.bukkit.commands.BaseCommandBukkit;
-import fr.neocle.flexbans.bukkit.commands.TestCommand;
+import fr.neocle.flexbans.bukkit.command.BaseCommandBukkit;
+import fr.neocle.flexbans.bukkit.command.TestCommand;
 import fr.neocle.flexbans.bukkit.listener.ChatMute;
 import fr.neocle.flexbans.bukkit.listener.DashboardEvents;
 import fr.neocle.flexbans.bukkit.listener.DialogEvents;
 import fr.neocle.flexbans.bukkit.listener.WhitelistEvents;
-import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.config.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;

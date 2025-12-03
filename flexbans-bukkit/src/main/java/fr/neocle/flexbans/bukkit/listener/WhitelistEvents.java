@@ -1,11 +1,11 @@
 package fr.neocle.flexbans.bukkit.listener;
 
-import fr.neocle.flexbans.api.events.bukkit.whitelist.PlayerUnwhitelistedEvent;
-import fr.neocle.flexbans.api.events.bukkit.whitelist.PlayerWhitelistedEvent;
-import fr.neocle.flexbans.api.events.bukkit.whitelist.UserUnwhitelistedEvent;
-import fr.neocle.flexbans.api.events.bukkit.whitelist.UserWhitelistedEvent;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
-import fr.neocle.flexbans.webhooks.WebhookService;
+import fr.neocle.flexbans.api.event.bukkit.whitelist.PlayerUnwhitelistedEvent;
+import fr.neocle.flexbans.api.event.bukkit.whitelist.PlayerWhitelistedEvent;
+import fr.neocle.flexbans.api.event.bukkit.whitelist.UserUnwhitelistedEvent;
+import fr.neocle.flexbans.api.event.bukkit.whitelist.UserWhitelistedEvent;
+import fr.neocle.flexbans.config.WebhooksConfigManager;
+import fr.neocle.flexbans.webhook.WebhookService;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 

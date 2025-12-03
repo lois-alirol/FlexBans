@@ -3,7 +3,7 @@ package fr.neocle.flexbans.api;
 import java.util.List;
 
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
-import fr.neocle.flexbans.api.punishments.*;
+import fr.neocle.flexbans.api.punishment.*;
 import fr.neocle.flexbans.api.server.ServerLockExecutor;
 import fr.neocle.flexbans.api.server.ServerUnlockExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;

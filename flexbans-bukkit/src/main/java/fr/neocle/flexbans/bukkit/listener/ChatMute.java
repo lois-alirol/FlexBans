@@ -1,6 +1,6 @@
 package fr.neocle.flexbans.bukkit.listener;
 
-import fr.neocle.flexbans.configs.ConfigManager;
+import fr.neocle.flexbans.config.ConfigManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;

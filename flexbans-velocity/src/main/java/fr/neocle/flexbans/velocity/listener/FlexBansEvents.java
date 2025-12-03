@@ -1,13 +1,13 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
-import fr.neocle.flexbans.api.events.velocity.punishments.BanAddedEvent;
-import fr.neocle.flexbans.api.events.velocity.punishments.KickAddedEvent;
-import fr.neocle.flexbans.api.events.velocity.punishments.MuteAddedEvent;
-import fr.neocle.flexbans.api.events.velocity.punishments.PunishmentAddedEvent;
+import fr.neocle.flexbans.api.event.velocity.punishment.BanAddedEvent;
+import fr.neocle.flexbans.api.event.velocity.punishment.KickAddedEvent;
+import fr.neocle.flexbans.api.event.velocity.punishment.MuteAddedEvent;
+import fr.neocle.flexbans.api.event.velocity.punishment.PunishmentAddedEvent;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handlers.api.PunishmentSSEHandler;
-import fr.neocle.flexbans.handlers.cache.CountsCache;
+import fr.neocle.flexbans.handler.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handler.cache.CountsCache;
 
 public class FlexBansEvents {
     private final DatabaseUtils databaseUtils;

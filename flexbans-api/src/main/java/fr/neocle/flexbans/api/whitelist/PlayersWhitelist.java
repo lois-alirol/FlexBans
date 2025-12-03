@@ -7,7 +7,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.nodes.*;
 import org.yaml.snakeyaml.representer.Representer;
 
-import fr.neocle.flexbans.api.events.EventDispatcher;
+import fr.neocle.flexbans.api.event.EventDispatcher;
 
 import java.io.*;
 import java.nio.file.Files;

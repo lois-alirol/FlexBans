@@ -1,8 +1,8 @@
 package fr.neocle.flexbans.api.impl;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
-import fr.neocle.flexbans.api.events.EventDispatcher;
-import fr.neocle.flexbans.api.punishments.*;
+import fr.neocle.flexbans.api.event.EventDispatcher;
+import fr.neocle.flexbans.api.punishment.*;
 import fr.neocle.flexbans.api.server.ServerLockExecutor;
 import fr.neocle.flexbans.api.server.ServerUnlockExecutor;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;

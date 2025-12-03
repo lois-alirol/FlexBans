@@ -1,12 +1,12 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
-import fr.neocle.flexbans.api.events.velocity.authentication.DiscordUserLoginEvent;
-import fr.neocle.flexbans.api.events.velocity.authentication.LogoutEvent;
-import fr.neocle.flexbans.api.events.velocity.authentication.PlayerLoginEvent;
-import fr.neocle.flexbans.api.events.velocity.authentication.PlayerRegisterEvent;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
-import fr.neocle.flexbans.webhooks.WebhookService;
+import fr.neocle.flexbans.api.event.velocity.authentication.DiscordUserLoginEvent;
+import fr.neocle.flexbans.api.event.velocity.authentication.LogoutEvent;
+import fr.neocle.flexbans.api.event.velocity.authentication.PlayerLoginEvent;
+import fr.neocle.flexbans.api.event.velocity.authentication.PlayerRegisterEvent;
+import fr.neocle.flexbans.config.WebhooksConfigManager;
+import fr.neocle.flexbans.webhook.WebhookService;
 
 import java.util.ArrayList;
 import java.util.List;

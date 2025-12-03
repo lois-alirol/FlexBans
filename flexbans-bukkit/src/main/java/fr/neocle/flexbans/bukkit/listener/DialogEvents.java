@@ -1,8 +1,8 @@
 package fr.neocle.flexbans.bukkit.listener;
 
-import fr.neocle.flexbans.bukkit.dialogs.BanDialog;
-import fr.neocle.flexbans.bukkit.dialogs.KickDialog;
-import fr.neocle.flexbans.bukkit.dialogs.MuteDialog;
+import fr.neocle.flexbans.bukkit.dialog.BanDialog;
+import fr.neocle.flexbans.bukkit.dialog.KickDialog;
+import fr.neocle.flexbans.bukkit.dialog.MuteDialog;
 import io.papermc.paper.connection.PlayerGameConnection;
 import io.papermc.paper.dialog.DialogResponseView;
 import io.papermc.paper.event.player.PlayerCustomClickEvent;

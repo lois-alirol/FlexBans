@@ -2,8 +2,8 @@ package fr.neocle.flexbans.database;
 
 import fr.neocle.flexbans.database.dashboard.SessionManager;
 import fr.neocle.flexbans.database.dashboard.UserManager;
-import fr.neocle.flexbans.database.punishments.*;
-import fr.neocle.flexbans.database.servers.ServerLocksManager;
+import fr.neocle.flexbans.database.punishment.*;
+import fr.neocle.flexbans.database.server.ServerLocksManager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

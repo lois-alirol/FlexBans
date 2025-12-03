@@ -1,6 +1,6 @@
 package fr.neocle.flexbans.database;
 
-import fr.neocle.flexbans.database.queries.DatabaseQueries;
+import fr.neocle.flexbans.database.query.DatabaseQueries;
 
 import java.sql.Connection;
 import java.sql.SQLException;

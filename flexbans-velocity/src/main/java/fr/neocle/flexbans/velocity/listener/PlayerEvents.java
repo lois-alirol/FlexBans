@@ -1,326 +1,70 @@
-package fr.neocle.flexbans.velocity.listener;
+package fr.neocle.flexbans.velocity. listener;
 
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
-import com.velocitypowered.api.event.connection.PluginMessageEvent;
+import com.velocitypowered.api.event.connection. PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
-import com.velocitypowered.api.proxy.Player;
-import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
-import fr.neocle.flexbans.Bootstrap;
-import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.database.punishments.BansManager;
-import fr.neocle.flexbans.database.punishments.HistoryManager;
-import fr.neocle.flexbans.database.punishments.MutesManager;
-import fr.neocle.flexbans.database.servers.ServerLocksManager;
-import fr.neocle.flexbans.locale.LanguageManager;
-import fr.neocle.flexbans.utils.DateCalculator;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import fr.neocle.flexbans.common.listener.PlayerEventHandler;
+import fr.neocle.flexbans.velocity.command.adapter.VelocityPlatform;
+import fr.neocle.flexbans.velocity.command.adapter.VelocityPlayer;
 
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.util.List;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
 import java.util.UUID;
 
 public class PlayerEvents {
-    private final Bootstrap bootstrap;
-    private final ProxyServer proxyServer;
-    private final BansManager bansManager;
-    private final MutesManager mutesManager;
-    private final ServerLocksManager serverLocksManager;
-
+    private final PlayerEventHandler commonHandler;
+    private final VelocityPlatform adapter;
     public static final MinecraftChannelIdentifier MUTE_QUERY_CHANNEL = MinecraftChannelIdentifier.from("muting:query");
-    public static final MinecraftChannelIdentifier MUTE_RESPONSE_CHANNEL = MinecraftChannelIdentifier.from("muting:response");
 
-    public static final MinecraftChannelIdentifier IDENTIFIER = MinecraftChannelIdentifier.from("muting:channel");
-
-    public PlayerEvents(Bootstrap bootstrap, ProxyServer proxyServer) {
-        this.bootstrap = bootstrap;
-        this.proxyServer = proxyServer;
-        this.bansManager = bootstrap.getDatabaseUtils().getBansManager();
-        this.mutesManager = bootstrap.getDatabaseUtils().getMutesManager();
-        this.serverLocksManager = bootstrap.getDatabaseUtils().getServerLocksManager();
-
-        proxyServer.getChannelRegistrar().register(IDENTIFIER);
+    public PlayerEvents(PlayerEventHandler commonHandler, VelocityPlatform adapter) {
+        this.commonHandler = commonHandler;
+        this.adapter = adapter;
     }
 
     @Subscribe
     public void onPlayerLogin(PostLoginEvent event) {
-        Player player = event.getPlayer();
-        UUID playerUuid = player.getUniqueId();
-        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
-
-        HistoryManager historyManager = bootstrap.getDatabaseUtils().getHistoryManager();
-
-        if (!historyManager.playerExists(playerUuid)) {
-            historyManager.insertPlayerData(playerUuid, player.getUsername(), playerIp);
-        }
+        commonHandler.handlePlayerLogin(new VelocityPlayer(event.getPlayer()));
     }
 
     @Subscribe
     public void onPlayerServerConnect(ServerPreConnectEvent event) {
-        Player player = event.getPlayer();
-        UUID targetUUID = player.getUniqueId();
-        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
-
-        RegisteredServer destinationServer = event.getOriginalServer();
-        String serverName = destinationServer.getServerInfo().getName();
-
-        String rawBanMessage = LanguageManager.getMessageString("punishments.ban.disconnect-message");
-        String rawLockMessage = LanguageManager.getMessageString("server-locks.disconnect-message");
-        MiniMessage miniMessage = MiniMessage.miniMessage();
-
-        if (bansManager.isPlayerBanned(targetUUID, null)) {
-            String reason = bansManager.getReason(targetUUID, null);
-            String moderator = bansManager.getIssuer(targetUUID, null);
-            String executionDate = DateCalculator.formatTimestamp(bansManager.getTime(targetUUID, null));
-            String duration = DateCalculator.formatDuration(bansManager.getDuration(targetUUID, null));
-            String endDate = bansManager.getDuration(targetUUID, serverName) <= 0 ? "Never" : DateCalculator.formatTimestamp(bansManager.getTime(targetUUID, serverName) + bansManager.getDuration(targetUUID, serverName));
-            String timeLeft = DateCalculator.formatExpiration(bansManager.getTime(targetUUID, null),
-                    bansManager.getDuration(targetUUID, null));
-
-            rawBanMessage = rawBanMessage
-                    .replace("%reason%", reason != null ? reason : "No reason specified")
-                    .replace("%moderator%", moderator != null ? moderator : "Console")
-                    .replace("%date%", executionDate != null ? executionDate : "Unknown")
-                    .replace("%duration%", duration != null ? duration : "Permanent")
-                    .replace("%expiration-date%", endDate != null ? endDate : "Unknown")
-                    .replace("%time-left%", timeLeft != null ? timeLeft : "Permanent");
-
-            String cleanedMessage = rawBanMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-            Component formattedBanMessage = miniMessage.deserialize(cleanedMessage);
-
-            player.disconnect(formattedBanMessage);
-            return;
-        }
-
-        if (bansManager.isPlayerBanned(targetUUID, serverName) ||
-                bansManager.isIpBanned(playerIp, serverName)) {
-            String reason = bansManager.getReason(targetUUID, serverName);
-            String moderator = bansManager.getIssuer(targetUUID, serverName);
-            String executionDate = DateCalculator.formatTimestamp(bansManager.getTime(targetUUID, serverName));
-            String duration = DateCalculator.formatDuration(bansManager.getDuration(targetUUID, serverName));
-            String endDate = bansManager.getDuration(targetUUID, serverName) <= 0 ? "Never" : DateCalculator.formatTimestamp(bansManager.getTime(targetUUID, serverName) + bansManager.getDuration(targetUUID, serverName));
-            String timeLeft = DateCalculator.formatExpiration(bansManager.getTime(targetUUID, serverName),
-                    bansManager.getDuration(targetUUID, serverName));
-
-            rawBanMessage = rawBanMessage
-                    .replace("%reason%", reason != null ? reason : "No reason specified")
-                    .replace("%moderator%", moderator != null ? moderator : "Console")
-                    .replace("%date%", executionDate != null ? executionDate : "Unknown")
-                    .replace("%duration%", duration != null ? duration : "Permanent")
-                    .replace("%expiration-date%", endDate != null ? endDate : "Unknown")
-                    .replace("%time-left%", timeLeft != null ? timeLeft : "Permanent");
-
-            String cleanedMessage = rawBanMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-            Component formattedBanMessage = miniMessage.deserialize(cleanedMessage);
-
-            if (player.getCurrentServer().isEmpty()) {
-                player.disconnect(formattedBanMessage);
-                return;
-            }
-
-            event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            player.sendMessage(formattedBanMessage);
-            return;
-        }
-
-        if (player.hasPermission("flexbans.serverlock.bypass")) {
-            return;
-        }
-
-        if (serverLocksManager.isServerLocked("Global")) {
-            rawLockMessage = rawLockMessage
-                    .replace("%server%", "Global")
-                    .replace("%reason%", serverLocksManager.getReason("Global"))
-                    .replace("%moderator%", serverLocksManager.getIssuer("Global"))
-                    .replace("%date%", DateCalculator.formatTimestamp(serverLocksManager.getTime("Global")));
-
-            String cleanedMessage = rawLockMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-            Component formattedLockMessage = miniMessage.deserialize(cleanedMessage);
-
-            player.disconnect(formattedLockMessage);
-        }
-
-        if (serverLocksManager.isServerLocked(serverName)) {
-            rawLockMessage = rawLockMessage
-                    .replace("%server%", serverName)
-                    .replace("%reason%", serverLocksManager.getReason(serverName))
-                    .replace("%moderator%", serverLocksManager.getIssuer(serverName))
-                    .replace("%date%", DateCalculator.formatTimestamp(serverLocksManager.getTime(serverName)));
-
-            String cleanedMessage = rawLockMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-            Component formattedLockMessage = miniMessage.deserialize(cleanedMessage);
-
-            if (player.getCurrentServer().isEmpty()) {
-                player.disconnect(formattedLockMessage);
-                return;
-            }
-
-            event.setResult(ServerPreConnectEvent.ServerResult.denied());
-            player.sendMessage(formattedLockMessage);
-            return;
-        }
+        String targetServer = event.getOriginalServer().getServerInfo().getName();
+        commonHandler.handlePlayerServerConnect(
+                new VelocityPlayer(event.getPlayer()),
+                targetServer
+        );
     }
 
     @Subscribe
     public void onPlayerChat(PlayerChatEvent event) {
-        Player player = event.getPlayer();
-        UUID playerUUID = player.getUniqueId();
-        String serverName = player.getCurrentServer()
-                .map(server -> server.getServer().getServerInfo().getName())
-                .orElse(null);
-        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
-
-        if (mutesManager.isPlayerMuted(playerUUID, null) ||
-                (serverName != null && mutesManager.isPlayerMuted(playerUUID, serverName)) ||
-                mutesManager.isIpMuted(playerIp, null) ||
-                (serverName != null && mutesManager.isIpMuted(playerIp, serverName))) {
-
-            String reason = mutesManager.getReason(playerUUID, serverName);
-            String issuer = mutesManager.getIssuer(playerUUID, serverName);
-            long time = mutesManager.getTime(playerUUID, serverName);
-            long duration = mutesManager.getDuration(playerUUID, serverName);
-
-            String rawMuteMessage = LanguageManager.getMessageString("punishments.mute.chat-message");
-            if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
-                rawMuteMessage = "§cYou are muted and cannot chat.";
-            } else {
-                rawMuteMessage = rawMuteMessage
-                        .replace("%reason%", reason != null ? reason : "No reason specified")
-                        .replace("%moderator%", issuer != null ? issuer : "Console")
-                        .replace("%date%", DateCalculator.formatTimestamp(time))
-                        .replace("%duration%", DateCalculator.formatDuration(duration))
-                        .replace("%expiration-date%", duration <= 0 ? "Never" : DateCalculator.formatTimestamp(time + duration))
-                        .replace("%time-left%", DateCalculator.formatExpiration(time, duration));
-            }
-
-            String cleanedMessage = rawMuteMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-
-            MiniMessage miniMessage = MiniMessage.miniMessage();
-            Component formattedMuteMessage = miniMessage.deserialize(cleanedMessage);
-
-            player.sendMessage(formattedMuteMessage);
-            sendMuteSignal(player, true, serverName);
-        }
-    }
-
-    private void sendMuteSignal(Player player, boolean isMuted, String serverName) {
-        player.getCurrentServer().ifPresent(connection -> {
-            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(byteStream);
-
-            try {
-                out.writeUTF(player.getUniqueId().toString());
-                out.writeBoolean(isMuted);
-                out.writeUTF(serverName);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
-
-            connection.sendPluginMessage(IDENTIFIER, byteStream.toByteArray());
-        });
-    }
-
-    @Subscribe
-    public void onPluginMessage(PluginMessageEvent event) {
-        if (!event.getIdentifier().equals(MUTE_QUERY_CHANNEL)) return;
-        if (!(event.getSource() instanceof ServerConnection server)) return;
-
-        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
-            UUID uuid = UUID.fromString(in.readUTF());
-
-            Player player = proxyServer.getPlayer(uuid).orElse(null);
-            if (player == null) return;
-
-            String serverName = player.getCurrentServer()
-                    .map(connection -> connection.getServer().getServerInfo().getName())
-                    .orElse(null);
-
-            boolean isMuted = mutesManager.isPlayerMuted(uuid, null) ||
-                    (serverName != null && mutesManager.isPlayerMuted(uuid, serverName));
-
-            String reason = isMuted ? mutesManager.getReason(uuid, serverName) : "";
-            long until = isMuted ? mutesManager.getExpiration(uuid, serverName) : 0L;
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(baos);
-
-            out.writeUTF(uuid.toString());
-            out.writeBoolean(isMuted);
-            out.writeUTF(reason != null ? reason : "");
-            out.writeLong(until);
-            out.writeUTF(serverName != null ? serverName : "Global");
-
-            server.sendPluginMessage(MUTE_RESPONSE_CHANNEL, baos.toByteArray());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        commonHandler.handlePlayerChat(new VelocityPlayer(event.getPlayer()));
     }
 
     @Subscribe
     public void onCommandExecute(CommandExecuteEvent event) {
-        if (!(event.getCommandSource() instanceof Player player)) return;
+        if (!(event.getCommandSource() instanceof com.velocitypowered.api.proxy.Player player)) return;
+        commonHandler.handleCommandExecute(new VelocityPlayer(player), event.getCommand());
+    }
 
-        UUID playerUUID = player.getUniqueId();
-        String playerIp = ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
-        String serverName = player.getCurrentServer()
-                .map(s -> s.getServer().getServerInfo().getName())
-                .orElse(null);
+    @Subscribe
+    public void onPluginMessage(PluginMessageEvent event) {
+        if (! event.getIdentifier().equals(MUTE_QUERY_CHANNEL)) return;
+        if (!(event.getSource() instanceof ServerConnection server)) return;
 
-        boolean isMuted = mutesManager.isPlayerMuted(playerUUID, null)
-                || (serverName != null && mutesManager.isPlayerMuted(playerUUID, serverName))
-                || mutesManager.isIpMuted(playerIp, null)
-                || (serverName != null && mutesManager.isIpMuted(playerIp, serverName));
-
-        if (!isMuted) return;
-
-        boolean blockAllCommands = ConfigManager.getBoolean("punishments-system.built-in.mutes.block-all-commands");
-        String fullCommand = event.getCommand().toLowerCase().trim();
-        String baseCommand = fullCommand.split(" ")[0];
-
-        boolean shouldBlock = blockAllCommands;
-
-        if (!blockAllCommands) {
-            List<String> blockedCommands = ConfigManager.getList("punishments-system.built-in.mutes.blocked-commands");
-            for (String blocked : blockedCommands) {
-                if (baseCommand.equalsIgnoreCase(blocked)) {
-                    shouldBlock = true;
-                    break;
-                }
+        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
+            UUID uuid = UUID.fromString(in.readUTF());
+            var player = adapter.getPlayer(uuid);
+            if (player. isPresent()) {
+                commonHandler.handleMuteQueryMessage(uuid, player.get());
             }
+        } catch (IOException e) {
+            e. printStackTrace();
         }
-
-        if (!shouldBlock) return;
-
-        String reason = mutesManager.getReason(playerUUID, serverName);
-        String issuer = mutesManager.getIssuer(playerUUID, serverName);
-        long time = mutesManager.getTime(playerUUID, serverName);
-        long duration = mutesManager.getDuration(playerUUID, serverName);
-
-        String rawMuteMessage = LanguageManager.getMessageString("punishments.mute.command-message");
-        if (rawMuteMessage == null || rawMuteMessage.isEmpty()) {
-            rawMuteMessage = "§cYou are muted and cannot use this command.";
-        } else {
-            rawMuteMessage = rawMuteMessage
-                    .replace("%reason%", reason != null ? reason : "No reason specified")
-                    .replace("%moderator%", issuer != null ? issuer : "Console")
-                    .replace("%date%", DateCalculator.formatTimestamp(time))
-                    .replace("%duration%", DateCalculator.formatDuration(duration))
-                    .replace("%expiration-date%", duration <= 0 ? "Never" : DateCalculator.formatTimestamp(time + duration))
-                    .replace("%time-left%", DateCalculator.formatExpiration(time, duration));
-        }
-
-        String cleanedMessage = rawMuteMessage.replaceFirst("(?s)\\n\\s*\\z", "");
-
-        player.sendMessage(MiniMessage.miniMessage().deserialize(cleanedMessage));
-        event.setResult(CommandExecuteEvent.CommandResult.denied());
     }
 }

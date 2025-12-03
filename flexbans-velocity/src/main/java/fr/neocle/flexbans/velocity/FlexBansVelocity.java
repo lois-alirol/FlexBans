@@ -8,16 +8,22 @@ import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import fr.neocle.flexbans.Bootstrap;
-import fr.neocle.flexbans.api.events.EventDispatcher;
-import fr.neocle.flexbans.api.events.velocity.VelocityEventDispatcher;
+import fr.neocle.flexbans.api.event.EventDispatcher;
+import fr.neocle.flexbans.api.event.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
-import fr.neocle.flexbans.configs.ConfigManager;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
+import fr.neocle.flexbans.common.listener.PlayerEventHandler;
+import fr.neocle.flexbans.config.ConfigManager;
+import fr.neocle.flexbans.config.WebhooksConfigManager;
 import fr.neocle.flexbans.internal.LicenseChecker;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.utils.HooksUtils;
-import fr.neocle.flexbans.utils.IpUtils;
-import fr.neocle.flexbans.velocity.commands.*;
+import fr.neocle.flexbans.util.HooksUtils;
+import fr.neocle.flexbans.util.IpUtils;
+import fr.neocle.flexbans.velocity.command.*;
+import fr.neocle.flexbans.velocity.command.adapter.VelocityPlatform;
+import fr.neocle.flexbans.velocity.command.lookup.AltCommand;
+import fr.neocle.flexbans.velocity.command.punishment.*;
+import fr.neocle.flexbans.velocity.command.server.ServerLockCommand;
+import fr.neocle.flexbans.velocity.command.server.ServerUnlockCommand;
 import fr.neocle.flexbans.velocity.listener.*;
 import litebans.api.Events;
 
@@ -154,9 +160,12 @@ public class FlexBansVelocity {
         FlexLogger.info("Registering listeners...");
         EventManager eventManager = proxyServer.getEventManager();
 
+        VelocityPlatform platformAdapter = new VelocityPlatform(proxyServer);
+        PlayerEventHandler commonHandler = new PlayerEventHandler(bootstrap, platformAdapter);
+
         eventManager.register(this, new WhitelistEvents(logger));
         eventManager.register(this, new DashboardEvents(logger));
-        eventManager.register(this, new PlayerEvents(bootstrap, proxyServer));
+        eventManager.register(this, new PlayerEvents(commonHandler, platformAdapter));
 
         if (HooksUtils.usingLiteBansSystem()) {
             LiteBansEvents listener = new LiteBansEvents(bootstrap.getDatabaseUtils());

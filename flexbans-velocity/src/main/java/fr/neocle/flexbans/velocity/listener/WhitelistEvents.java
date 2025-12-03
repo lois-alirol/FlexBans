@@ -1,12 +1,12 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import com.velocitypowered.api.event.Subscribe;
-import fr.neocle.flexbans.api.events.velocity.whitelist.PlayerUnwhitelistedEvent;
-import fr.neocle.flexbans.api.events.velocity.whitelist.PlayerWhitelistedEvent;
-import fr.neocle.flexbans.api.events.velocity.whitelist.UserUnwhitelistedEvent;
-import fr.neocle.flexbans.api.events.velocity.whitelist.UserWhitelistedEvent;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
-import fr.neocle.flexbans.webhooks.WebhookService;
+import fr.neocle.flexbans.api.event.velocity.whitelist.PlayerUnwhitelistedEvent;
+import fr.neocle.flexbans.api.event.velocity.whitelist.PlayerWhitelistedEvent;
+import fr.neocle.flexbans.api.event.velocity.whitelist.UserUnwhitelistedEvent;
+import fr.neocle.flexbans.api.event.velocity.whitelist.UserWhitelistedEvent;
+import fr.neocle.flexbans.config.WebhooksConfigManager;
+import fr.neocle.flexbans.webhook.WebhookService;
 
 import java.util.ArrayList;
 import java.util.List;

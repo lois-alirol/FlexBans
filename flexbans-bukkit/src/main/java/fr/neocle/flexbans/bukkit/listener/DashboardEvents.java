@@ -1,11 +1,11 @@
 package fr.neocle.flexbans.bukkit.listener;
 
-import fr.neocle.flexbans.api.events.bukkit.authentication.DiscordUserLoginEvent;
-import fr.neocle.flexbans.api.events.bukkit.authentication.LogoutEvent;
-import fr.neocle.flexbans.api.events.bukkit.authentication.PlayerLoginEvent;
-import fr.neocle.flexbans.api.events.bukkit.authentication.PlayerRegisterEvent;
-import fr.neocle.flexbans.configs.WebhooksConfigManager;
-import fr.neocle.flexbans.webhooks.WebhookService;
+import fr.neocle.flexbans.api.event.bukkit.authentication.DiscordUserLoginEvent;
+import fr.neocle.flexbans.api.event.bukkit.authentication.LogoutEvent;
+import fr.neocle.flexbans.api.event.bukkit.authentication.PlayerLoginEvent;
+import fr.neocle.flexbans.api.event.bukkit.authentication.PlayerRegisterEvent;
+import fr.neocle.flexbans.config.WebhooksConfigManager;
+import fr.neocle.flexbans.webhook.WebhookService;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 

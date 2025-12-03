@@ -1,16 +1,15 @@
 package fr.neocle.flexbans.bungee;
 
 import fr.neocle.flexbans.Bootstrap;
-import fr.neocle.flexbans.api.events.EventDispatcher;
-import fr.neocle.flexbans.api.events.bungee.BungeeEventDispatcher;
+import fr.neocle.flexbans.api.event.EventDispatcher;
+import fr.neocle.flexbans.api.event.bungee.BungeeEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
-import fr.neocle.flexbans.bungee.commands.BaseCommandBungee;
+import fr.neocle.flexbans.bungee.command.BaseCommandBungee;
 import net.kyori.adventure.platform.bungeecord.BungeeAudiences;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
 
 import java.nio.file.Paths;
-import java.util.Map;
 
 public class FlexBansBungee extends Plugin implements Listener {
     private Bootstrap bootstrap;
