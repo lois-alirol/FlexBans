@@ -2,6 +2,7 @@ package fr.neocle.flexbans.database;
 
 import fr.neocle.flexbans.database.dashboard.SessionManager;
 import fr.neocle.flexbans.database.dashboard.UserManager;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr.neocle.flexbans.database.punishment.*;
 import fr.neocle.flexbans.database.server.ServerLocksManager;
 
@@ -18,8 +19,8 @@ public class DatabaseUtils {
     private final MutesManager mutesManager;
     private final KicksManager kicksManager;
     private final WarningsManager warningsManager;
-    private final HistoryManager historyManager;
     private final ServerLocksManager serverLocksManager;
+    private final ProfilesManager profilesManager;
     private final DatabaseCleanupTask cleanupTask;
     private final DatabaseBackupTask backupTask;
     private final String databaseType;
@@ -50,12 +51,13 @@ public class DatabaseUtils {
         }
 
         this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password, logger);
+        this.profilesManager = new ProfilesManager(dbManager, logger);
+
         this.userManager = new UserManager(this, dbManager, logger);
-        this.bansManager = new BansManager(dbManager, logger);
-        this.mutesManager = new MutesManager(dbManager, logger);
+        this.bansManager = new BansManager(dbManager, logger, profilesManager);
+        this.mutesManager = new MutesManager(dbManager, logger, profilesManager);
         this.kicksManager = new KicksManager(dbManager, logger);
         this.warningsManager = new WarningsManager(dbManager, logger);
-        this.historyManager = new HistoryManager(dbManager, logger);
         this.serverLocksManager = new ServerLocksManager(dbManager, logger);
         this.sessionManager = new SessionManager(dbManager, logger);
         this.cleanupTask = new DatabaseCleanupTask(dbManager);
@@ -113,11 +115,9 @@ public class DatabaseUtils {
 
     public WarningsManager getWarningsManager() { return warningsManager; }
 
-    public HistoryManager getHistoryManager() {
-        return historyManager;
-    }
-
     public ServerLocksManager getServerLocksManager() {
         return serverLocksManager;
     }
+
+    public ProfilesManager getProfilesManager() { return  profilesManager; }
 }

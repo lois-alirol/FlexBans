@@ -1,11 +1,14 @@
 package fr.neocle.flexbans.database.punishment;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 
+import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,11 +17,13 @@ import java.util.logging.Logger;
 
 public class BansManager {
     private final DatabaseConnectionManager dbManager;
+    private final ProfilesManager profilesManager;
     private final Logger logger;
     private final ScheduledExecutorService scheduler;
 
-    public BansManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public BansManager(DatabaseConnectionManager dbManager, Logger logger, ProfilesManager profilesManager) {
         this.dbManager = dbManager;
+        this.profilesManager = profilesManager;
         this.logger = logger;
         this.scheduler = Executors.newScheduledThreadPool(1);
 
@@ -196,40 +201,47 @@ public class BansManager {
         }
     }
 
-    public boolean isIpBanned(String ip, String serverName) {
-        String query;
+    public boolean isIpBanned(InetAddress address, String serverName) {
+        try {
+            List<UUID> playersWithIp = profilesManager.getPlayersByIp(address);
 
-        if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
-            query = """
-                        SELECT fb.id
-                        FROM flexbans_bans fb
-                        JOIN flexbans_history fh ON fb.target_uuid = fh.player_uuid
-                        WHERE fh.ip = ?
-                        AND fb.status = 'active'
-                        AND fb.server_scope = ?
-                    """;
-        } else {
-            query = """
-                        SELECT fb.id
-                        FROM flexbans_bans fb
-                        JOIN flexbans_history fh ON fb.target_uuid = fh.player_uuid
-                        WHERE fh.ip = ?
-                        AND fb.status = 'active'
-                        AND fb.server_scope = 'Global'
-                    """;
-        }
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, ip);
-
-            if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
-                stmt.setString(2, serverName);
+            if (playersWithIp.isEmpty()) {
+                return false;
             }
 
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return true;
+            String query;
+            if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
+                query = """
+                    SELECT id
+                    FROM flexbans_bans
+                    WHERE target_uuid = ?
+                    AND status = 'active'
+                    AND server_scope = ?
+                    """;
+            } else {
+                query = """
+                    SELECT id
+                    FROM flexbans_bans
+                    WHERE target_uuid = ?
+                    AND status = 'active'
+                    AND server_scope = 'Global'
+                    """;
+            }
+
+            try (Connection connection = dbManager.getConnection();
+                 PreparedStatement stmt = connection.prepareStatement(query)) {
+
+                for (UUID uuid : playersWithIp) {
+                    stmt.setString(1, uuid.toString());
+                    if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
+                        stmt.setString(2, serverName);
+                    }
+
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            return true;
+                        }
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -238,6 +250,7 @@ public class BansManager {
 
         return false;
     }
+
 
     public String getReason(UUID targetUUID, String serverName) {
         String query;

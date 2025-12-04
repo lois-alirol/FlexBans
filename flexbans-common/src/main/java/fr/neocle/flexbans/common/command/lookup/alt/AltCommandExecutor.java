@@ -3,23 +3,24 @@ package fr.neocle.flexbans.common.command.lookup.alt;
 import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr. neocle.flexbans.database.punishment.BansManager;
-import fr.neocle.flexbans.database.punishment.HistoryManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 public class AltCommandExecutor implements ICommandExecutor {
-    private final HistoryManager historyManager;
+    private final ProfilesManager profilesManager;
     private final BansManager bansManager;
     private final IAltCommandHelper helper;
 
-    public AltCommandExecutor(HistoryManager historyManager, BansManager bansManager, IAltCommandHelper helper) {
-        this.historyManager = historyManager;
+    public AltCommandExecutor(ProfilesManager profilesManager, BansManager bansManager, IAltCommandHelper helper) {
+        this.profilesManager = profilesManager;
         this.bansManager = bansManager;
         this.helper = helper;
     }
@@ -40,44 +41,46 @@ public class AltCommandExecutor implements ICommandExecutor {
         }
 
         String playerName = args[0];
-        String ip = helper.getPlayerIP(playerName);
+        InetAddress inetAddress = helper.getPlayerInetAddress(playerName);
 
-        if (ip == null) {
+        if (inetAddress == null) {
             source.sendMessage(Component.text("Player not found in database.").color(NamedTextColor.RED));
             return;
         }
 
-        displayPlayersWithSameIP(source, ip);
+        displayPlayersWithSameIP(source, inetAddress);
     }
 
-    private void displayPlayersWithSameIP(ICommandSource source, String ip) {
-        source.sendMessage(Component.text("Players connected from IP: " + ip).color(NamedTextColor.YELLOW)
-                .decoration(TextDecoration.BOLD, true));
+    private void displayPlayersWithSameIP(ICommandSource source, InetAddress ip) {
+        source.sendMessage(
+                Component.text("Players connected from IP: " + ip)
+                        .color(NamedTextColor.YELLOW)
+                        .decoration(TextDecoration.BOLD, true)
+        );
 
-        List<String[]> playersWithSameIP = historyManager.getPlayersWithSameIP(ip);
+        List<UUID> playersWithSameIP = profilesManager.getPlayersByIp(ip);
 
         if (playersWithSameIP.isEmpty()) {
-            source.sendMessage(Component.text("No players found with this IP."). color(NamedTextColor. RED));
+            source.sendMessage(Component.text("No players found with this IP.").color(NamedTextColor.RED));
             return;
         }
 
         String origin = source.getOrigin();
 
-        for (String[] playerInfo : playersWithSameIP) {
-            String playerUuid = playerInfo[0];
-            String playerName = playerInfo[1];
-            String playerIp = playerInfo[2];
+        for (UUID playerUuid : playersWithSameIP) {
+            String playerName = profilesManager.getCurrentUsername(playerUuid);
+            if (playerName == null) playerName = "(Unknown)";
 
             NamedTextColor color;
             String status;
 
-            if (bansManager.isIpBanned(playerIp, origin)) {
-                color = NamedTextColor. RED;
+            if (bansManager.isIpBanned(ip, origin)) {
+                color = NamedTextColor.RED;
                 status = "[IP BANNED]";
-            } else if (bansManager.isPlayerBanned(UUID.fromString(playerUuid), origin)) {
+            } else if (bansManager.isPlayerBanned(playerUuid, origin)) {
                 color = NamedTextColor.GOLD;
                 status = "[BANNED]";
-            } else if (helper.isPlayerOnline(UUID. fromString(playerUuid))) {
+            } else if (helper.isPlayerOnline(playerUuid)) {
                 color = NamedTextColor.GREEN;
                 status = "[ONLINE]";
             } else {
@@ -85,9 +88,12 @@ public class AltCommandExecutor implements ICommandExecutor {
                 status = "[OFFLINE]";
             }
 
-            source. sendMessage(Component.text(status + " " + playerName).color(color));
+            source.sendMessage(
+                    Component.text(status + " " + playerName).color(color)
+            );
         }
     }
+
 
     @Override
     public List<String> suggest(ICommandInvocation invocation) {

@@ -4,6 +4,7 @@ import com.velocitypowered.api.proxy.Player;
 import fr.neocle.flexbans.common.adapter.IPlayer;
 import net.kyori.adventure.text.Component;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java. util.Optional;
 import java.util.UUID;
@@ -26,8 +27,8 @@ public class VelocityPlayer implements IPlayer {
     }
 
     @Override
-    public String getIp() {
-        return ((InetSocketAddress) player.getRemoteAddress()).getAddress().getHostAddress();
+    public InetAddress getInetAddress() {
+        return player.getRemoteAddress().getAddress();
     }
 
     @Override

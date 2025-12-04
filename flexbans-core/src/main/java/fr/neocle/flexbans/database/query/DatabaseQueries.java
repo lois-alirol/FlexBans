@@ -66,33 +66,6 @@ public class DatabaseQueries {
                     """
     );
 
-    private static final Map<String, String> CREATE_HISTORY_TABLE = Map.of(
-            "mysql", """
-                        CREATE TABLE IF NOT EXISTS flexbans_history (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            player_uuid VARCHAR(255) NOT NULL,
-                            player_name VARCHAR(255) NOT NULL,
-                            ip VARCHAR(255) NOT NULL
-                        );
-                    """,
-            "sqlite", """
-                        CREATE TABLE IF NOT EXISTS flexbans_history (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            player_uuid TEXT NOT NULL,
-                            player_name TEXT NOT NULL,
-                            ip TEXT NOT NULL
-                        );
-                    """,
-            "h2", """
-                        CREATE TABLE IF NOT EXISTS flexbans_history (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            player_uuid VARCHAR(255) NOT NULL,
-                            player_name VARCHAR(255) NOT NULL,
-                            ip VARCHAR(255) NOT NULL
-                        );
-                    """
-    );
-
     private static final Map<String, String> CREATE_BANS_TABLE = Map.of(
             "mysql", """
                         CREATE TABLE IF NOT EXISTS flexbans_bans (
@@ -390,41 +363,108 @@ public class DatabaseQueries {
                 """
     );
 
-    private static final Map<String, String> CREATE_PLAYERS_TABLE = Map.of(
+    private static final Map<String, String> CREATE_PROFILES_TABLE = Map.of(
             "mysql", """
-                    CREATE TABLE IF NOT EXISTS players (
+                    CREATE TABLE IF NOT EXISTS flexbans_profiles (
+                        uuid VARCHAR(36) PRIMARY KEY,
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                """,
+
+            "sqlite", """
+                    CREATE TABLE IF NOT EXISTS flexbans_profiles (
+                        uuid TEXT PRIMARY KEY,
+                        first_seen INTEGER NOT NULL,
+                        last_seen INTEGER NOT NULL
+                    );
+                """,
+
+            "h2", """
+                    CREATE TABLE IF NOT EXISTS flexbans_profiles (
+                        uuid VARCHAR(36) PRIMARY KEY,
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL
+                    );
+                """
+    );
+
+    private static final Map<String, String> CREATE_NAMES_TABLE = Map.of(
+            "mysql", """
+                    CREATE TABLE IF NOT EXISTS flexbans_names (
                         uuid VARCHAR(36) NOT NULL,
                         username VARCHAR(16) NOT NULL,
-                        PRIMARY KEY (uuid)
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL,
+                        PRIMARY KEY (uuid, username)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                    """,
+                """,
+
             "sqlite", """
-                    CREATE TABLE IF NOT EXISTS players (
-                        uuid TEXT PRIMARY KEY,
-                        username TEXT NOT NULL,
-                        CHECK (length(username) <= 16),
-                        CHECK (length(uuid) <= 36)
+                    CREATE TABLE IF NOT EXISTS flexbans_names (
+                        uuid TEXT NOT NULL,
+                        username TEXT NOT NULL CHECK (length(username) <= 16),
+                        first_seen INTEGER NOT NULL,
+                        last_seen INTEGER NOT NULL,
+                        PRIMARY KEY (uuid, username)
                     );
-                    """,
+                """,
+
             "h2", """
-                    CREATE TABLE IF NOT EXISTS players (
-                        uuid VARCHAR(36) PRIMARY KEY,
-                        username VARCHAR(16) NOT NULL
+                    CREATE TABLE IF NOT EXISTS flexbans_names (
+                        uuid VARCHAR(36) NOT NULL,
+                        username VARCHAR(16) NOT NULL,
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL,
+                        PRIMARY KEY (uuid, username)
                     );
-                    """
+                """
     );
+
+    private static final Map<String, String> CREATE_IPS_TABLE = Map.of(
+            "mysql", """
+                    CREATE TABLE IF NOT EXISTS flexbans_ips (
+                        uuid VARCHAR(36) NOT NULL,
+                        ip BINARY(16) NOT NULL,
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL,
+                        PRIMARY KEY (uuid, ip)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                """,
+
+            "sqlite", """
+                    CREATE TABLE IF NOT EXISTS flexbans_ips (
+                        uuid TEXT NOT NULL,
+                        ip BLOB NOT NULL,
+                        first_seen INTEGER NOT NULL,
+                        last_seen INTEGER NOT NULL,
+                        PRIMARY KEY (uuid, ip)
+                    );
+                """,
+            "h2", """
+                    CREATE TABLE IF NOT EXISTS flexbans_ips (
+                        uuid VARCHAR(36) NOT NULL,
+                        ip BINARY(16) NOT NULL,
+                        first_seen BIGINT NOT NULL,
+                        last_seen BIGINT NOT NULL,
+                        PRIMARY KEY (uuid, ip)
+                    );
+                """
+    );
+
 
     public static String getCreateTableQuery(String dbType, String tableName) {
         return switch (tableName.toLowerCase()) {
             case "users" -> CREATE_USERS_TABLE.get(dbType.toLowerCase());
             case "sessions" -> CREATE_SESSIONS_TABLE.get(dbType.toLowerCase());
-            case "history" -> CREATE_HISTORY_TABLE.get(dbType.toLowerCase());
             case "bans" -> CREATE_BANS_TABLE.get(dbType.toLowerCase());
             case "mutes" -> CREATE_MUTES_TABLE.get(dbType.toLowerCase());
             case "kicks" -> CREATE_KICKS_TABLE.get(dbType.toLowerCase());
             case "warnings" -> CREATE_WARNINGS_TABLE.get(dbType.toLowerCase());
             case "server_locks" -> CREATE_SERVER_LOCKS_TABLE.get(dbType.toLowerCase());
-            case "players" -> CREATE_PLAYERS_TABLE.get(dbType.toLowerCase());
+            case "profiles" -> CREATE_PROFILES_TABLE.get(dbType.toLowerCase());
+            case "names" -> CREATE_NAMES_TABLE.get(dbType.toLowerCase());
+            case "ips" -> CREATE_IPS_TABLE.get(dbType.toLowerCase());
             default -> throw new IllegalArgumentException("Unknown table: " + tableName);
         };
     }

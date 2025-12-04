@@ -4,29 +4,28 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.common.command.lookup.alt.IAltCommandHelper;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.database.punishment.HistoryManager;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class VelocityAltCommandHelper implements IAltCommandHelper {
     private final ProxyServer proxyServer;
-    private final HistoryManager historyManager;
 
     public VelocityAltCommandHelper(ProxyServer proxyServer, DatabaseUtils databaseUtils) {
         this.proxyServer = proxyServer;
-        this.historyManager = databaseUtils.getHistoryManager();
     }
 
     @Override
-    public String getPlayerIP(String playerName) {
+    public InetAddress getPlayerInetAddress(String playerName) {
         java.util.Optional<Player> optPlayer = proxyServer.getPlayer(playerName);
         if (optPlayer.isPresent()) {
-            return optPlayer.get(). getRemoteAddress().getAddress().getHostAddress();
+            return optPlayer.get(). getRemoteAddress().getAddress();
         }
 
-        return historyManager.getPlayerIP(playerName);
+        return null;
     }
 
     @Override

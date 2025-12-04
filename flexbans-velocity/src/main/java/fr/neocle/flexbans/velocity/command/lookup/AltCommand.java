@@ -14,7 +14,7 @@ public class AltCommand implements SimpleCommand {
 
     public AltCommand(ProxyServer proxyServer, DatabaseUtils databaseUtils) {
         this.commandExecutor = new AltCommandExecutor(
-                databaseUtils.getHistoryManager(),
+                databaseUtils.getProfilesManager(),
                 databaseUtils.getBansManager(),
                 new VelocityAltCommandHelper(proxyServer, databaseUtils)
         );

@@ -4,8 +4,8 @@ import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.common.adapter.IPlatform;
 import fr.neocle.flexbans.common.adapter.IPlayer;
 import fr.neocle.flexbans.config.ConfigManager;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr.neocle.flexbans.database.punishment.BansManager;
-import fr.neocle.flexbans.database.punishment.HistoryManager;
 import fr.neocle.flexbans.database.punishment.MutesManager;
 import fr.neocle.flexbans.database.server.ServerLocksManager;
 import fr.neocle.flexbans.locale.LanguageManager;
@@ -14,6 +14,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori. adventure.text.minimessage.MiniMessage;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,30 +24,27 @@ public class PlayerEventHandler {
     private final BansManager bansManager;
     private final MutesManager mutesManager;
     private final ServerLocksManager serverLocksManager;
+    private final ProfilesManager profilesManager;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public PlayerEventHandler(Bootstrap bootstrap, IPlatform platformAdapter) {
         this.bootstrap = bootstrap;
         this.platformAdapter = platformAdapter;
-        this. bansManager = bootstrap.getDatabaseUtils().getBansManager();
+        this.bansManager = bootstrap.getDatabaseUtils().getBansManager();
         this.mutesManager = bootstrap.getDatabaseUtils().getMutesManager();
         this.serverLocksManager = bootstrap.getDatabaseUtils().getServerLocksManager();
+        this.profilesManager = bootstrap.getDatabaseUtils().getProfilesManager();
     }
 
     public void handlePlayerLogin(IPlayer player) {
         UUID playerUuid = player.getUniqueId();
-        String playerIp = player.getIp();
 
-        HistoryManager historyManager = bootstrap.getDatabaseUtils().getHistoryManager();
-
-        if (! historyManager.playerExists(playerUuid)) {
-            historyManager.insertPlayerData(playerUuid, player.getUsername(), playerIp);
-        }
+        profilesManager.recordPlayerLogin(playerUuid, player.getUsername(), player.getInetAddress());
     }
 
     public void handlePlayerServerConnect(IPlayer player, String targetServer) {
         UUID targetUUID = player.getUniqueId();
-        String playerIp = player.getIp();
+        InetAddress playerIp = player.getInetAddress();
 
         String rawBanMessage = LanguageManager. getMessageString("punishments.ban.disconnect-message");
         String rawLockMessage = LanguageManager. getMessageString("server-locks.disconnect-message");
@@ -91,7 +89,7 @@ public class PlayerEventHandler {
     public void handlePlayerChat(IPlayer player) {
         UUID playerUUID = player.getUniqueId();
         String serverName = player.getCurrentServer().orElse(null);
-        String playerIp = player.getIp();
+        InetAddress playerIp = player.getInetAddress();
 
         if (isMuted(playerUUID, playerIp, serverName)) {
             Component formattedMuteMessage = formatMuteMessage(playerUUID, serverName);
@@ -102,7 +100,7 @@ public class PlayerEventHandler {
 
     public void handleCommandExecute(IPlayer player, String command) {
         UUID playerUUID = player.getUniqueId();
-        String playerIp = player.getIp();
+        InetAddress playerIp = player.getInetAddress();
         String serverName = player.getCurrentServer().orElse(null);
 
         if (! isMuted(playerUUID, playerIp, serverName)) {
@@ -127,7 +125,7 @@ public class PlayerEventHandler {
 
     public void handleMuteQueryMessage(UUID playerUuid, IPlayer sourcePlayer) throws IOException {
         String serverName = sourcePlayer.getCurrentServer(). orElse(null);
-        boolean isMuted = isMuted(playerUuid, sourcePlayer.getIp(), serverName);
+        boolean isMuted = isMuted(playerUuid, sourcePlayer.getInetAddress(), serverName);
         String reason = isMuted ? mutesManager.getReason(playerUuid, serverName) : "";
         long until = isMuted ? mutesManager.getExpiration(playerUuid, serverName) : 0L;
 
@@ -144,7 +142,7 @@ public class PlayerEventHandler {
         platformAdapter.sendPluginMessage(sourcePlayer, "muting:response", responseData);
     }
 
-    private boolean isMuted(UUID playerUUID, String playerIp, String serverName) {
+    private boolean isMuted(UUID playerUUID, InetAddress playerIp, String serverName) {
         return mutesManager.isPlayerMuted(playerUUID, null) ||
                 (serverName != null && mutesManager.isPlayerMuted(playerUUID, serverName)) ||
                 mutesManager.isIpMuted(playerIp, null) ||
