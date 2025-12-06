@@ -33,6 +33,8 @@ dependencies {
 
     implementation("net.kyori:adventure-api:4.19.0")
     implementation("net.kyori:adventure-text-minimessage:4.19.0")
+
+    implementation("org.bstats:bstats-bukkit:3.1.0")
 }
 
 description = "flexbans-bukkit"

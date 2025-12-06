@@ -8,6 +8,7 @@ import fr.neocle.flexbans.bungee.command.BaseCommandBungee;
 import net.kyori.adventure.platform.bungeecord.BungeeAudiences;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
+import org.bstats.bungeecord.Metrics;
 
 import java.nio.file.Paths;
 
@@ -37,7 +38,7 @@ public class FlexBansBungee extends Plugin implements Listener {
         getProxy().getPluginManager().registerListener(this, this);
 
         bootstrap = new Bootstrap();
-        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), "bungee", eventDispatcher, getProxy());
+        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), eventDispatcher, null, null);
 
         int pluginId = 23870;
         @SuppressWarnings("unused")
@@ -71,8 +72,7 @@ public class FlexBansBungee extends Plugin implements Listener {
                 bootstrap.getAuthenticatorHandler(),
                 bootstrap.getDiscordOAuthHandler(),
                 bootstrap.getIndexHandler(),
-                bootstrap.getDatabaseUtils(),
-                getLogger()
+                bootstrap.getDatabaseUtils()
         );
 
         getProxy().getPluginManager().registerCommand(this, baseCommand);

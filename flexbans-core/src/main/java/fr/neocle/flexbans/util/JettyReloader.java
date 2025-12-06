@@ -1,26 +1,25 @@
 package fr.neocle.flexbans.util;
 
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.eclipse.jetty.server.Server;
 
 import java.util.logging.Logger;
 
 public class JettyReloader {
     private final Server server;
-    private final Logger logger;
 
-    public JettyReloader(Server server, Logger logger) {
+    public JettyReloader(Server server) {
         this.server = server;
-        this.logger = logger;
     }
 
     public void reload() {
         try {
-            logger.info("Stopping webserver...");
+            FlexLogger.info("Stopping webserver...");
             server.stop();
-            logger.info("Starting webserver...");
+            FlexLogger.info("Starting webserver...");
             server.start();
         } catch (Exception e) {
-            logger.info("Couldn't restart webserver!");
+            FlexLogger.error("Couldn't restart webserver!");
             e.printStackTrace();
         }
     }

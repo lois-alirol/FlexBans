@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.webhook;
 
+import fr.neocle.flexbans.logger.FlexLogger;
+
 import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
@@ -8,10 +10,7 @@ import java.util.logging.Logger;
 
 public class WebhookService {
 
-    private final Logger logger;
-
-    public WebhookService(Logger logger) {
-        this.logger = logger;
+    public WebhookService() {
     }
 
     public void sendWebhook(String url, String content, boolean embedEnabled, String color, String authorName,
@@ -20,7 +19,7 @@ public class WebhookService {
                             String footerIcon, boolean timestamp) {
 
         if (url == null || url.isEmpty()) {
-            logger.warning("Webhook URL is not set.");
+            FlexLogger.warn("Webhook URL is not set.");
             return;
         }
 
@@ -40,7 +39,7 @@ public class WebhookService {
                 try {
                     embed.setColor(Color.decode(color.startsWith("#") ? color : "#" + color));
                 } catch (NumberFormatException e) {
-                    logger.warning("Invalid color format: " + color);
+                    FlexLogger.warn("Invalid color format: " + color);
                 }
             }
 
@@ -79,7 +78,7 @@ public class WebhookService {
         try {
             webhook.execute();
         } catch (IOException e) {
-            logger.severe("Failed to send webhook: " + e.getMessage());
+            FlexLogger.warn("Failed to send webhook: " + e.getMessage());
         }
     }
 }

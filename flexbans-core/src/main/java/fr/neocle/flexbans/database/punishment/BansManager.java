@@ -2,6 +2,7 @@ package fr.neocle.flexbans.database.punishment;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
 import fr.neocle.flexbans.database.player.ProfilesManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.net.InetAddress;
 import java.sql.Connection;
@@ -14,17 +15,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class BansManager {
     private final DatabaseConnectionManager dbManager;
     private final ProfilesManager profilesManager;
-    private final Logger logger;
     private final ScheduledExecutorService scheduler;
 
-    public BansManager(DatabaseConnectionManager dbManager, Logger logger, ProfilesManager profilesManager) {
+    public BansManager(DatabaseConnectionManager dbManager, ProfilesManager profilesManager) {
         this.dbManager = dbManager;
         this.profilesManager = profilesManager;
-        this.logger = logger;
         this.scheduler = Executors.newScheduledThreadPool(1);
 
         startExpirationScheduler();
@@ -40,11 +40,11 @@ public class BansManager {
             if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
-            logger.info("Ban expiration scheduler stopped");
+            FlexLogger.info("Ban expiration scheduler stopped");
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
-            logger.warning("Ban expiration scheduler interrupted while shutting down");
+            FlexLogger.warn("Ban expiration scheduler interrupted while shutting down");
         }
     }
 
@@ -57,7 +57,7 @@ public class BansManager {
             stmt.setLong(1, System.currentTimeMillis());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update expired bans: " + e.getMessage());
+            FlexLogger.error("Failed to update expired bans: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -95,7 +95,7 @@ public class BansManager {
             stmt.setString(1, targetUUID.toString());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update previous bans for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to update previous bans for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -157,29 +157,71 @@ public class BansManager {
             e.printStackTrace();
         }
     }
-    public boolean isPlayerBanned(UUID uuid, String serverName) {
 
-        final boolean scoped = serverName != null
+    public UUID getBannedUuidFromIp(InetAddress ip, String serverName) {
+        try {
+            List<UUID> playersWithIp = profilesManager.getPlayersByIp(ip);
+
+            if (playersWithIp.isEmpty()) return null;
+
+            boolean checkGlobalOnly = serverName == null || serverName.isEmpty() || serverName.equalsIgnoreCase("global");
+            String serverScope = checkGlobalOnly ? "Global" : serverName;
+
+            String inClause = playersWithIp.stream(). map(u -> "? ").collect(Collectors.joining(","));
+
+            String sql = "SELECT target_uuid FROM flexbans_bans " +
+                    "WHERE target_uuid IN (" + inClause + ") " +
+                    "AND status='active' " +
+                    "AND ip_scope=1 ";
+
+            if (checkGlobalOnly) {
+                sql += "AND server_scope='Global'";
+            } else {
+                sql += "AND (server_scope=? OR UPPER(server_scope)='GLOBAL')";
+            }
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                int i = 1;
+                for (UUID uuid : playersWithIp) stmt.setString(i++, uuid.toString());
+
+                if (! checkGlobalOnly) stmt.setString(i, serverScope);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String bannedUuidStr = rs.getString("target_uuid");
+                        return UUID.fromString(bannedUuidStr);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get banned UUID from IP " + ip + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public boolean isPlayerBanned(UUID uuid, String serverName) {
+        final boolean scopedServer = serverName != null
                 && !serverName.isEmpty()
                 && !serverName.equalsIgnoreCase("global");
 
         final String sql;
-
-        if (scoped) {
-            // 2 parameters: uuid AND scope
+        if (scopedServer) {
             sql = """
             SELECT 1 FROM flexbans_bans
             WHERE target_uuid = ?
               AND status = 'active'
               AND (server_scope = ? OR UPPER(server_scope) = 'GLOBAL')
-        """;
+            """;
         } else {
-            // 1 parameter: uuid only
             sql = """
             SELECT 1 FROM flexbans_bans
             WHERE target_uuid = ?
               AND status = 'active'
-        """;
+            """;
         }
 
         try (Connection connection = dbManager.getConnection();
@@ -187,7 +229,7 @@ public class BansManager {
 
             statement.setString(1, uuid.toString());
 
-            if (scoped) {
+            if (scopedServer) {
                 statement.setString(2, serverName);
             }
 
@@ -201,46 +243,62 @@ public class BansManager {
         }
     }
 
+    public boolean isPlayerBannedGlobal(UUID uuid) {
+        final String sql = """
+        SELECT 1 FROM flexbans_bans
+        WHERE target_uuid = ?
+          AND status = 'active'
+          AND UPPER(server_scope) = 'GLOBAL'
+    """;
+
+        try (Connection connection = dbManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, uuid.toString());
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean isIpBanned(InetAddress address, String serverName) {
         try {
             List<UUID> playersWithIp = profilesManager.getPlayersByIp(address);
 
-            if (playersWithIp.isEmpty()) {
-                return false;
-            }
+            if (playersWithIp.isEmpty()) return false;
 
-            String query;
-            if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
-                query = """
-                    SELECT id
-                    FROM flexbans_bans
-                    WHERE target_uuid = ?
-                    AND status = 'active'
-                    AND server_scope = ?
-                    """;
+            boolean checkGlobalOnly = serverName == null || serverName.isEmpty() || serverName.equalsIgnoreCase("global");
+            String serverScope = checkGlobalOnly ? "Global" : serverName;
+
+            String inClause = playersWithIp.stream().map(u -> "?").collect(Collectors.joining(","));
+
+            String sql = "SELECT 1 FROM flexbans_bans " +
+                    "WHERE target_uuid IN (" + inClause + ") " +
+                    "AND status='active' " +
+                    "AND ip_scope=1 ";
+
+            if (checkGlobalOnly) {
+                sql += "AND server_scope='Global'";
             } else {
-                query = """
-                    SELECT id
-                    FROM flexbans_bans
-                    WHERE target_uuid = ?
-                    AND status = 'active'
-                    AND server_scope = 'Global'
-                    """;
+                sql += "AND (server_scope=? OR UPPER(server_scope)='GLOBAL')";
             }
 
-            try (Connection connection = dbManager.getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(query)) {
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-                for (UUID uuid : playersWithIp) {
-                    stmt.setString(1, uuid.toString());
-                    if (serverName != null && !serverName.isEmpty() && !serverName.equalsIgnoreCase("global")) {
-                        stmt.setString(2, serverName);
-                    }
+                int i = 1;
+                for (UUID uuid : playersWithIp) stmt.setString(i++, uuid.toString());
 
-                    try (ResultSet rs = stmt.executeQuery()) {
-                        if (rs.next()) {
-                            return true;
-                        }
+                if (!checkGlobalOnly) stmt.setString(i, serverScope);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println("[IP BAN] Player with IP " + address + " is banned on server " + serverScope);
+                        return true;
                     }
                 }
             }
@@ -250,7 +308,6 @@ public class BansManager {
 
         return false;
     }
-
 
     public String getReason(UUID targetUUID, String serverName) {
         String query;
@@ -275,7 +332,7 @@ public class BansManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get ban reason for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get ban reason for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -305,7 +362,7 @@ public class BansManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get ban duration for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get ban duration for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -335,7 +392,7 @@ public class BansManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get ban time for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get ban time for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -365,7 +422,7 @@ public class BansManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get ban issuer for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get ban issuer for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -379,10 +436,10 @@ public class BansManager {
              PreparedStatement stmt = connection.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
 
-            logger.info("=== Bans Table ===");
+            FlexLogger.info("=== Bans Table ===");
 
             while (rs.next()) {
-                logger.info("ID: " + rs.getInt("id") +
+                FlexLogger.info("ID: " + rs.getInt("id") +
                         ", Target UUID: " + rs.getString("target_uuid") +
                         ", Target Name: " + rs.getString("target_name") +
                         ", Issuer UUID: " + rs.getString("issuer_uuid") +

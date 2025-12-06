@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.database.server;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -11,11 +12,9 @@ import java.util.logging.Logger;
 
 public class ServerLocksManager {
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
 
-    public ServerLocksManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public ServerLocksManager(DatabaseConnectionManager dbManager) {
         this.dbManager = dbManager;
-        this.logger = logger;
     }
 
     public void insertServerLock(String serverName, String reason, long duration, UUID issuerUUID, String issuerName, String serverOrigin, boolean silent) {
@@ -36,7 +35,7 @@ public class ServerLocksManager {
 
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to insert server lock for " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to insert server lock for " + serverName + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -54,7 +53,7 @@ public class ServerLocksManager {
             stmt.setString(4, serverName);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update server lock end time for " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to update server lock end time for " + serverName + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -72,7 +71,7 @@ public class ServerLocksManager {
             }
 
         } catch (SQLException e) {
-            logger.severe("Failed to check if server is locked for " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to check if server is locked for " + serverName + ": " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -93,7 +92,7 @@ public class ServerLocksManager {
             }
 
         } catch (SQLException e) {
-            logger.severe("Failed to fetch reason for locked server " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to fetch reason for locked server " + serverName + ": " + e.getMessage());
             e.printStackTrace();
         }
         return null;
@@ -114,7 +113,7 @@ public class ServerLocksManager {
             }
 
         } catch (SQLException e) {
-            logger.severe("Failed to fetch issuer for locked server " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to fetch issuer for locked server " + serverName + ": " + e.getMessage());
             e.printStackTrace();
         }
         return null;
@@ -135,7 +134,7 @@ public class ServerLocksManager {
             }
 
         } catch (SQLException e) {
-            logger.severe("Failed to fetch start time for locked server " + serverName + ": " + e.getMessage());
+            FlexLogger.error("Failed to fetch start time for locked server " + serverName + ": " + e.getMessage());
             e.printStackTrace();
         }
         return -1;

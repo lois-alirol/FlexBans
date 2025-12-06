@@ -1,28 +1,26 @@
 package fr.neocle.flexbans.bukkit.command.subcommand;
 
 import fr.neocle.flexbans.config.ConfigManager;
-import fr.neocle.flexbans.handler.IndexHandler;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.IndexHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class Reload implements CommandExecutor {
     private final Path dataFolder;
     private final AuthenticationHandler oauth2Handler;
     private final IndexHandler indexHandler;
-    private final Logger logger;
 
-    public Reload(Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler, Logger logger) {
+    public Reload(Path dataFolder, AuthenticationHandler oauth2Handler, IndexHandler indexHandler) {
         this.dataFolder = dataFolder;
         this.oauth2Handler = oauth2Handler;
         this.indexHandler = indexHandler;
-        this.logger = logger;
     }
 
     @Override
@@ -42,10 +40,10 @@ public class Reload implements CommandExecutor {
             oauth2Handler.updateConfig();
 
             sender.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));
-            logger.info(LanguageManager.getMessageString("commands.logging.reload.success"));
+            FlexLogger.info(LanguageManager.getMessageString("commands.logging.reload.success"));
         } else {
             sender.sendMessage(LanguageManager.getMessageComponent("commands.reload.fail"));
-            logger.severe(LanguageManager.getMessageString("commands.logging.reload.fail"));
+            FlexLogger.error(LanguageManager.getMessageString("commands.logging.reload.fail"));
         }
 
         return true;

@@ -1,21 +1,21 @@
 package fr.neocle.flexbans.database;
 
+import fr.neocle.flexbans.logger.FlexLogger;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
 public class DatabaseConnectionManager {
-    private final Logger logger;
     private final String jdbcUrl;
     private final String username;
     private final String password;
 
-    public DatabaseConnectionManager(String jdbcUrl, String username, String password, Logger logger) {
+    public DatabaseConnectionManager(String jdbcUrl, String username, String password) {
         this.jdbcUrl = jdbcUrl;
         this.username = username;
         this.password = password;
-        this.logger = logger;
     }
 
     public Connection getConnection() throws SQLException {
@@ -33,10 +33,10 @@ public class DatabaseConnectionManager {
 
         try {
             try (Connection connection = getConnection()) {
-                logger.info("Connected to database!");
+                FlexLogger.info("Connected to database!");
             }
         } catch (SQLException e) {
-            logger.severe("Failed to initialize database connection: " + e.getMessage());
+            FlexLogger.error("Failed to initialize database connection: " + e.getMessage());
         }
     }
 }

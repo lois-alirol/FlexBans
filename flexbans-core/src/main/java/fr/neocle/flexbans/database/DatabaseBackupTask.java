@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.database;
 
+import fr.neocle.flexbans.logger.FlexLogger;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,14 +16,12 @@ import java.util.logging.Logger;
 public class DatabaseBackupTask implements Runnable {
     private final String pluginFolderPath;
     private final String databaseType;
-    private final Logger logger;
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public DatabaseBackupTask(String pluginFolderPath, String databaseType, Logger logger) {
+    public DatabaseBackupTask(String pluginFolderPath, String databaseType) {
         this.pluginFolderPath = pluginFolderPath;
         this.databaseType = databaseType;
-        this.logger = logger;
     }
 
     public void startBackupCreationTask() {
@@ -42,14 +42,14 @@ public class DatabaseBackupTask implements Runnable {
                     Path source = Paths.get(pluginFolderPath, dbFile);
                     Path destination = backupDir.resolve("backup_" + timestamp + "_" + dbFile);
                     Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-                    logger.info("Database backup created: " + destination);
+                    FlexLogger.info("Database backup created: " + destination);
                     break;
                 }
                 case "mysql": {
                     break;
                 }
                 default:
-                    logger.warning("Unsupported database type for backup.");
+                    FlexLogger.warn("Unsupported database type for backup.");
             }
 
             Files.list(backupDir)
@@ -65,14 +65,14 @@ public class DatabaseBackupTask implements Runnable {
                     .forEach(file -> {
                         try {
                             Files.deleteIfExists(file);
-                            logger.info("Deleted old backup: " + file.getFileName());
+                            FlexLogger.info("Deleted old backup: " + file.getFileName());
                         } catch (Exception e) {
-                            logger.warning("Failed to delete old backup: " + file.getFileName() + " - " + e.getMessage());
+                            FlexLogger.warn("Failed to delete old backup: " + file.getFileName() + " - " + e.getMessage());
                         }
                     });
 
         } catch (Exception e) {
-            logger.severe("Failed to create database backup: " + e.getMessage());
+            FlexLogger.error("Failed to create database backup: " + e.getMessage());
         }
     }
 
@@ -82,11 +82,11 @@ public class DatabaseBackupTask implements Runnable {
             if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
-            logger.info("Database backups creation scheduler stopped");
+            FlexLogger.info("Database backups creation scheduler stopped");
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
-            logger.warning("Database backups creation scheduler interrupted while shutting down");
+            FlexLogger.warn("Database backups creation scheduler interrupted while shutting down");
         }
     }
 }

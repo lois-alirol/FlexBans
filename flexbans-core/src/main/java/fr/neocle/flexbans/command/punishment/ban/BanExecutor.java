@@ -3,7 +3,7 @@ package fr.neocle.flexbans.command.punishment.ban;
 import fr.neocle.flexbans.api.event.EventDispatcher;
 import fr.neocle.flexbans.command.punishment.Common;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handler.web.api.PunishmentSSEHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.player.UsernameUUIDConverters;
@@ -114,7 +114,7 @@ public class BanExecutor implements fr.neocle.flexbans.api.punishment.BanExecuto
                                   boolean silent,
                                   boolean ipScope) {
 
-        platformHandler.applyBan(target.name(), target.uuid(), sender.name(), displayDuration, banReason, serverScope);
+        platformHandler.applyBan(target.name(), target.uuid(), sender.name(), displayDuration, banReason, serverScope, ipScope);
 
         databaseUtils.getBansManager().insertBan(
                 target.uuid(), target.name(),

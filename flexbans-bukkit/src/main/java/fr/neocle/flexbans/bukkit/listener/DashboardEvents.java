@@ -15,11 +15,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class DashboardEvents implements Listener {
-    private final Logger logger;
 
-    public DashboardEvents(Logger logger) {
-        this.logger = logger;
-    }
+    public DashboardEvents() {}
 
     @EventHandler
     public void onPlayerLogin(PlayerLoginEvent event) {
@@ -89,7 +86,7 @@ public class DashboardEvents implements Listener {
         }
 
 
-        WebhookService webhookService = new WebhookService(logger);
+        WebhookService webhookService = new WebhookService();
         webhookService.sendWebhook(webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
                 thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText, footerIcon, timestamp);
     }

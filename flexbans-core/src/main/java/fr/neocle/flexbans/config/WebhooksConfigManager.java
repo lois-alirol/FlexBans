@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.config;
 
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -17,7 +18,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class WebhooksConfigManager {
-    private static Logger logger;
     private static File webhooksConfigFile;
     private static Yaml yaml;
     private static Node rootNode;
@@ -25,8 +25,7 @@ public class WebhooksConfigManager {
 
     private static final String DEFAULT_WEBHOOKS_CONFIG = "webhooks.yml";
 
-    public static void initialize(Logger logger, Path dataFolder) {
-        WebhooksConfigManager.logger = logger;
+    public static void initialize(Path dataFolder) {
         webhooksConfigFile = new File(dataFolder.toFile(), DEFAULT_WEBHOOKS_CONFIG);
 
         LoaderOptions loaderOptions = new LoaderOptions();
@@ -50,17 +49,17 @@ public class WebhooksConfigManager {
                 if (resourceStream != null) {
                     Files.copy(resourceStream, webhooksConfigFile.toPath());
                 } else {
-                    logger.warning("Missing default config.yml. Contact plugin's developer.");
+                    FlexLogger.warn("Missing default config.yml. Contact plugin's developer.");
                 }
             } catch (IOException e) {
-                logger.severe("Failed to create config.yml: " + e.getMessage());
+                FlexLogger.error("Failed to create config.yml: " + e.getMessage());
             }
         }
     }
 
     public static void loadConfig() {
         if (!webhooksConfigFile.exists()) {
-            logger.warning("Config file not found: " + DEFAULT_WEBHOOKS_CONFIG);
+            FlexLogger.warn("Config file not found: " + DEFAULT_WEBHOOKS_CONFIG);
             return;
         }
 
@@ -72,7 +71,7 @@ public class WebhooksConfigManager {
                 parseConfig(mappingNode, "");
             }
         } catch (IOException e) {
-            logger.severe("Error loading config file: " + e.getMessage());
+            FlexLogger.error("Error loading config file: " + e.getMessage());
         }
     }
 
@@ -90,7 +89,7 @@ public class WebhooksConfigManager {
                 }
             }
         } catch (IOException e) {
-            logger.severe("Failed to check or update missing config keys: " + e.getMessage());
+            FlexLogger.error("Failed to check or update missing config keys: " + e.getMessage());
         }
     }
 
@@ -167,7 +166,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Integer.parseInt(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid int value for key: " + key);
+        FlexLogger.warn("Invalid int value for key: " + key);
         return 0;
     }
 
@@ -177,7 +176,7 @@ public class WebhooksConfigManager {
         if (value instanceof Boolean b) return b;
         if (value instanceof String s) return Boolean.parseBoolean(s);
 
-        logger.warning("Invalid boolean value for key: " + key);
+        FlexLogger.warn("Invalid boolean value for key: " + key);
         return false;
     }
 
@@ -188,7 +187,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Long.parseLong(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid long value for key: " + key);
+        FlexLogger.warn("Invalid long value for key: " + key);
         return 0L;
     }
 
@@ -199,7 +198,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Double.parseDouble(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid double value for key: " + key);
+        FlexLogger.warn("Invalid double value for key: " + key);
         return 0.0;
     }
 
@@ -210,7 +209,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Float.parseFloat(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid float value for key: " + key);
+        FlexLogger.warn("Invalid float value for key: " + key);
         return 0f;
     }
 
@@ -221,7 +220,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Short.parseShort(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid short value for key: " + key);
+        FlexLogger.warn("Invalid short value for key: " + key);
         return (short) 0;
     }
 
@@ -232,7 +231,7 @@ public class WebhooksConfigManager {
         if (value instanceof String s) {
             try { return Byte.parseByte(s); } catch (Exception ignored) {}
         }
-        logger.warning("Invalid byte value for key: " + key);
+        FlexLogger.warn("Invalid byte value for key: " + key);
         return (byte) 0;
     }
 
@@ -242,7 +241,7 @@ public class WebhooksConfigManager {
         if (value instanceof Character c) return c;
         if (value instanceof String s && s.length() == 1) return s.charAt(0);
 
-        logger.warning("Invalid char value for key: " + key);
+        FlexLogger.warn("Invalid char value for key: " + key);
         return '\0';
     }
 

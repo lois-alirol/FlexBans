@@ -4,7 +4,7 @@ import fr.neocle.flexbans.api.event.EventDispatcher;
 import fr.neocle.flexbans.command.punishment.Common;
 import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handler.web.api.PunishmentSSEHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.player.UsernameUUIDConverters;

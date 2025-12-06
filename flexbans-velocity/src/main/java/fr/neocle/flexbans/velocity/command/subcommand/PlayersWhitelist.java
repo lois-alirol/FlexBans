@@ -6,7 +6,7 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.common.command.subcommand.PlayersWhitelistCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.PlayersAddPlayerCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.PlayersRemovePlayerCommand;
-import fr.neocle.flexbans.handler. security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 
 import java.util.List;

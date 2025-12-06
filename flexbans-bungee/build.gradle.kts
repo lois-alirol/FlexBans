@@ -34,6 +34,8 @@ dependencies {
     implementation("net.kyori:adventure-api:4.19.0")
     implementation("net.kyori:adventure-text-minimessage:4.19.0")
     implementation("net.kyori:adventure-platform-bungeecord:4.3.4")
+
+    implementation("org.bstats:bstats-bungeecord:3.1.0")
 }
 
 description = "flexbans-bungee"

@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.util;
 
+import fr.neocle.flexbans.logger.FlexLogger;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -9,15 +11,13 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class ImagesLoader {
-    public static void extractImagesFromJar(Logger logger, File outputFolder) {
-        if (logger != null)
-            logger.info("Extracting embedded /images/ from JAR...");
+    public static void extractImagesFromJar(File outputFolder) {
+        FlexLogger.info("Extracting embedded /images/ from JAR...");
 
         try {
             var url = ImagesLoader.class.getClassLoader().getResource("images");
             if (url == null) {
-                if (logger != null)
-                    logger.warning("No /images/ directory found in the JAR.");
+                FlexLogger.warn("No /images/ directory found in the JAR.");
                 return;
             }
 
@@ -47,12 +47,10 @@ public class ImagesLoader {
                             StandardCopyOption.REPLACE_EXISTING
                     );
 
-                    if (logger != null)
-                        logger.info("Loaded image: " + fileName);
+                    FlexLogger.info("Loaded image: " + fileName);
 
                 } catch (IOException e) {
-                    if (logger != null)
-                        logger.warning("Failed to copy image: " + e.getMessage());
+                    FlexLogger.warn("Failed to copy image: " + e.getMessage());
                 }
             });
 
@@ -60,8 +58,7 @@ public class ImagesLoader {
                 fs.close();
 
         } catch (IOException | URISyntaxException e) {
-            if (logger != null)
-                logger.severe("Error extracting /images/: " + e.getMessage());
+            FlexLogger.error("Error extracting /images/: " + e.getMessage());
         }
     }
 }

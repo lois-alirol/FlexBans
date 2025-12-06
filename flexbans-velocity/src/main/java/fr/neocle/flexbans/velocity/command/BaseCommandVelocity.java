@@ -10,26 +10,25 @@ import fr.neocle.flexbans.common.command.subcommand.HelpCommand;
 import fr.neocle.flexbans.common.command.subcommand.ReloadCommand;
 import fr.neocle.flexbans.common.command.subcommand.VerifyCommand;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.IndexHandler;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
-import fr.neocle.flexbans.handler.security.oauth. DiscordOAuthHandler;
+import fr.neocle.flexbans.handler.web.IndexHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.oauth. DiscordOAuthHandler;
 import fr.neocle.flexbans.util.JettyReloader;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 import fr.neocle.flexbans.velocity.command.subcommand.*;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class BaseCommandVelocity extends AbstractBaseCommand implements SimpleCommand {
 
     public BaseCommandVelocity(FlexBansAPI api, ProxyServer proxyServer, Path dataFolder,
                                AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler,
                                IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils,
-                               String version, Logger logger) {
-        registerSubCommand("help", new HelpCommand(logger));
-        registerSubCommand("reload", new ReloadCommand(dataFolder, authenticationHandler, indexHandler, jettyReloader, logger));
-        registerSubCommand("verify", new VerifyCommand(logger, databaseUtils.getUserManager()));
+                               String version) {
+        registerSubCommand("help", new HelpCommand());
+        registerSubCommand("reload", new ReloadCommand(dataFolder, authenticationHandler, indexHandler, jettyReloader));
+        registerSubCommand("verify", new VerifyCommand(databaseUtils.getUserManager()));
         registerSubCommand("players", new PlayersWhitelist(api, proxyServer, authenticationHandler));
         registerSubCommand("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler));
         registerSubCommand("dump", new Dump(proxyServer, version));

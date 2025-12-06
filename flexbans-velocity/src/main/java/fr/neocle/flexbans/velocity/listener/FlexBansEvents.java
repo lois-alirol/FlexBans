@@ -6,8 +6,8 @@ import fr.neocle.flexbans.api.event.velocity.punishment.KickAddedEvent;
 import fr.neocle.flexbans.api.event.velocity.punishment.MuteAddedEvent;
 import fr.neocle.flexbans.api.event.velocity.punishment.PunishmentAddedEvent;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.api.PunishmentSSEHandler;
-import fr.neocle.flexbans.handler.cache.CountsCache;
+import fr.neocle.flexbans.handler.web.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handler.web.cache.CountsCache;
 
 public class FlexBansEvents {
     private final DatabaseUtils databaseUtils;

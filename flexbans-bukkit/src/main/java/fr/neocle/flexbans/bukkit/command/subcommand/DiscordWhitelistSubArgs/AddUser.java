@@ -2,7 +2,7 @@ package fr.neocle.flexbans.bukkit.command.subcommand.DiscordWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.command.whitelist.DiscordWhitelistCommand;
-import fr.neocle.flexbans.handler.security.oauth.DiscordOAuthHandler;
+import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

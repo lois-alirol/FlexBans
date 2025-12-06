@@ -11,27 +11,36 @@ import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.api.event.EventDispatcher;
 import fr.neocle.flexbans.api.event.velocity.VelocityEventDispatcher;
 import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
+import fr.neocle.flexbans.common.database.DatabaseInitializer;
 import fr.neocle.flexbans.common.listener.PlayerEventHandler;
 import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.config.WebhooksConfigManager;
+import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.handler.factory.PlatformHandlerFactory;
 import fr.neocle.flexbans.internal.LicenseChecker;
 import fr.neocle.flexbans.logger.FlexLogger;
 import fr.neocle.flexbans.util.HooksUtils;
 import fr.neocle.flexbans.util.IpUtils;
+import fr.neocle.flexbans.util.LibsLoader;
 import fr.neocle.flexbans.velocity.command.*;
 import fr.neocle.flexbans.velocity.command.adapter.VelocityPlatform;
 import fr.neocle.flexbans.velocity.command.lookup.AltCommand;
+import fr.neocle.flexbans.velocity.command.lookup.HistoryCommand;
 import fr.neocle.flexbans.velocity.command.punishment.*;
 import fr.neocle.flexbans.velocity.command.server.ServerLockCommand;
 import fr.neocle.flexbans.velocity.command.server.ServerUnlockCommand;
+import fr.neocle.flexbans.velocity.handler.VelocityHandlerFactory;
 import fr.neocle.flexbans.velocity.listener.*;
 import litebans.api.Events;
+import org.bstats.charts.SimplePie;
+import org.bstats.velocity.Metrics;
 
 import javax.inject.Inject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.logging.Logger;
 
 public class FlexBansVelocity {
@@ -51,7 +60,7 @@ public class FlexBansVelocity {
     }
 
     @Subscribe
-    public void onProxyInitialization(ProxyInitializeEvent event) throws IOException {
+    public void onProxyInitialization(ProxyInitializeEvent event) throws IOException, SQLException {
         FlexLogger.init(logger);
 
         Path dataFolder = Paths.get("plugins", "FlexBans");
@@ -60,8 +69,8 @@ public class FlexBansVelocity {
             FlexLogger.info("Created FlexBans directory.");
         }
 
-        ConfigManager.initialize(logger, dataFolder);
-        WebhooksConfigManager.initialize(logger, dataFolder);
+        ConfigManager.initialize(dataFolder);
+        WebhooksConfigManager.initialize(dataFolder);
 
         String ip = IpUtils.getPublicIP();
         String licenseKey = ConfigManager.getString("license-key");
@@ -83,8 +92,8 @@ public class FlexBansVelocity {
         int pluginId = 23869;
         @SuppressWarnings("unused")
         Metrics metrics = metricsFactory.make(this, pluginId);
-        metrics.addCustomChart(new Metrics.SimplePie("language", () -> ConfigManager.getString("language")));
-        metrics.addCustomChart(new Metrics.SimplePie("https_usage", () -> String.valueOf(ConfigManager.getBoolean("webserver.https"))));
+        metrics.addCustomChart(new SimplePie("language", () -> ConfigManager.getString("language")));
+        metrics.addCustomChart(new SimplePie("https_usage", () -> String.valueOf(ConfigManager.getBoolean("webserver.https"))));
 
         FlexBansAPIImpl.initialize(
                 Paths.get("plugins", "FlexBans", "config.yml"),
@@ -92,18 +101,17 @@ public class FlexBansVelocity {
                 eventDispatcher
         );
 
+        LibsLoader libsLoader = new LibsLoader();
+        libsLoader.ensureSQLiteAvailable();
+        libsLoader.ensureMySQLAvailable();
+
+        DatabaseInitializer dbInitializer = new DatabaseInitializer();
+        DatabaseUtils dbUtils = dbInitializer.initialize();
+
+        PlatformHandlerFactory handlerFactory = new VelocityHandlerFactory(proxyServer, dbUtils);
+
         bootstrap = new Bootstrap();
-        bootstrap.initialize(dataFolder, logger, "velocity", eventDispatcher, proxyServer);
-
-        FlexBansAPIImpl.setBanExecutor(bootstrap.getBanExecutor());
-        FlexBansAPIImpl.setMuteExecutor(bootstrap.getMuteExecutor());
-        FlexBansAPIImpl.setKickExecutor(bootstrap.getKickExecutor());
-
-        FlexBansAPIImpl.setUnbanExecutor(bootstrap.getUnbanExecutor());
-        FlexBansAPIImpl.setUnmuteExecutor(bootstrap.getUnmuteExecutor());
-
-        FlexBansAPIImpl.setServerLockExecutor(bootstrap.getServerLockExecutor());
-        FlexBansAPIImpl.setServerUnlockExecutor(bootstrap.getServerUnlockExecutor());
+        bootstrap.initialize(dataFolder, logger, eventDispatcher, dbUtils, handlerFactory);
 
         int port = ConfigManager.getInt("webserver.port");
         boolean webserverEnabled = ConfigManager.getBoolean("webserver.enabled");
@@ -141,11 +149,10 @@ public class FlexBansVelocity {
                 bootstrap.getIndexHandler(),
                 bootstrap.getJettyReloader(),
                 bootstrap.getDatabaseUtils(),
-                bootstrap.getVersion(),
-                logger
+                bootstrap.getVersion()
         ));
 
-        commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer), "flexbans:ban");
+        commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer), "ipban", "banip", "ban-ip", "ip-ban", "flexbans:ban", "flexbans:ipban", "flexbans:banip", "flexbans:ban-ip", "flexbans:ip-ban");
         commandManager.register("mute", new MuteCommand(bootstrap.getMuteExecutor(), proxyServer), "flexbans:mute");
         commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer), "flexbans:kick");
         commandManager.register("warning",  new WarningCommand(bootstrap.getWarningExecutor(), proxyServer), "warn", "flexbans:warning", "flexbans:warn");
@@ -154,6 +161,7 @@ public class FlexBansVelocity {
         commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer), "flexbans:serverlock");
         commandManager.register("serverunlock", new ServerUnlockCommand(bootstrap.getServerUnlockExecutor(), proxyServer), "flexbans:serverunlock");
         commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
+        commandManager.register("history", new HistoryCommand(proxyServer, bootstrap.getDatabaseUtils(), bootstrap.getDatabaseUtils().getDatabaseConnectionManager()), "flexbans:history");
     }
 
     private void registerListeners() {
@@ -163,8 +171,8 @@ public class FlexBansVelocity {
         VelocityPlatform platformAdapter = new VelocityPlatform(proxyServer);
         PlayerEventHandler commonHandler = new PlayerEventHandler(bootstrap, platformAdapter);
 
-        eventManager.register(this, new WhitelistEvents(logger));
-        eventManager.register(this, new DashboardEvents(logger));
+        eventManager.register(this, new WhitelistEvents());
+        eventManager.register(this, new DashboardEvents());
         eventManager.register(this, new PlayerEvents(commonHandler, platformAdapter));
 
         if (HooksUtils.usingLiteBansSystem()) {

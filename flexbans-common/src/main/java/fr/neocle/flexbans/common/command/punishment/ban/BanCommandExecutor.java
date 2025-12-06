@@ -38,6 +38,7 @@ public class BanCommandExecutor implements ICommandExecutor {
     @Override
     public void execute(ICommandInvocation invocation) {
         ICommandSource source = invocation.getSource();
+        String label = invocation.getLabel();
         String[] args = invocation.getArguments();
 
         if (args.length < 1) {
@@ -46,7 +47,7 @@ public class BanCommandExecutor implements ICommandExecutor {
                 return;
             }
 
-            source.sendMessage(Component.text("Usage: /ban <player/uuid> [duration] [reason] [-s] [-sender=<name>] [-scope=<server>]"));
+            source.sendMessage(Component.text("Usage: /" + label + " <player/uuid> [duration] [reason] [-s] [-sender=<name>] [-scope=<server>]"));
             return;
         }
 
@@ -90,8 +91,9 @@ public class BanCommandExecutor implements ICommandExecutor {
         }
 
         String reason = reasonParts.isEmpty() ? "" : String.join(" ", reasonParts);
+        boolean isIpBan = label.contains("ban") && label.contains("ip");
 
-        banExecutor.executeBan(target, sender, duration, reason, scope, origin, silent, false,
+        banExecutor.executeBan(target, sender, duration, reason, scope, origin, silent, isIpBan,
                 message -> source.sendMessage(Component.text(message)));
     }
 

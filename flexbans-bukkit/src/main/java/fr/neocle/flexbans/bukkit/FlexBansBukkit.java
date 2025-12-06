@@ -11,6 +11,7 @@ import fr.neocle.flexbans.bukkit.listener.DashboardEvents;
 import fr.neocle.flexbans.bukkit.listener.DialogEvents;
 import fr.neocle.flexbans.bukkit.listener.WhitelistEvents;
 import fr.neocle.flexbans.config.ConfigManager;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -42,11 +43,7 @@ public class FlexBansBukkit extends JavaPlugin {
         );
 
         bootstrap = new Bootstrap();
-        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), "spigot", eventDispatcher, this);
-
-        FlexBansAPIImpl.setBanExecutor(bootstrap.getBanExecutor());
-        FlexBansAPIImpl.setKickExecutor(bootstrap.getKickExecutor());
-        FlexBansAPIImpl.setUnbanExecutor(bootstrap.getUnbanExecutor());
+        bootstrap.initialize(Paths.get("plugins", "FlexBans"), getLogger(), eventDispatcher, null, null);
 
         int pluginId = 23868;
         @SuppressWarnings("unused")
@@ -125,8 +122,7 @@ public class FlexBansBukkit extends JavaPlugin {
                 bootstrap.getAuthenticatorHandler(),
                 bootstrap.getDiscordOAuthHandler(),
                 bootstrap.getIndexHandler(),
-                bootstrap.getDatabaseUtils(),
-                getLogger()
+                bootstrap.getDatabaseUtils()
         );
 
         getCommand("flexbans").setExecutor(baseCommand);
@@ -137,7 +133,7 @@ public class FlexBansBukkit extends JavaPlugin {
         getLogger().info("Registering listeners...");
         PluginManager pluginManager = Bukkit.getPluginManager();
 
-        pluginManager.registerEvents(new WhitelistEvents(getLogger()), this);
-        pluginManager.registerEvents(new DashboardEvents(getLogger()), this);
+        pluginManager.registerEvents(new WhitelistEvents(), this);
+        pluginManager.registerEvents(new DashboardEvents(), this);
     }
 }

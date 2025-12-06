@@ -3,7 +3,7 @@ package fr.neocle.flexbans.bungee.command.subcommand;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.bungee.command.subcommand.PlayersWhitelistSubArgs.AddPlayer;
 import fr.neocle.flexbans.bungee.command.subcommand.PlayersWhitelistSubArgs.RemovePlayer;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;

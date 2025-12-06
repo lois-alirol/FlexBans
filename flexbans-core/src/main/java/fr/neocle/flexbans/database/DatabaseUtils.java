@@ -9,7 +9,6 @@ import fr.neocle.flexbans.database.server.ServerLocksManager;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.logging.Logger;
 
 public class DatabaseUtils {
     private final DatabaseConnectionManager dbManager;
@@ -27,7 +26,7 @@ public class DatabaseUtils {
     private final String pluginFolderPath;
     private String jdbcUrl;
 
-    public DatabaseUtils(String pluginFolderPath, String databaseType, String host, int port, String databaseName, String username, String password, Logger logger) {
+    public DatabaseUtils(String pluginFolderPath, String databaseType, String host, int port, String databaseName, String username, String password) {
         this.databaseType = databaseType.toLowerCase();
         this.pluginFolderPath = pluginFolderPath;
 
@@ -50,18 +49,18 @@ public class DatabaseUtils {
                 break;
         }
 
-        this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password, logger);
-        this.profilesManager = new ProfilesManager(dbManager, logger);
+        this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password);
+        this.profilesManager = new ProfilesManager(dbManager);
 
-        this.userManager = new UserManager(this, dbManager, logger);
-        this.bansManager = new BansManager(dbManager, logger, profilesManager);
-        this.mutesManager = new MutesManager(dbManager, logger, profilesManager);
-        this.kicksManager = new KicksManager(dbManager, logger);
-        this.warningsManager = new WarningsManager(dbManager, logger);
-        this.serverLocksManager = new ServerLocksManager(dbManager, logger);
-        this.sessionManager = new SessionManager(dbManager, logger);
+        this.userManager = new UserManager(this, dbManager);
+        this.bansManager = new BansManager(dbManager, profilesManager);
+        this.mutesManager = new MutesManager(dbManager, profilesManager);
+        this.kicksManager = new KicksManager(dbManager);
+        this.warningsManager = new WarningsManager(dbManager);
+        this.serverLocksManager = new ServerLocksManager(dbManager);
+        this.sessionManager = new SessionManager(dbManager);
         this.cleanupTask = new DatabaseCleanupTask(dbManager);
-        this.backupTask = new DatabaseBackupTask(pluginFolderPath, databaseType, logger);
+        this.backupTask = new DatabaseBackupTask(pluginFolderPath, databaseType);
     }
 
     public void initialize() throws SQLException {
@@ -69,7 +68,7 @@ public class DatabaseUtils {
             dbManager.initializeConnection();
 
             Connection connection = dbManager.getConnection();
-            DatabaseInitializer.initializeDatabase(connection, databaseType);
+            SchemaInitializer.initializeDatabase(connection, databaseType);
 
             cleanupTask.startSessionCleanupTask();
             backupTask.startBackupCreationTask();
@@ -120,4 +119,6 @@ public class DatabaseUtils {
     }
 
     public ProfilesManager getProfilesManager() { return  profilesManager; }
+
+    public DatabaseConnectionManager getDatabaseConnectionManager() { return dbManager; }
 }

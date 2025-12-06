@@ -2,7 +2,7 @@ package fr.neocle.flexbans.bukkit.command.subcommand.PlayersWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.command.whitelist.PlayersWhitelistCommand;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import javax.imageio.ImageIO;
@@ -22,10 +23,8 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class PlayerHeadImage {
-    private static final Logger logger = Logger.getLogger("FlexBans");
     private final UsernameUUIDConverters usernameUUIDConverters;
     private static Path cacheDirectory;
     private final FloodgateApi floodgateApi;
@@ -50,7 +49,7 @@ public class PlayerHeadImage {
         File cacheDir = cacheDirectory.toFile();
 
         if (!cacheDir.exists() || !cacheDir.isDirectory()) {
-            logger.warning("Cache directory does not exist or is not a directory.");
+            FlexLogger.warn("Cache directory does not exist or is not a directory.");
             return;
         }
 
@@ -63,9 +62,9 @@ public class PlayerHeadImage {
         for (File file : files) {
             if (file.isFile() && file.lastModified() < oneWeekAgo) {
                 if (!file.delete()) {
-                    logger.warning("Failed to delete old cached file: " + file.getName());
+                    FlexLogger.warn("Failed to delete old cached file: " + file.getName());
                 } else {
-                    logger.info("Deleted old cached file: " + file.getName());
+                    FlexLogger.info("Deleted old cached file: " + file.getName());
                 }
             }
         }
@@ -87,7 +86,7 @@ public class PlayerHeadImage {
             Class.forName("org.geysermc.floodgate.api.FloodgateApi");
             return true;
         } catch (ClassNotFoundException e) {
-            logger.info("Floodgate is not loaded. Skipping Bedrock players head retrieval.");
+            FlexLogger.info("Floodgate is not loaded. Skipping Bedrock players head retrieval.");
             return false;
         }
     }
@@ -153,11 +152,11 @@ public class PlayerHeadImage {
                 sizeInt = 32;
             }
 
-            String imageUrl = "https://crafatar.com/avatars/" + uuid + "?size=" + sizeInt + "&overlay";
+            String imageUrl = "https://mc-heads.net/avatar/" + uuid + "/" + sizeInt;
             return processAndCacheImage(username, imageUrl, false);
         }
 
-        return "https://crafatar.com/avatars/" + uuid + "?size=" + size + "&overlay";
+        return "https://mc-heads.net/avatar/" + uuid + "/" + size;
     }
 
     private String fetchTextureUrlFromAPI(String apiUrl) {
@@ -188,7 +187,7 @@ public class PlayerHeadImage {
                 }
             }
         } catch (Exception e) {
-            logger.warning("Failed to retrieve Bedrock player skin from API: " + e.getMessage());
+            FlexLogger.warn("Failed to retrieve Bedrock player skin from API: " + e.getMessage());
         } finally {
             if (connection != null) {
                 connection.disconnect();
@@ -219,7 +218,7 @@ public class PlayerHeadImage {
                 break;
             } catch (IOException e) {
                 lastException = e;
-                logger.warning("Attempt " + (attempt + 1) + " failed to download image: " + e.getMessage());
+                FlexLogger.warn("Attempt " + (attempt + 1) + " failed to download image: " + e.getMessage());
                 if (attempt < 2) {
                     try {
                         Thread.sleep(1000 * (attempt + 1));
@@ -232,7 +231,7 @@ public class PlayerHeadImage {
         }
 
         if (img == null) {
-            logger.severe("Failed to download image after 3 attempts. Using fallback image.");
+            FlexLogger.error("Failed to download image after 3 attempts. Using fallback image.");
 
             File fallbackFile = new File("plugins/FlexBans/images/fallback_head.png");
 

@@ -1,69 +1,52 @@
 package fr.neocle.flexbans;
 
-import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.event.EventDispatcher;
+import fr.neocle.flexbans.api.impl.FlexBansAPIImpl;
 import fr.neocle.flexbans.command.punishment.ban.BanExecutor;
 import fr.neocle.flexbans.command.punishment.ban.BanPlatformHandler;
-import fr.neocle.flexbans.command.punishment.ban.platform.BukkitBan;
-import fr.neocle.flexbans.command.punishment.ban.platform.BungeeBan;
-import fr.neocle.flexbans.command.punishment.ban.platform.VelocityBan;
 import fr.neocle.flexbans.command.punishment.kick.KickExecutor;
 import fr.neocle.flexbans.command.punishment.kick.KickPlatformHandler;
-import fr.neocle.flexbans.command.punishment.kick.platform.BukkitKick;
-import fr.neocle.flexbans.command.punishment.kick.platform.BungeeKick;
-import fr.neocle.flexbans.command.punishment.kick.platform.VelocityKick;
 import fr.neocle.flexbans.command.punishment.mute.MuteExecutor;
 import fr.neocle.flexbans.command.punishment.mute.MutePlatformHandler;
-import fr.neocle.flexbans.command.punishment.mute.platform.BukkitMute;
-import fr.neocle.flexbans.command.punishment.mute.platform.BungeeMute;
-import fr.neocle.flexbans.command.punishment.mute.platform.VelocityMute;
 import fr.neocle.flexbans.command.punishment.unban.UnbanExecutor;
 import fr.neocle.flexbans.command.punishment.unmute.UnmuteExecutor;
 import fr.neocle.flexbans.command.punishment.warning.WarningExecutor;
 import fr.neocle.flexbans.command.punishment.warning.WarningPlatformHandler;
-import fr.neocle.flexbans.command.punishment.warning.platform.VelocityWarning;
 import fr.neocle.flexbans.command.server.lock.ServerLockExecutor;
 import fr.neocle.flexbans.command.server.lock.ServerLockPlatformHandler;
-import fr.neocle.flexbans.command.server.lock.platform.VelocityServerLock;
 import fr.neocle.flexbans.command.server.unlock.ServerUnlockExecutor;
 import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.*;
-import fr.neocle.flexbans.handler.api.PunishmentSSEHandler;
-import fr.neocle.flexbans.handler.error.ForbiddenError;
-import fr.neocle.flexbans.handler.error.InternalServerError;
-import fr.neocle.flexbans.handler.error.NotFoundError;
-import fr.neocle.flexbans.handler.post.NewPunishmentHandler;
-import fr.neocle.flexbans.handler.post.RevokePunishmentHandler;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
-import fr.neocle.flexbans.handler.security.CodeVerificationHandler;
-import fr.neocle.flexbans.handler.security.LoginHandler;
-import fr.neocle.flexbans.handler.security.RegisterHandler;
-import fr.neocle.flexbans.handler.security.component.AuthComponents;
-import fr.neocle.flexbans.handler.security.component.DatabaseComponents;
-import fr.neocle.flexbans.handler.security.component.ErrorHandlers;
-import fr.neocle.flexbans.handler.security.component.HandlerRegistry;
-import fr.neocle.flexbans.handler.security.oauth.DiscordOAuthHandler;
-import fr.neocle.flexbans.handler.security.util.DomainFilter;
-import fr.neocle.flexbans.handler.security.util.HttpsEnforcementHandler;
+import fr.neocle.flexbans.handler.factory.PlatformHandlerFactory;
+import fr.neocle.flexbans.handler.web.*;
+import fr.neocle.flexbans.handler.web.api.PunishmentSSEHandler;
+import fr.neocle.flexbans.handler.web.error.ForbiddenError;
+import fr.neocle.flexbans.handler.web.error.InternalServerError;
+import fr.neocle.flexbans.handler.web.error.NotFoundError;
+import fr.neocle.flexbans.handler.web.post.NewPunishmentHandler;
+import fr.neocle.flexbans.handler.web.post.RevokePunishmentHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.CodeVerificationHandler;
+import fr.neocle.flexbans.handler.web.security.LoginHandler;
+import fr.neocle.flexbans.handler.web.security.RegisterHandler;
+import fr.neocle.flexbans.handler.web.security.component.AuthComponents;
+import fr.neocle.flexbans.handler.web.security.component.DatabaseComponents;
+import fr.neocle.flexbans.handler.web.security.component.ErrorHandlers;
+import fr.neocle.flexbans.handler.web.security.component.HandlerRegistry;
+import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
+import fr.neocle.flexbans.handler.web.security.util.DomainFilter;
+import fr.neocle.flexbans.handler.web.security.util.HttpsEnforcementHandler;
 import fr.neocle.flexbans.internal.LicenseChecker;
 import fr.neocle.flexbans.internal.UpdateChecker;
 import fr.neocle.flexbans.locale.LanguageManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 import fr.neocle.flexbans.util.ImagesLoader;
 import fr.neocle.flexbans.util.JettyReloader;
-import fr.neocle.flexbans.util.LibsLoader;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
-import fr.neocle.flexbans.util.broadcast.BroadcasterBukkit;
-import fr.neocle.flexbans.util.broadcast.BroadcasterBungee;
-import fr.neocle.flexbans.util.broadcast.BroadcasterVelocity;
 import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecutionBukkit;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecutionBungee;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecutionVelocity;
 import fr.neocle.flexbans.util.player.PlayerHeadImage;
 import fr.neocle.flexbans.util.player.UsernameUUIDConverters;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.DefaultHandler;
@@ -74,17 +57,14 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.sql.SQLException;
 import java.util.Locale;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Bootstrap {
     protected Path dataFolder;
-    protected Map<String, Object> config;
-    protected Map<String, Object> webhooksConfig;
     protected Logger logger;
+    protected PlatformHandlerFactory platformHandlerFactory;
     protected AuthenticationHandler authHandler;
     protected IndexHandler indexHandler;
     protected PlayerHistoryHandler playerHistoryHandler;
@@ -98,8 +78,6 @@ public class Bootstrap {
     protected ForbiddenError forbiddenError;
     protected NotFoundError notFoundError;
     protected File pluginFolder;
-    protected String platform;
-    protected Object pluginInstance;
     protected DatabaseUtils databaseUtils;
     protected CodeVerificationHandler codeVerificationHandler;
     protected LoginHandler loginHandler;
@@ -122,43 +100,40 @@ public class Bootstrap {
     protected KickPlatformHandler kickPlatformHandler;
     protected WarningPlatformHandler warningPlatformHandler;
     protected ServerLockPlatformHandler serverLockHandler;
-    protected LibsLoader libsLoader;
     protected Broadcaster broadcaster;
     protected UsernameUUIDConverters usernameUUIDConverters;
     protected PunishmentSSEHandler punishmentSSEHandler;
 
-    public void initialize(Path dataFolder, Logger logger, String platform, EventDispatcher eventDispatcher, Object pluginInstance) {
+    public void initialize(Path dataFolder, Logger logger,
+                           EventDispatcher eventDispatcher,
+                           DatabaseUtils databaseUtils,
+                           PlatformHandlerFactory platformHandlerFactory) {
         this.dataFolder = dataFolder;
         this.logger = logger;
         this.pluginFolder = new File("plugins/FlexBans");
-        this.platform = platform;
-        this.pluginInstance = pluginInstance;
+        this.databaseUtils = databaseUtils;
         this.eventDispatcher = eventDispatcher;
+        this.platformHandlerFactory = platformHandlerFactory;
+
+        FlexLogger.init(logger);
 
         try {
-            libsLoader = new LibsLoader(logger);
-            libsLoader.ensureSQLiteAvailable();
-            libsLoader.ensureMySQLAvailable();
-
-            ConfigManager.initialize(logger, dataFolder);
-
-            initializeDatabase(config);
-            initializeHandlers(platform);
-            initializeAPI(eventDispatcher);
+            initializeHandlers();
+            initializeAPI();
             initializeCommands();
             initializeLanguage();
 
-            ImagesLoader.extractImagesFromJar(logger, new File(pluginFolder, "images"));
+            ImagesLoader.extractImagesFromJar(new File(pluginFolder, "images"));
 
-            new UpdateChecker(getVersion(), logger).start();
-        } catch (URISyntaxException | SQLException e) {
+            new UpdateChecker(getVersion()).start();
+        } catch (URISyntaxException e) {
             logger.severe("Error setting up FlexBans: " + e.getMessage());
         }
     }
 
-    private void initializeHandlers(String platform) throws URISyntaxException {
-        forbiddenError = new ForbiddenError(logger);
-        notFoundError = new NotFoundError(logger);
+    private void initializeHandlers() throws URISyntaxException {
+        forbiddenError = new ForbiddenError();
+        notFoundError = new NotFoundError();
 
         usernameUUIDConverters = new UsernameUUIDConverters();
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
@@ -167,61 +142,33 @@ public class Bootstrap {
         boolean moderatorHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.moderator.enabled");
         boolean punishmentDetailsEnabled = ConfigManager.getBoolean("webserver.pages.details.punishment.enabled");
 
-        indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger);
+        indexHandler = new IndexHandler(usernameUUIDConverters, playerHeadImage, databaseUtils);
 
         if (playerHistoryEnabled)
-            playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
+            playerHistoryHandler = new PlayerHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, notFoundError);
         if (moderatorHistoryEnabled)
-            moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
+            moderatorHistoryHandler = new ModeratorHistoryHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, notFoundError);
         if (punishmentDetailsEnabled)
-            punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, logger, notFoundError);
+            punishmentDetailsHandler = new PunishmentDetailsHandler(usernameUUIDConverters, playerHeadImage, databaseUtils, notFoundError);
 
         playerHeadHandler = new PlayerHeadHandler(dataFolder, notFoundError);
         javascriptHandler = new JavascriptHandler(notFoundError);
         cssHandler = new CssHandler(notFoundError);
 
-        CommandsExecution commandsExecution;
+        CommandsExecution commandsExecution = platformHandlerFactory.createCommandsExecution();
+        broadcaster = platformHandlerFactory.createBroadcaster();
+        banPlatformHandler = platformHandlerFactory.createBanHandler();
+        mutePlatformHandler = platformHandlerFactory.createMuteHandler();
+        kickPlatformHandler = platformHandlerFactory.createKickHandler();
+        warningPlatformHandler = platformHandlerFactory. createWarningHandler();
+        serverLockHandler = platformHandlerFactory.createServerLockHandler();
 
-        switch (platform.toLowerCase()) {
-            case "bungee":
-                commandsExecution = new CommandsExecutionBungee();
-                broadcaster = new BroadcasterBungee((net.md_5.bungee.api.ProxyServer) pluginInstance);
-                banPlatformHandler = new BungeeBan((net.md_5.bungee.api.ProxyServer) pluginInstance);
-                mutePlatformHandler = new BungeeMute((net.md_5.bungee.api.ProxyServer) pluginInstance);
-                kickPlatformHandler = new BungeeKick((net.md_5.bungee.api.ProxyServer) pluginInstance);
-                warningPlatformHandler = null;
-                break;
-
-            case "spigot":
-                commandsExecution = new CommandsExecutionBukkit((JavaPlugin) pluginInstance);
-                broadcaster = new BroadcasterBukkit();
-                banPlatformHandler = new BukkitBan();
-                mutePlatformHandler = new BukkitMute();
-                kickPlatformHandler = new BukkitKick();
-                warningPlatformHandler = null;
-                break;
-
-            case "velocity":
-                commandsExecution = new CommandsExecutionVelocity((ProxyServer) pluginInstance);
-                broadcaster = new BroadcasterVelocity((ProxyServer) pluginInstance);
-                banPlatformHandler = new VelocityBan((ProxyServer) pluginInstance);
-                mutePlatformHandler = new VelocityMute((ProxyServer) pluginInstance);
-                kickPlatformHandler = new VelocityKick((ProxyServer) pluginInstance);
-                warningPlatformHandler = new VelocityWarning((ProxyServer) pluginInstance);
-
-                serverLockHandler = new VelocityServerLock((ProxyServer) pluginInstance);
-                break;
-            default:
-                logger.severe("Unsupported platform: " + platform);
-                return;
-        }
-
-        revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution, logger);
-        codeVerificationHandler = new CodeVerificationHandler(logger, databaseUtils);
-        registerHandler = new RegisterHandler(logger, databaseUtils, eventDispatcher);
-        loginHandler = new LoginHandler(logger, databaseUtils, eventDispatcher);
-        discordOAuthHandler = new DiscordOAuthHandler(databaseUtils, forbiddenError, eventDispatcher, logger);
-        newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils, logger);
+        revokePunishmentHandler = new RevokePunishmentHandler(commandsExecution);
+        codeVerificationHandler = new CodeVerificationHandler(databaseUtils);
+        registerHandler = new RegisterHandler(databaseUtils, eventDispatcher);
+        loginHandler = new LoginHandler(databaseUtils, eventDispatcher);
+        discordOAuthHandler = new DiscordOAuthHandler(databaseUtils, forbiddenError, eventDispatcher);
+        newPunishmentHandler = new NewPunishmentHandler(commandsExecution, databaseUtils);
         punishmentSSEHandler = new PunishmentSSEHandler();
 
         HandlerRegistry handlerRegistry = new HandlerRegistry(
@@ -259,7 +206,6 @@ public class Bootstrap {
                 .databaseComponents(databaseComponents)
                 .authComponents(authComponents)
                 .eventDispatcher(eventDispatcher)
-                .logger(logger)
                 .build();
     }
 
@@ -272,7 +218,7 @@ public class Bootstrap {
         }
 
         logger.info("Loading language file: " + lang + "...");
-        LanguageManager.initialize(logger, dataFolder);
+        LanguageManager.initialize(dataFolder);
         LanguageManager.loadLanguage(lang);
     }
 
@@ -289,38 +235,37 @@ public class Bootstrap {
         serverUnlockExecutor = new ServerUnlockExecutor(broadcaster, usernameUUIDConverters, databaseUtils, eventDispatcher);
     }
 
-    public void initializeAPI(EventDispatcher eventDispatcher) {
+    public void initializeAPI() {
         api = FlexBansAPI.getInstance();
-    }
 
-    public void initializeDatabase(Map<String, Object> config) throws SQLException {
-        String type = ConfigManager.getString("database.type");
-        String host = ConfigManager.getString("database.hostname");
+        FlexBansAPIImpl.setBanExecutor(banExecutor);
+        FlexBansAPIImpl.setMuteExecutor(muteExecutor);
+        FlexBansAPIImpl.setKickExecutor(kickExecutor);
+        FlexBansAPIImpl.setWarningExecutor(warningExecutor);
 
-        int port = ConfigManager.getInt("database.port");
-        String database = ConfigManager.getString("database.database");
-        String username = ConfigManager.getString("database.username");
-        String password = ConfigManager.getString("database.password");
+        FlexBansAPIImpl.setUnbanExecutor(unbanExecutor);
+        FlexBansAPIImpl.setUnmuteExecutor(unmuteExecutor);
 
-        databaseUtils = new DatabaseUtils("./plugins/FlexBans", type, host, port, database, username, password, logger);
-        databaseUtils.initialize();
+        FlexBansAPIImpl.setServerLockExecutor(serverLockExecutor);
+        FlexBansAPIImpl.setServerUnlockExecutor(serverUnlockExecutor);
+
     }
 
     public void startWebServer(int port) {
         Server server = new Server(port);
 
-        AbstractHandler securityHandler = new HttpsEnforcementHandler(logger);
+        AbstractHandler securityHandler = new HttpsEnforcementHandler();
         ResourceHandler resourceHandler = new ResourceHandler();
-        DomainFilter domainFilter = new DomainFilter(logger);
+        DomainFilter domainFilter = new DomainFilter();
         HomeHandler homeHandler = new HomeHandler();
 
-        jettyReloader = new JettyReloader(server, logger);
+        jettyReloader = new JettyReloader(server);
 
         resourceHandler.setDirectoriesListed(false);
         resourceHandler.setWelcomeFiles(new String[]{"home.html"});
         resourceHandler.setResourceBase(getClass().getClassLoader().getResource("web").toExternalForm());
 
-        InternalServerError errorHandler = new InternalServerError(logger);
+        InternalServerError errorHandler = new InternalServerError();
         server.setErrorHandler(errorHandler);
 
         HandlerList handlerList = new HandlerList();

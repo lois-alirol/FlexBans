@@ -2,6 +2,7 @@ package fr.neocle.flexbans.internal;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -17,15 +18,13 @@ public class UpdateChecker {
             "https://license-checker.license-verif.workers.dev/check-version?version=";
 
     private final String currentVersion;
-    private final Logger logger;
     private final Gson gson = new Gson();
 
     private final ScheduledExecutorService scheduler =
             Executors.newSingleThreadScheduledExecutor();
 
-    public UpdateChecker(String currentVersion, Logger logger) {
+    public UpdateChecker(String currentVersion) {
         this.currentVersion = currentVersion;
-        this.logger = logger;
     }
 
     public void start() {
@@ -49,17 +48,17 @@ public class UpdateChecker {
             String latest = json.get("latest").getAsString();
 
             if (!upToDate) {
-                logger.warning("==================================================");
-                logger.warning("FlexBans is NOT up to date!");
-                logger.warning("Current version : " + currentVersion);
-                logger.warning("Latest version  : " + latest);
-                logger.warning("Find the latest version on SITE_NAME");
-                logger.warning("HTTPS://SITEDOMAIN/PLUGINURL.PLUGINID");
-                logger.warning("==================================================");
+                FlexLogger.warn("==================================================");
+                FlexLogger.warn("FlexBans is NOT up to date!");
+                FlexLogger.warn("Current version : " + currentVersion);
+                FlexLogger.warn("Latest version  : " + latest);
+                FlexLogger.warn("Find the latest version on SITE_NAME");
+                FlexLogger.warn("HTTPS://SITEDOMAIN/PLUGINURL.PLUGINID");
+                FlexLogger.warn("==================================================");
             }
 
         } catch (Exception ex) {
-            logger.warning("Failed to check updates: " + ex.getMessage());
+            FlexLogger.warn("Failed to check updates: " + ex.getMessage());
         }
     }
 }

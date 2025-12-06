@@ -3,6 +3,7 @@ package fr.neocle.flexbans.util.player;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.io.BufferedReader;
@@ -16,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class UsernameUUIDConverters {
-    private static final Logger logger = Logger.getLogger("FlexBans");
     private final FloodgateApi floodgateApi;
 
     private final Map<String, String> uuidToUsernameCache = new ConcurrentHashMap<>();
@@ -31,7 +31,7 @@ public class UsernameUUIDConverters {
             Class.forName("org.geysermc.floodgate.api.FloodgateApi");
             return true;
         } catch (ClassNotFoundException e) {
-            logger.info("Floodgate is not loaded. Skipping Bedrock players usernames retrieval.");
+            FlexLogger.info("Floodgate is not loaded. Skipping Bedrock players usernames retrieval.");
             return false;
         }
     }
@@ -39,7 +39,7 @@ public class UsernameUUIDConverters {
     @SuppressWarnings("deprecation")
     public String UUIDtoUsername(String uuid) {
         if (uuid == null || uuid.isEmpty()) {
-            logger.warning("Invalid UUID provided.");
+            FlexLogger.warn("Invalid UUID provided.");
             return "Invalid UUID";
         }
 
@@ -105,19 +105,19 @@ public class UsernameUUIDConverters {
 
                         return username;
                     } else {
-                        logger.warning("Player with UUID " + uuid + " not found. Response: " + jsonResponse);
+                        FlexLogger.warn("Player with UUID " + uuid + " not found. Response: " + jsonResponse);
                         return "Player not found";
                     }
                 }
             } else {
-                logger.warning("Failed to retrieve username. HTTP response code: " + status);
+                FlexLogger.warn("Failed to retrieve username. HTTP response code: " + status);
                 return "Error retrieving player data";
             }
         } catch (IllegalArgumentException e) {
-            logger.severe("Invalid UUID format: " + uuid);
+            FlexLogger.error("Invalid UUID format: " + uuid);
             return "Invalid UUID format";
         } catch (Exception e) {
-            logger.severe("Unexpected error while fetching username for UUID: " + uuid);
+            FlexLogger.error("Unexpected error while fetching username for UUID: " + uuid);
             e.printStackTrace();
             return "Error fetching data";
         }
@@ -126,7 +126,7 @@ public class UsernameUUIDConverters {
     @SuppressWarnings("deprecation")
     public String usernameToUUID(String username) {
         if (username == null || username.isEmpty()) {
-            logger.warning("Invalid username provided.");
+            FlexLogger.warn("Invalid username provided.");
             return "Invalid username";
         }
 
@@ -146,7 +146,7 @@ public class UsernameUUIDConverters {
 
                         return playerUUID.toString();
                     } else {
-                        logger.warning("Floodgate API couldn't find the UUID for player: " + username);
+                        FlexLogger.warn("Floodgate API couldn't find the UUID for player: " + username);
                         return "UUID not found in Floodgate";
                     }
                 } catch (Exception e) {

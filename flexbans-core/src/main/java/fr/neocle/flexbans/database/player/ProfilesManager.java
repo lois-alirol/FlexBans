@@ -1,20 +1,17 @@
 package fr.neocle.flexbans.database.player;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.net.InetAddress;
 import java.sql.*;
 import java.util.*;
-import java.util.logging.Logger;
 
 public class ProfilesManager {
-
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
 
-    public ProfilesManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public ProfilesManager(DatabaseConnectionManager dbManager) {
         this.dbManager = dbManager;
-        this.logger = logger;
     }
 
     public void recordPlayerLogin(UUID uuid, String username, InetAddress address) {
@@ -30,7 +27,7 @@ public class ProfilesManager {
 
             conn.commit();
         } catch (SQLException e) {
-            logger.severe("Failed to record login for " + uuid + ": " + e.getMessage());
+            FlexLogger.error("Failed to record login for " + uuid + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -121,7 +118,7 @@ public class ProfilesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get usernames for " + uuid + ": " + e.getMessage());
+            FlexLogger.error("Failed to get usernames for " + uuid + ": " + e.getMessage());
         }
 
         return names;
@@ -143,7 +140,7 @@ public class ProfilesManager {
                 }
             }
         } catch (Exception e) {
-            logger.severe("Failed to get IPs for " + uuid + ": " + e.getMessage());
+            FlexLogger.error("Failed to get IPs for " + uuid + ": " + e.getMessage());
         }
 
         return results;
@@ -160,11 +157,13 @@ public class ProfilesManager {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    results.add(UUID.fromString(rs.getString("uuid")));
+                    UUID playerUuid = UUID.fromString(rs.getString("uuid"));
+                    results.add(playerUuid);
                 }
             }
+
         } catch (SQLException e) {
-            logger.severe("Failed to get players by IP: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return results;
@@ -172,12 +171,12 @@ public class ProfilesManager {
 
     public String getCurrentUsername(UUID uuid) {
         String sql = """
-        SELECT username
-        FROM flexbans_names
-        WHERE uuid = ?
-        ORDER BY last_seen DESC
-        LIMIT 1
-    """;
+            SELECT username
+            FROM flexbans_names
+            WHERE uuid = ?
+            ORDER BY last_seen DESC
+            LIMIT 1
+        """;
 
         try (Connection conn = dbManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -191,16 +190,75 @@ public class ProfilesManager {
             }
 
         } catch (SQLException e) {
-            logger.severe("Failed to get current username for " + uuid + ": " + e.getMessage());
+            FlexLogger.error("Failed to get current username for " + uuid + ": " + e.getMessage());
         }
 
         return null;
     }
 
+    public UUID getUuid(String username) {
+        String sql = """
+            SELECT uuid FROM flexbans_names
+            WHERE LOWER(username) = LOWER(?)
+            ORDER BY last_seen DESC
+            LIMIT 1
+        """;
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return UUID.fromString(rs.getString("uuid"));
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get UUID for username " + username + ": " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public InetAddress getIp(String username) {
+        String sql = """
+        SELECT ip FROM flexbans_ips
+        WHERE uuid = (
+            SELECT uuid FROM flexbans_names
+            WHERE LOWER(username) = LOWER(?)
+            ORDER BY last_seen DESC
+            LIMIT 1
+        )
+        ORDER BY last_seen DESC
+        LIMIT 1
+    """;
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    byte[] bytes = rs.getBytes("ip");
+                    return InetAddress.getByAddress(bytes);
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get IP for username " + username + ": " + e.getMessage());
+        } catch (Exception e) {
+            FlexLogger.error("Failed to parse IP address for username " + username + ": " + e.getMessage());
+        }
+
+        return null;
+    }
 
     public void printProfile(UUID uuid) {
-        logger.info("=== Profile of " + uuid + " ===");
-        logger.info("Usernames: " + getAllUsernames(uuid));
-        logger.info("IPs: " + getAllIps(uuid));
+        FlexLogger.info("=== Profile of " + uuid + " ===");
+        FlexLogger.info("Usernames: " + getAllUsernames(uuid));
+        FlexLogger.info("IPs: " + getAllIps(uuid));
     }
 }

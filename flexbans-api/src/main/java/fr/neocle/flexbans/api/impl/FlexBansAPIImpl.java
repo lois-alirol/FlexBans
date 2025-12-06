@@ -190,5 +190,4 @@ public class FlexBansAPIImpl implements FlexBansAPI {
         }
         return serverUnlockExecutor;
     }
-
 }

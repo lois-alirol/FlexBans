@@ -5,6 +5,7 @@ import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.locale.LanguageManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 import net.kyori.adventure.text.Component;
 
 import java.sql.SQLException;
@@ -13,11 +14,9 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class VerifyCommand implements ICommandExecutor {
-    private final Logger logger;
     private final UserManager userManager;
 
-    public VerifyCommand(Logger logger, UserManager userManager) {
-        this.logger = logger;
+    public VerifyCommand(UserManager userManager) {
         this.userManager = userManager;
     }
 
@@ -65,11 +64,11 @@ public class VerifyCommand implements ICommandExecutor {
                 source.sendMessage(message);
             } else {
                 source.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
-                logger.warning(LanguageManager.getMessageString("commands.logging.verify.sql-exception"). replace("%error%", e.getMessage()));
+                FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.sql-exception"). replace("%error%", e.getMessage()));
             }
         } catch (Exception e) {
             source.sendMessage(LanguageManager.getMessageComponent("commands. verify.error"));
-            logger.warning(LanguageManager.getMessageString("commands.logging.verify. exception").replace("%error%", e.getMessage()));
+            FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify. exception").replace("%error%", e.getMessage()));
         }
     }
 

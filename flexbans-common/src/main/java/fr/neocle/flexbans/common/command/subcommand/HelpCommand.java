@@ -12,11 +12,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 public class HelpCommand implements ICommandExecutor {
-    private final Logger logger;
 
-    public HelpCommand(Logger logger) {
-        this.logger = logger;
-    }
+    public HelpCommand() {}
 
     @Override
     public void execute(ICommandInvocation invocation) {

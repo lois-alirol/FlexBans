@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.database.dashboard;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,11 +11,9 @@ import java.util.logging.Logger;
 
 public class SessionManager {
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
 
-    public SessionManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public SessionManager(DatabaseConnectionManager dbManager) {
         this.dbManager = dbManager;
-        this.logger = logger;
     }
 
     public void insertSessionData(String sessionId, String username) {
@@ -26,7 +25,7 @@ public class SessionManager {
             preparedStatement.setString(2, username);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Error inserting session data: " + e.getMessage());
+            FlexLogger.error("Error inserting session data: " + e.getMessage());
         }
     }
 
@@ -44,7 +43,7 @@ public class SessionManager {
                 return resultSet.getString("username");
             }
         } catch (SQLException e) {
-            logger.severe("Error fetching user from session ID: " + e.getMessage());
+            FlexLogger.error("Error fetching user from session ID: " + e.getMessage());
         }
         return null;
     }
@@ -55,16 +54,9 @@ public class SessionManager {
         try (Connection connection = dbManager.getConnection();
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, username);
-            int affectedRows = preparedStatement.executeUpdate();
-
-            if (affectedRows > 0) {
-                logger.info("Deleted session for user: " + username);
-            } else {
-                logger.warning("No session found for user: " + username);
-            }
-
+            preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Error deleting session for user " + username + ": " + e.getMessage());
+            FlexLogger.error("Error deleting session for user " + username + ": " + e.getMessage());
         }
     }
 }

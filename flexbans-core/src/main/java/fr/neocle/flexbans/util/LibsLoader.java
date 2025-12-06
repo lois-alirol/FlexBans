@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.util;
 
+import fr.neocle.flexbans.logger.FlexLogger;
+
 import java.io.*;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -14,11 +16,8 @@ public class LibsLoader {
     private static final File LIBS_FOLDER = new File("plugins/FlexBans/libs");
     private static final File SQLITE_JAR = new File(LIBS_FOLDER, "sqlite.jar");
     private static final File MYSQL_JAR = new File(LIBS_FOLDER, "mysql.jar");
-    private final Logger logger;
 
-    public LibsLoader(Logger logger) {
-        this.logger = logger;
-    }
+    public LibsLoader() {}
 
     public void ensureSQLiteAvailable() {
         try {
@@ -27,9 +26,9 @@ public class LibsLoader {
             }
 
             if (!SQLITE_JAR.exists()) {
-                logger.info("Downloading SQLite JDBC...");
+                FlexLogger.info("Downloading SQLite JDBC...");
                 downloadFile(SQLITE_JDBC_URL, SQLITE_JAR);
-                logger.info("SQLite JDBC downloaded successfully!");
+                FlexLogger.info("SQLite JDBC downloaded successfully!");
             }
 
             URL jarUrl = SQLITE_JAR.toURI().toURL();
@@ -49,9 +48,9 @@ public class LibsLoader {
             }
 
             if (!MYSQL_JAR.exists()) {
-                logger.info("Downloading MySQL JDBC...");
+                FlexLogger.info("Downloading MySQL JDBC...");
                 downloadFile(MYSQL_JDBC_URL, MYSQL_JAR);
-                logger.info("MySQL JDBC downloaded successfully!");
+                FlexLogger.info("MySQL JDBC downloaded successfully!");
             }
 
             URL jarUrl = MYSQL_JAR.toURI().toURL();

@@ -2,6 +2,7 @@ package fr.neocle.flexbans.database.dashboard;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.logger.FlexLogger;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.Connection;
@@ -12,13 +13,11 @@ import java.util.logging.Logger;
 
 public class UserManager {
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
     private final DatabaseUtils db;
 
-    public UserManager(DatabaseUtils db, DatabaseConnectionManager dbManager, Logger logger) {
+    public UserManager(DatabaseUtils db, DatabaseConnectionManager dbManager) {
         this.db = db;
         this.dbManager = dbManager;
-        this.logger = logger;
     }
 
     public void insertUsername(String username, String code) throws SQLException {
@@ -130,7 +129,7 @@ public class UserManager {
                 }
 
                 if (codeRowId == null || discordId == null || discordId.isEmpty()) {
-                    logger.info(codeRowId + " " + discordId);
+                    FlexLogger.info(codeRowId + " " + discordId);
                     connection.rollback();
                     return false;
                 }
@@ -163,13 +162,13 @@ public class UserManager {
 
             } catch (SQLException e) {
                 connection.rollback();
-                logger.severe("Error setting Discord ID from code: " + e.getMessage());
+                FlexLogger.error("Error setting Discord ID from code: " + e.getMessage());
                 return false;
             } finally {
                 connection.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            logger.severe("Database connection error: " + e.getMessage());
+            FlexLogger.error("Database connection error: " + e.getMessage());
             return false;
         }
     }
@@ -226,7 +225,7 @@ public class UserManager {
                 }
             }
         } catch (SQLException e) {
-            logger.warning("Failed to register user: " + e.getMessage());
+            FlexLogger.error("Failed to register user: " + e.getMessage());
         }
     }
 
@@ -239,7 +238,7 @@ public class UserManager {
             preparedStatement.setString(2, playerName);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Error setting verified status: " + e.getMessage());
+            FlexLogger.error("Error setting verified status: " + e.getMessage());
         }
     }
 
@@ -252,7 +251,7 @@ public class UserManager {
             preparedStatement.setString(2, userId);
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Error setting verified status: " + e.getMessage());
+            FlexLogger.error("Error setting verified status: " + e.getMessage());
         }
     }
 
@@ -267,7 +266,7 @@ public class UserManager {
                 return resultSet.getString("username");
             }
         } catch (SQLException e) {
-            logger.severe("Error fetching username: " + e.getMessage());
+            FlexLogger.error("Error fetching username: " + e.getMessage());
         }
         return null;
     }
@@ -284,7 +283,7 @@ public class UserManager {
                 return resultSet.getBoolean("is_verified");
             }
         } catch (SQLException e) {
-            logger.severe("Error checking user verification: " + e.getMessage());
+            FlexLogger.error("Error checking user verification: " + e.getMessage());
         }
         return false;
     }
@@ -302,11 +301,10 @@ public class UserManager {
                 return resultSet.getBoolean("is_verified");
             }
         } catch (SQLException e) {
-            logger.severe("Error checking user verification: " + e.getMessage());
+            FlexLogger.error("Error checking user verification: " + e.getMessage());
         }
         return false;
     }
-
 
     public boolean isUserRegistered(String username) {
         String selectSQL = "SELECT username FROM users WHERE username = ? AND password IS NOT NULL AND password != '';";
@@ -320,7 +318,7 @@ public class UserManager {
                 return true;
             }
         } catch (SQLException e) {
-            logger.severe("Error checking user registration: " + e.getMessage());
+            FlexLogger.error("Error checking user registration: " + e.getMessage());
         }
         return false;
     }
@@ -337,7 +335,7 @@ public class UserManager {
                 return resultSet.getString("username");
             }
         } catch (SQLException e) {
-            logger.severe("Error fetching username from Discord ID: " + e.getMessage());
+            FlexLogger.error("Error fetching username from Discord ID: " + e.getMessage());
         }
         return null;
     }
@@ -355,7 +353,7 @@ public class UserManager {
                 return BCrypt.checkpw(password, storedHashedPassword);
             }
         } catch (SQLException e) {
-            logger.severe("Error validating user credentials: " + e.getMessage());
+            FlexLogger.error("Error validating user credentials: " + e.getMessage());
         }
         return false;
     }

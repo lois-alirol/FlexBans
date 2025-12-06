@@ -28,7 +28,7 @@ public class BanCommand implements SimpleCommand {
     @Override
     public List<String> suggest(Invocation invocation) {
         var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        return commandExecutor. suggest(wrappedInvocation);
+        return commandExecutor.suggest(wrappedInvocation);
     }
 
     @Override

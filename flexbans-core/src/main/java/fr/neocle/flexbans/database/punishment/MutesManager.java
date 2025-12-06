@@ -2,6 +2,7 @@ package fr.neocle.flexbans.database.punishment;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
 import fr.neocle.flexbans.database.player.ProfilesManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.net.InetAddress;
 import java.sql.Connection;
@@ -18,13 +19,11 @@ import java.util.logging.Logger;
 public class MutesManager {
     private final DatabaseConnectionManager dbManager;
     private final ProfilesManager profilesManager;
-    private final Logger logger;
     private final ScheduledExecutorService scheduler;
 
-    public MutesManager(DatabaseConnectionManager dbManager, Logger logger, ProfilesManager profilesManager) {
+    public MutesManager(DatabaseConnectionManager dbManager, ProfilesManager profilesManager) {
         this.dbManager = dbManager;
         this.profilesManager = profilesManager;
-        this.logger = logger;
         this.scheduler = Executors.newScheduledThreadPool(1);
 
         startExpirationScheduler();
@@ -40,11 +39,11 @@ public class MutesManager {
             if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
-            logger.info("Mute expiration scheduler stopped");
+            FlexLogger.info("Mute expiration scheduler stopped");
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
-            logger.warning("Mute expiration scheduler interrupted while shutting down");
+            FlexLogger.warn("Mute expiration scheduler interrupted while shutting down");
         }
     }
 
@@ -57,7 +56,7 @@ public class MutesManager {
             stmt.setLong(1, System.currentTimeMillis());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update expired mutes: " + e.getMessage());
+            FlexLogger.error("Failed to update expired mutes: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -95,7 +94,7 @@ public class MutesManager {
             stmt.setString(1, targetUUID.toString());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update previous bans for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to update previous bans for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -226,7 +225,7 @@ public class MutesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get mute reason for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get mute reason for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -256,7 +255,7 @@ public class MutesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get mute duration for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get mute duration for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -286,7 +285,7 @@ public class MutesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get mute time for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get mute time for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -316,7 +315,7 @@ public class MutesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get mute issuer for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get mute issuer for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -353,7 +352,7 @@ public class MutesManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get mute expiration for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get mute expiration for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -367,10 +366,10 @@ public class MutesManager {
              PreparedStatement stmt = connection.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
 
-            logger.info("=== Mutes Table ===");
+            FlexLogger.info("=== Mutes Table ===");
 
             while (rs.next()) {
-                logger.info("ID: " + rs.getInt("id") +
+                FlexLogger.info("ID: " + rs.getInt("id") +
                         ", Target UUID: " + rs.getString("target_uuid") +
                         ", Target Name: " + rs.getString("target_name") +
                         ", Issuer UUID: " + rs.getString("issuer_uuid") +

@@ -49,21 +49,37 @@ public class PlayerEventHandler {
         String rawBanMessage = LanguageManager. getMessageString("punishments.ban.disconnect-message");
         String rawLockMessage = LanguageManager. getMessageString("server-locks.disconnect-message");
 
-        if (bansManager.isPlayerBanned(targetUUID, null)) {
-            Component formattedBanMessage = formatBanMessage(rawBanMessage, targetUUID, null);
-            player.disconnect(formattedBanMessage);
+        if (bansManager.isPlayerBanned(targetUUID, targetServer)) {
+            Component msg = formatBanMessage(rawBanMessage, targetUUID, targetServer);
+            if (player.getCurrentServer().isEmpty()) player.disconnect(msg);
+            else player.sendMessage(msg);
             return;
         }
 
-        if (bansManager.isPlayerBanned(targetUUID, targetServer) ||
-                bansManager.isIpBanned(playerIp, targetServer)) {
-            Component formattedBanMessage = formatBanMessage(rawBanMessage, targetUUID, targetServer);
+        if (bansManager.isIpBanned(playerIp, targetServer)) {
+            UUID banOwner = bansManager.getBannedUuidFromIp(playerIp, targetServer);
+            if (banOwner == null) banOwner = targetUUID;
 
-            if (player.getCurrentServer().isEmpty()) {
-                player.disconnect(formattedBanMessage);
-            } else {
-                player.sendMessage(formattedBanMessage);
-            }
+            Component msg = formatBanMessage(rawBanMessage, banOwner, targetServer);
+
+            if (player.getCurrentServer().isEmpty()) player.disconnect(msg);
+            else player.sendMessage(msg);
+            return;
+        }
+
+        if (bansManager.isPlayerBannedGlobal(targetUUID)) {
+            Component msg = formatBanMessage(rawBanMessage, targetUUID, "Global");
+            player.disconnect(msg);
+            return;
+        }
+
+        if (bansManager.isIpBanned(playerIp, "global")) {
+            UUID banOwner = bansManager.getBannedUuidFromIp(playerIp, "Global");
+            if (banOwner == null) banOwner = targetUUID;
+
+            Component msg = formatBanMessage(rawBanMessage, banOwner, "Global");
+
+            player.disconnect(msg);
             return;
         }
 

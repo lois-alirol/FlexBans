@@ -5,27 +5,35 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.common.command.lookup.alt.IAltCommandHelper;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.database.player.ProfilesManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class VelocityAltCommandHelper implements IAltCommandHelper {
     private final ProxyServer proxyServer;
+    private final ProfilesManager profilesManager;
 
     public VelocityAltCommandHelper(ProxyServer proxyServer, DatabaseUtils databaseUtils) {
         this.proxyServer = proxyServer;
+        this.profilesManager = databaseUtils.getProfilesManager();
     }
 
     @Override
     public InetAddress getPlayerInetAddress(String playerName) {
-        java.util.Optional<Player> optPlayer = proxyServer.getPlayer(playerName);
+        Optional<Player> optPlayer = proxyServer.getPlayer(playerName);
+
         if (optPlayer.isPresent()) {
-            return optPlayer.get(). getRemoteAddress().getAddress();
+            InetAddress address = optPlayer.get().getRemoteAddress().getAddress();
+            FlexLogger.info("[Profiles] Player '" + playerName + "' is online, IP resolved from Proxy: " + address);
+            return address;
         }
 
-        return null;
+        FlexLogger.info("[Profiles] Player '" + playerName + "' is offline, looking up IP in database...");
+        return profilesManager.getIp(playerName);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package fr.neocle.flexbans.locale;
 
+import fr.neocle.flexbans.logger.FlexLogger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.bungeecord.BungeeComponentSerializer;
@@ -19,7 +20,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class LanguageManager {
-    private static Logger logger;
     private static File langFolder;
     private static Yaml yaml;
     private static MiniMessage miniMessage;
@@ -28,8 +28,7 @@ public class LanguageManager {
     private static final String DEFAULT_LANGUAGE = "en_US.yml";
     private static final String[] AVAILABLE_LANGUAGES = {"en_US.yml", "fr_FR.yml", "de_DE.yml"};
 
-    public static void initialize(Logger logger, Path dataFolder) {
-        LanguageManager.logger = logger;
+    public static void initialize(Path dataFolder) {
         langFolder = new File(dataFolder.toFile(), "lang");
 
         DumperOptions dumperOptions = new DumperOptions();
@@ -54,10 +53,10 @@ public class LanguageManager {
                     if (resourceStream != null) {
                         Files.copy(resourceStream, targetFile.toPath());
                     } else {
-                        logger.warning("Missing language file: " + langFile + ". Contact plugin's developer.");
+                        FlexLogger.warn("Missing language file: " + langFile + ". Contact plugin's developer.");
                     }
                 } catch (IOException e) {
-                    logger.severe("Failed to load language file " + langFile + ": " + e.getMessage());
+                    FlexLogger.error("Failed to load language file " + langFile + ": " + e.getMessage());
                 }
             }
         }
@@ -66,7 +65,7 @@ public class LanguageManager {
     public static void loadLanguage(String lang) {
         File langFile = new File(langFolder, lang + ".yml");
         if (!langFile.exists()) {
-            logger.warning("Language file not found: " + lang + ".yml. Defaulting to " + DEFAULT_LANGUAGE);
+            FlexLogger.warn("Language file not found: " + lang + ".yml. Defaulting to " + DEFAULT_LANGUAGE);
             langFile = new File(langFolder, DEFAULT_LANGUAGE);
         }
 
@@ -75,10 +74,10 @@ public class LanguageManager {
             if (loadedData != null) {
                 ensureDefaults(langFile, loadedData);
                 flattenMap("", loadedData);
-                logger.info("Loaded language: " + lang);
+                FlexLogger.info("Loaded language: " + lang);
             }
         } catch (IOException e) {
-            logger.severe("Error loading language file " + lang + ": " + e.getMessage());
+            FlexLogger.error("Error loading language file " + lang + ": " + e.getMessage());
         }
     }
 
@@ -108,7 +107,7 @@ public class LanguageManager {
                 }
             }
         } catch (IOException e) {
-            logger.severe("Failed to check or update missing language keys: " + e.getMessage());
+            FlexLogger.error("Failed to check or update missing language keys: " + e.getMessage());
         }
     }
 

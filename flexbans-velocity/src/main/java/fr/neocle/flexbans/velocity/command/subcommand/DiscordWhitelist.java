@@ -6,7 +6,7 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.common.command.subcommand.DiscordWhitelistCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.DiscordAddUserCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.DiscordRemoveUserCommand;
-import fr.neocle.flexbans.handler.security.oauth.DiscordOAuthHandler;
+import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 
 import java.util.List;

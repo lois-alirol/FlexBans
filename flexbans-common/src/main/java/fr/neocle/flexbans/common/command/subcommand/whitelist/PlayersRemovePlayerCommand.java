@@ -5,7 +5,7 @@ import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr. neocle.flexbans.command.whitelist.PlayersWhitelistCommand;
-import fr. neocle.flexbans.handler.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle. flexbans.locale.LanguageManager;
 
 public class PlayersRemovePlayerCommand extends PlayersWhitelistCommand implements ICommandExecutor {

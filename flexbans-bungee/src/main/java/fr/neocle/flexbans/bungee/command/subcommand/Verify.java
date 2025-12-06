@@ -3,6 +3,7 @@ package fr.neocle.flexbans.bungee.command.subcommand;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.locale.LanguageManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -14,12 +15,10 @@ import java.util.Arrays;
 import java.util.logging.Logger;
 
 public class Verify extends Command {
-    private final Logger logger;
     private final UserManager userManager;
 
-    public Verify(Logger logger, DatabaseUtils databaseUtils) {
+    public Verify(DatabaseUtils databaseUtils) {
         super("verify", "flexbans.verify");
-        this.logger = logger;
         this.userManager = databaseUtils.getUserManager();
     }
 
@@ -66,11 +65,11 @@ public class Verify extends Command {
                         .toArray(BaseComponent[]::new));
             } else {
                 player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
-                logger.warning(LanguageManager.getMessageString("commands.logging.verify.sql-exception").replace("%error%", e.getMessage()));
+                FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.sql-exception").replace("%error%", e.getMessage()));
             }
         } catch (Exception e) {
             player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.error"));
-            logger.warning(LanguageManager.getMessageString("commands.logging.verify.exception").replace("%error%", e.getMessage()));
+            FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.exception").replace("%error%", e.getMessage()));
         }
     }
 }

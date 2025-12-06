@@ -14,11 +14,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class WhitelistEvents {
-    private final Logger logger;
 
-    public WhitelistEvents(Logger logger) {
-        this.logger = logger;
-    }
+    public WhitelistEvents() {}
 
     @Subscribe
     public void onUserWhitelisted(UserWhitelistedEvent event) {
@@ -80,7 +77,7 @@ public class WhitelistEvents {
             }
         }
 
-        WebhookService webhookService = new WebhookService(logger);
+        WebhookService webhookService = new WebhookService();
         webhookService.sendWebhook(
                 webhookUrl, content, embedEnabled, color, authorName, authorUrl, authorIcon,
                 thumbnailUrl, title, titleUrl, description, fields, imageUrl, footerText, footerIcon, timestamp

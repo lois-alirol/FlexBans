@@ -18,7 +18,7 @@ public class BungeeBan implements BanPlatformHandler {
 
     @Override
     public void applyBan(String target, UUID uuid, String issuer_name, String duration,
-                         String reason, String serverScope) {
+                         String reason, String serverScope, boolean isIpBan) {
         ProxiedPlayer player = uuid != null
                 ? proxy.getPlayer(uuid)
                 : proxy.getPlayer(target);

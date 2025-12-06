@@ -6,9 +6,9 @@ import fr.neocle.flexbans.bukkit.command.subcommand.PlayersWhitelist;
 import fr.neocle.flexbans.bukkit.command.subcommand.Reload;
 import fr.neocle.flexbans.bukkit.command.subcommand.Verify;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.IndexHandler;
-import fr.neocle.flexbans.handler.security.AuthenticationHandler;
-import fr.neocle.flexbans.handler.security.oauth.DiscordOAuthHandler;
+import fr.neocle.flexbans.handler.web.IndexHandler;
+import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
+import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -20,16 +20,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class BaseCommandBukkit implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
     public BaseCommandBukkit(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler,
                              DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler,
-                             DatabaseUtils databaseUtils, Logger logger) {
-        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler, logger));
-        subCommands.put("verify", new Verify(logger, databaseUtils));
+                             DatabaseUtils databaseUtils) {
+        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler));
+        subCommands.put("verify", new Verify(databaseUtils));
         subCommands.put("players", new PlayersWhitelist(api, authenticationHandler));
         subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler));
     }

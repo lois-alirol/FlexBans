@@ -13,7 +13,7 @@ import java.util.UUID;
 public class BukkitBan implements BanPlatformHandler {
     @Override
     public void applyBan(String target, UUID uuid, String issuer_name, String duration,
-                         String reason, String serverScope) {
+                         String reason, String serverScope, boolean isIpBan) {
         Player player = uuid != null
                 ? Bukkit.getPlayer(uuid)
                 : Bukkit.getPlayer(target);

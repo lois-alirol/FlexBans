@@ -2,6 +2,7 @@ package fr.neocle.flexbans.database.punishment;
 
 import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,12 +16,10 @@ import java.util.logging.Logger;
 
 public class WarningsManager {
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
     private final ScheduledExecutorService scheduler;
 
-    public WarningsManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public WarningsManager(DatabaseConnectionManager dbManager) {
         this.dbManager = dbManager;
-        this.logger = logger;
         this.scheduler = Executors.newScheduledThreadPool(1);
 
         startExpirationScheduler();
@@ -36,11 +35,11 @@ public class WarningsManager {
             if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
-            logger.info("Warning expiration scheduler stopped");
+            FlexLogger.info("Warning expiration scheduler stopped");
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
-            logger.warning("Warning expiration scheduler interrupted while shutting down");
+            FlexLogger.warn("Warning expiration scheduler interrupted while shutting down");
         }
     }
 
@@ -57,7 +56,7 @@ public class WarningsManager {
             stmt.setLong(2, System.currentTimeMillis());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update expired warnings: " + e.getMessage());
+            FlexLogger.error("Failed to update expired warnings: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -95,7 +94,7 @@ public class WarningsManager {
             stmt.setString(1, targetUUID.toString());
             stmt.executeUpdate();
         } catch (SQLException e) {
-            logger.severe("Failed to update previous warnings for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to update previous warnings for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -219,7 +218,7 @@ public class WarningsManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get warning reason for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get warning reason for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -249,7 +248,7 @@ public class WarningsManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get warning duration for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get warning duration for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -279,7 +278,7 @@ public class WarningsManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get warning time for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get warning time for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -309,7 +308,7 @@ public class WarningsManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get warning issuer for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get warning issuer for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -339,7 +338,7 @@ public class WarningsManager {
                 }
             }
         } catch (SQLException e) {
-            logger.severe("Failed to get warning count for " + targetUUID + ": " + e.getMessage());
+            FlexLogger.error("Failed to get warning count for " + targetUUID + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -353,10 +352,10 @@ public class WarningsManager {
              PreparedStatement stmt = connection.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
 
-            logger.info("=== Warnings Table ===");
+            FlexLogger.info("=== Warnings Table ===");
 
             while (rs.next()) {
-                logger.info("ID: " + rs.getInt("id") +
+                FlexLogger.info("ID: " + rs.getInt("id") +
                         ", Target UUID: " + rs.getString("target_uuid") +
                         ", Target Name: " + rs.getString("target_name") +
                         ", Issuer UUID: " + rs.getString("issuer_uuid") +

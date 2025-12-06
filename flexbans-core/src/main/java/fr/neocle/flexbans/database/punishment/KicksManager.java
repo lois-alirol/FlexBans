@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.database.punishment;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
+import fr.neocle.flexbans.logger.FlexLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -10,11 +11,9 @@ import java.util.logging.Logger;
 
 public class KicksManager {
     private final DatabaseConnectionManager dbManager;
-    private final Logger logger;
 
-    public KicksManager(DatabaseConnectionManager dbManager, Logger logger) {
+    public KicksManager(DatabaseConnectionManager dbManager) {
         this.dbManager = dbManager;
-        this.logger = logger;
     }
 
     public void insertKick(UUID targetUUID, String targetUsername, UUID issuerUUID, String issuerUsername,
@@ -37,7 +36,7 @@ public class KicksManager {
                 statement.executeUpdate();
             }
         } catch (SQLException e) {
-            logger.severe("Failed to insert kick record");
+            FlexLogger.error("Failed to insert kick record");
             e.printStackTrace();
         }
     }

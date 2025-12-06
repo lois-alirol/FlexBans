@@ -1,7 +1,7 @@
 package fr.neocle.flexbans.velocity.listener;
 
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.cache.CountsCache;
+import fr.neocle.flexbans.handler.web.cache.CountsCache;
 import litebans.api.Entry;
 import litebans.api.Events;
 
