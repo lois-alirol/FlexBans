@@ -135,7 +135,7 @@ public class Bootstrap {
         forbiddenError = new ForbiddenError();
         notFoundError = new NotFoundError();
 
-        usernameUUIDConverters = new UsernameUUIDConverters();
+        usernameUUIDConverters = new UsernameUUIDConverters(databaseUtils.getProfilesManager());
         playerHeadImage = new PlayerHeadImage(usernameUUIDConverters, pluginFolder);
 
         boolean playerHistoryEnabled = ConfigManager.getBoolean("webserver.pages.details.player.enabled");

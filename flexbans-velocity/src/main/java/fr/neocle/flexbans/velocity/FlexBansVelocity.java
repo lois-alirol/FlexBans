@@ -26,6 +26,7 @@ import fr.neocle.flexbans.velocity.command.*;
 import fr.neocle.flexbans.velocity.command.adapter.VelocityPlatform;
 import fr.neocle.flexbans.velocity.command.lookup.AltCommand;
 import fr.neocle.flexbans.velocity.command.lookup.HistoryCommand;
+import fr.neocle.flexbans.velocity.command.lookup.ModeratorHistoryCommand;
 import fr.neocle.flexbans.velocity.command.punishment.*;
 import fr.neocle.flexbans.velocity.command.server.ServerLockCommand;
 import fr.neocle.flexbans.velocity.command.server.ServerUnlockCommand;
@@ -162,6 +163,7 @@ public class FlexBansVelocity {
         commandManager.register("serverunlock", new ServerUnlockCommand(bootstrap.getServerUnlockExecutor(), proxyServer), "flexbans:serverunlock");
         commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
         commandManager.register("history", new HistoryCommand(proxyServer, bootstrap.getDatabaseUtils(), bootstrap.getDatabaseUtils().getDatabaseConnectionManager()), "flexbans:history");
+        commandManager.register("mhistory", new ModeratorHistoryCommand(proxyServer, bootstrap.getDatabaseUtils(), bootstrap.getDatabaseUtils().getDatabaseConnectionManager()), "flexbans:mhistory");
     }
 
     private void registerListeners() {

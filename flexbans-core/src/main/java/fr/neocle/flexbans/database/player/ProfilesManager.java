@@ -32,6 +32,43 @@ public class ProfilesManager {
         }
     }
 
+    public void recordUsername(UUID uuid, String username) {
+        String uuidStr = uuid.toString();
+        long now = System.currentTimeMillis();
+
+        try (Connection conn = dbManager.getConnection()) {
+            conn.setAutoCommit(false);
+
+            String profileSql = """
+                    INSERT INTO flexbans_profiles (uuid, first_seen, last_seen)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(uuid) DO UPDATE SET last_seen = excluded.last_seen
+                    """;
+
+            if (conn.getMetaData().getDatabaseProductName().contains("MySQL")) {
+                profileSql = """
+                    INSERT INTO flexbans_profiles (uuid, first_seen, last_seen)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen)
+                    """;
+            }
+
+            try (PreparedStatement ps = conn. prepareStatement(profileSql)) {
+                ps.setString(1, uuidStr);
+                ps.setLong(2, now);
+                ps.setLong(3, now);
+                ps.executeUpdate();
+            }
+
+            updateUsernameHistory(conn, uuidStr, username, now);
+
+            conn.commit();
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to record username for " + uuid + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private void updateProfileTimestamps(Connection conn, String uuid, long now) throws SQLException {
         String sql = """
                 INSERT INTO flexbans_profiles (uuid, first_seen, last_seen)

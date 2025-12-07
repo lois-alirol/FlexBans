@@ -1,9 +1,10 @@
-package fr.neocle.flexbans.util.player;
+package fr.neocle.flexbans. util. player;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google. gson.JsonParser;
 
 import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.io.BufferedReader;
@@ -14,15 +15,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 public class UsernameUUIDConverters {
     private final FloodgateApi floodgateApi;
+    private final ProfilesManager profilesManager;
 
     private final Map<String, String> uuidToUsernameCache = new ConcurrentHashMap<>();
     private final Map<String, String> usernameToUUIDCache = new ConcurrentHashMap<>();
 
-    public UsernameUUIDConverters() {
+    public UsernameUUIDConverters(ProfilesManager profilesManager) {
+        this.profilesManager = profilesManager;
         this.floodgateApi = isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
     }
 
@@ -31,7 +33,7 @@ public class UsernameUUIDConverters {
             Class.forName("org.geysermc.floodgate.api.FloodgateApi");
             return true;
         } catch (ClassNotFoundException e) {
-            FlexLogger.info("Floodgate is not loaded. Skipping Bedrock players usernames retrieval.");
+            FlexLogger.info("Floodgate is not loaded.  Skipping Bedrock players usernames retrieval.");
             return false;
         }
     }
@@ -47,6 +49,12 @@ public class UsernameUUIDConverters {
             return uuidToUsernameCache.get(uuid);
         }
 
+        String cachedUsername = profilesManager.getCurrentUsername(UUID.fromString(uuid));
+        if (cachedUsername != null && !cachedUsername.isEmpty()) {
+            uuidToUsernameCache.put(uuid, cachedUsername);
+            return cachedUsername;
+        }
+
         if ("[CONSOLE]".equalsIgnoreCase(uuid) || "Console".equalsIgnoreCase(uuid)) {
             return "Console";
         }
@@ -57,17 +65,18 @@ public class UsernameUUIDConverters {
             UUID playerUUID = UUID.fromString(uuid);
 
             if (floodgateApi != null && floodgateApi.isFloodgateId(playerUUID)) {
-                String xuidStr = uuid.replaceAll("-", "").substring(16);
-                if (!xuidStr.isEmpty()) {
+                String xuidStr = uuid.replaceAll("-", ""). substring(16);
+                if (! xuidStr.isEmpty()) {
                     try {
                         long xuid = Long.parseLong(xuidStr, 16);
-                        String gamertag = floodgateApi.getGamertagFor(xuid).get();
+                        String gamertag = floodgateApi.getGamertagFor(xuid). get();
                         String prefix = floodgateApi.getPlayerPrefix();
                         username = prefix + gamertag;
 
-                        if (username != null && !username.startsWith("Error") && !username.equals("Player not found")) {
+                        if (username != null && !username. startsWith("Error") && !username.equals("Player not found")) {
                             uuidToUsernameCache.put(uuid, username);
-                            usernameToUUIDCache.put(username, uuid);
+                            usernameToUUIDCache. put(username, uuid);
+                            profilesManager.recordUsername(playerUUID, username);
                         }
 
                         return username;
@@ -78,10 +87,11 @@ public class UsernameUUIDConverters {
                 return "XUID not found for Bedrock player";
             }
 
-            String apiUrl = "https://playerdb.co/api/player/minecraft/" + uuid.replace("-", "");
+            // Fetch from API
+            String apiUrl = "https://playerdb.co/api/player/minecraft/" + uuid. replace("-", "");
             HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
             connection.setRequestMethod("GET");
-            connection.setConnectTimeout(5000);
+            connection. setConnectTimeout(5000);
             connection.setReadTimeout(5000);
 
             int status = connection.getResponseCode();
@@ -90,34 +100,35 @@ public class UsernameUUIDConverters {
                     StringBuilder response = new StringBuilder();
                     String inputLine;
                     while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
+                        response. append(inputLine);
                     }
 
                     JsonObject jsonResponse = new JsonParser().parse(response.toString()).getAsJsonObject();
-                    if ("player.found".equals(jsonResponse.get("code").getAsString())) {
-                        JsonObject playerData = jsonResponse.getAsJsonObject("data").getAsJsonObject("player");
-                        username = playerData.get("username").getAsString();
+                    if ("player. found".equals(jsonResponse.get("code"). getAsString())) {
+                        JsonObject playerData = jsonResponse.getAsJsonObject("data"). getAsJsonObject("player");
+                        username = playerData.get("username"). getAsString();
 
-                        if (username != null && !username.startsWith("Error") && !username.equals("Player not found")) {
+                        if (username != null && !username.startsWith("Error") && !username. equals("Player not found")) {
                             uuidToUsernameCache.put(uuid, username);
                             usernameToUUIDCache.put(username, uuid);
+                            profilesManager.recordUsername(playerUUID, username);
                         }
 
                         return username;
                     } else {
-                        FlexLogger.warn("Player with UUID " + uuid + " not found. Response: " + jsonResponse);
+                        FlexLogger.warn("Player with UUID " + uuid + " not found.  Response: " + jsonResponse);
                         return "Player not found";
                     }
                 }
             } else {
-                FlexLogger.warn("Failed to retrieve username. HTTP response code: " + status);
+                FlexLogger.warn("Failed to retrieve username.  HTTP response code: " + status);
                 return "Error retrieving player data";
             }
         } catch (IllegalArgumentException e) {
             FlexLogger.error("Invalid UUID format: " + uuid);
             return "Invalid UUID format";
         } catch (Exception e) {
-            FlexLogger.error("Unexpected error while fetching username for UUID: " + uuid);
+            FlexLogger. error("Unexpected error while fetching username for UUID: " + uuid);
             e.printStackTrace();
             return "Error fetching data";
         }
@@ -130,21 +141,32 @@ public class UsernameUUIDConverters {
             return "Invalid username";
         }
 
+        // Check in-memory cache first
         if (usernameToUUIDCache.containsKey(username)) {
             return usernameToUUIDCache.get(username);
         }
 
+        // Check database before fetching from web
+        UUID cachedUuid = profilesManager.getUuid(username);
+        if (cachedUuid != null) {
+            String uuidStr = cachedUuid. toString();
+            usernameToUUIDCache. put(username, uuidStr);
+            uuidToUsernameCache.put(uuidStr, username);
+            return uuidStr;
+        }
+
         if (floodgateApi != null && username.startsWith(floodgateApi.getPlayerPrefix())) {
-            CompletableFuture<UUID> uuid = floodgateApi.getUuidFor(username.substring(floodgateApi.getPlayerPrefix().length()));
+            CompletableFuture<UUID> uuid = floodgateApi.getUuidFor(username. substring(floodgateApi. getPlayerPrefix().length()));
             if (uuid != null) {
                 try {
                     UUID playerUUID = uuid.get();
                     if (playerUUID != null) {
+                        String uuidStr = playerUUID.toString();
+                        usernameToUUIDCache.put(username, uuidStr);
+                        uuidToUsernameCache. put(uuidStr, username);
+                        profilesManager.recordUsername(playerUUID, username);
 
-                        usernameToUUIDCache.put(username, playerUUID.toString());
-                        uuidToUsernameCache.put(playerUUID.toString(), username);
-
-                        return playerUUID.toString();
+                        return uuidStr;
                     } else {
                         FlexLogger.warn("Floodgate API couldn't find the UUID for player: " + username);
                         return "UUID not found in Floodgate";
@@ -155,16 +177,17 @@ public class UsernameUUIDConverters {
             }
         }
 
+        // Fetch from API
         String apiUrl = "https://playerdb.co/api/player/minecraft/" + username;
         try {
             HttpURLConnection connection = (HttpURLConnection) new URL(apiUrl).openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
+            connection. setReadTimeout(5000);
 
             int status = connection.getResponseCode();
             if (status == 200) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection. getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String inputLine;
                 while ((inputLine = in.readLine()) != null) {
@@ -172,17 +195,19 @@ public class UsernameUUIDConverters {
                 }
                 in.close();
 
-                JsonObject jsonResponse = new JsonParser().parse(response.toString()).getAsJsonObject();
+                JsonObject jsonResponse = new JsonParser(). parse(response.toString()).getAsJsonObject();
 
                 if (jsonResponse.get("code").getAsString().equals("player.found")) {
                     JsonObject playerData = jsonResponse.getAsJsonObject("data").getAsJsonObject("player");
+                    String uuid = playerData.get("id").getAsString();
 
-                    if (playerData.get("id").getAsString() != null && !playerData.get("id").getAsString().startsWith("Error") && !playerData.get("id").getAsString().equals("UUID not found")) {
-                        usernameToUUIDCache.put(username, playerData.get("id").getAsString());
-                        uuidToUsernameCache.put(playerData.get("id").getAsString(), username);
+                    if (uuid != null && !uuid.startsWith("Error") && !uuid. equals("UUID not found")) {
+                        usernameToUUIDCache. put(username, uuid);
+                        uuidToUsernameCache.put(uuid, username);
+                        profilesManager.recordUsername(UUID.fromString(uuid), username);
                     }
 
-                    return playerData.get("id").getAsString();
+                    return uuid;
                 } else {
                     return "UUID not found";
                 }

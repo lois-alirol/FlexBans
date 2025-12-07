@@ -120,7 +120,7 @@ public class Common {
         UUID senderUUID = Common.parseUUID(converters.usernameToUUID(senderName));
 
         if (senderUUID == null) {
-            messageSender.accept("§cError: Could not retrieve player's UUID.");
+            messageSender.accept("§cError: Sender must be an actual player.");
             return Optional.empty();
         }
 

@@ -82,7 +82,8 @@ public class BanCommandExecutor implements ICommandExecutor {
         }
 
         if (sender == null || sender.isEmpty()) {
-            sender = source.getName();
+            source.sendMessage(Component.text("Error: Sender parameter cannot be empty. "));
+            return;
         }
 
         if (! scope.equalsIgnoreCase("Global") && !helper.isServerRegistered(scope)) {
