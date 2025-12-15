@@ -1,0 +1,61 @@
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import './styles/App.css'
+
+import ProtectedRoute from './components/common/auth/ProtectedRoute'; 
+
+import PunishmentsPage from './pages/PunishmentsPage';
+
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import VerifyPage from './pages/auth/VerifyPage';
+
+import Error404 from './pages/errors/Error404';
+import HistoryPage from './pages/HistoryPage';
+import PunishmentDetailsPage from './pages/PunishmentDetailsPage';
+import { AuthProvider } from './components/common/auth/AuthProvider';
+import LogoutRoute from './pages/auth/LogoutRoute';
+import PublicRoute from './components/common/auth/PublicRoute';
+import { ThemeProvider } from './components/common/ThemeContext';
+
+const App: React.FC = () => {
+  
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/logout" element={<LogoutRoute />} />
+            <Route path="/verify" element={<VerifyPage />} />
+          </Route>
+          
+          <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<PunishmentsPage />} />
+
+              <Route 
+                  path="/player/:playerName"
+                  element={<HistoryPage />} 
+              />
+              <Route 
+                  path="/moderator/:moderatorName"
+                  element={<HistoryPage />} 
+              />
+              <Route 
+                  path="/punishment/:id"
+                  element={<PunishmentDetailsPage />} 
+              />
+          </Route>
+
+          <Route path="*" element={<Error404 />} />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+};
+
+export default App;

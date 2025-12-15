@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-montserrat: "Montserrat", sans-serif; 
+
+  @keyframes dot-pulse {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  
+  --animate-dot-pulse: dot-pulse 1.4s infinite;
+
+}
+
+@layer utilities {
+  .animate-dot-pulse {
+    animation: var(--animate-dot-pulse);
+  }
+}
+
+html, body {
+  @apply bg-[#1c1c1c];
+}
