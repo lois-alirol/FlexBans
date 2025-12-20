@@ -23,14 +23,8 @@ public class FlexBansBukkit extends JavaPlugin {
 
     @Override
     public void onEnable() {
-
-        if (Bukkit.getServer().spigot().getConfig().getBoolean("settings.bungeecord")) {
-            warnInvalidSetup("BungeeCord");
-            return;
-        }
-
-        if (Bukkit.getServer().spigot().getPaperConfig().getBoolean("proxies.velocity.enabled")) {
-            warnInvalidSetup("Velocity");
+        if (Bukkit.getServerConfig().isProxyEnabled()) {
+            warnBackendSetup();
             return;
         }
 
@@ -63,12 +57,12 @@ public class FlexBansBukkit extends JavaPlugin {
         bootstrap.logServerStartupInfo(url, port, "Spigot", getServer().getVersion(), webserverEnabled);
     }
 
-    public void warnInvalidSetup(String proxyType) {
+    public void warnBackendSetup() {
         DialogEvents dialogListener = new DialogEvents(this);
 
         getLogger().warning("      / \\\\");
         getLogger().warning("     /   \\\\");
-        getLogger().warning("    /  |  \\\\     Plugin is running behind a " + proxyType + " instance! ");
+        getLogger().warning("    /  |  \\\\     Plugin is running behind a BungeeCord / Velocity instance! ");
         getLogger().warning("   /   |   \\\\    Make sure you've set up the plugin correctly");
         getLogger().warning("  /         \\\\   Setting up the backend implementation..");
         getLogger().warning(" /     o     \\\\");

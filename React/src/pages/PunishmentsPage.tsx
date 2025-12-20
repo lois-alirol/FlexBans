@@ -251,7 +251,7 @@ const PunishmentsPage: React.FC = () => {
           </div>
 
           <p className="text-sm sm:text-base mb-6 text-gray-500 dark:text-gray-400">
-            Viewing <span className="font-semibold text-white">{typeDisplay}</span>. Select a different type from the menu.
+            Viewing <span className={`font-semibold ${currentTheme === 'dark' ? 'text-white' : 'text-black'}`}>{typeDisplay}</span>. Select a different type from the menu.
           </p>
 
           <div className="search mb-8 flex items-center gap-2">
