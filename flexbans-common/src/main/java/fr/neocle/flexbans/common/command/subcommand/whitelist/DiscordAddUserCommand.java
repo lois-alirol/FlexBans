@@ -4,14 +4,13 @@ import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
-import fr.neocle.flexbans.command.whitelist. DiscordWhitelistCommand;
-import fr.neocle.flexbans.handler.web.security.oauth. DiscordOAuthHandler;
+import fr.neocle.flexbans.command.whitelist.DiscordWhitelistCommand;
 import fr.neocle.flexbans.locale.LanguageManager;
 
 public class DiscordAddUserCommand extends DiscordWhitelistCommand implements ICommandExecutor {
 
-    public DiscordAddUserCommand(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
-        super(api, discordOAuthHandler);
+    public DiscordAddUserCommand() {
+        super();
     }
 
     @Override

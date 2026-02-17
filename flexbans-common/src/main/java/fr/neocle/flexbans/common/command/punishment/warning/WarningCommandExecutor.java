@@ -3,14 +3,14 @@ package fr.neocle.flexbans.common.command.punishment.warning;
 import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
-import fr.neocle.flexbans.command.punishment.warning.WarningExecutor;
+import fr.neocle.flexbans.command.punishment.WarningExecutorImpl;
 import net.kyori.adventure.text.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class WarningCommandExecutor implements ICommandExecutor {
-    private final WarningExecutor warningExecutor;
+    private final WarningExecutorImpl warningExecutorImpl;
     private final IWarningCommandHelper helper;
 
     private static final List<String> REASON_SUGGESTIONS = List.of(
@@ -19,8 +19,8 @@ public class WarningCommandExecutor implements ICommandExecutor {
             "First warning", "Second warning", "Final warning"
     );
 
-    public WarningCommandExecutor(WarningExecutor warningExecutor, IWarningCommandHelper helper) {
-        this.warningExecutor = warningExecutor;
+    public WarningCommandExecutor(WarningExecutorImpl warningExecutorImpl, IWarningCommandHelper helper) {
+        this.warningExecutorImpl = warningExecutorImpl;
         this.helper = helper;
     }
 
@@ -72,7 +72,7 @@ public class WarningCommandExecutor implements ICommandExecutor {
 
         String reason = reasonParts.isEmpty() ? "" : String. join(" ", reasonParts);
 
-        warningExecutor.executeWarning(target, sender, reason, scope, origin, silent, false,
+        warningExecutorImpl.executeWarning(target, sender, reason, scope, origin, silent, false,
                 message -> source.sendMessage(Component.text(message)));
     }
 

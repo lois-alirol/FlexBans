@@ -50,7 +50,6 @@ commands:
       <#ffa600>> /fb discord <add/remove> <user-id> <gray>- add a discord user to the dashboard whitelist
       <gradient:#ffa600:#ffd04e>---============≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡============---
 
-
 punishments:
   default-reason: "No reason provided"
   infinite-duration: "Infinite ∞"

@@ -1,8 +1,14 @@
 package fr.neocle.flexbans.util;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public class DateCalculator {
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ISO_LOCAL_DATE;
+
     public static String formatDuration(long duration) {
         if (duration <= 0) {
             return "Permanent";
@@ -73,5 +79,12 @@ public class DateCalculator {
     public static String formatTimestamp(long timestamp) {
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(new java.util.Date(timestamp));
+    }
+
+    public static String formatDate(long timestamp) {
+        return Instant.ofEpochMilli(timestamp)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .format(DATE_FORMAT);
     }
 }

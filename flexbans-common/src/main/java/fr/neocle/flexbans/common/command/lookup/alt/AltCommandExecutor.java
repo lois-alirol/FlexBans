@@ -5,6 +5,7 @@ import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr. neocle.flexbans.database.punishment.BansManager;
+import fr.neocle.flexbans.database.punishment.PunishmentsManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -16,12 +17,12 @@ import java.util.UUID;
 
 public class AltCommandExecutor implements ICommandExecutor {
     private final ProfilesManager profilesManager;
-    private final BansManager bansManager;
+    private final PunishmentsManager punishmentsManager;
     private final IAltCommandHelper helper;
 
-    public AltCommandExecutor(ProfilesManager profilesManager, BansManager bansManager, IAltCommandHelper helper) {
+    public AltCommandExecutor(ProfilesManager profilesManager, PunishmentsManager punishmentsManager, IAltCommandHelper helper) {
         this.profilesManager = profilesManager;
-        this.bansManager = bansManager;
+        this.punishmentsManager = punishmentsManager;
         this.helper = helper;
     }
 
@@ -74,10 +75,10 @@ public class AltCommandExecutor implements ICommandExecutor {
             NamedTextColor color;
             String status;
 
-            if (bansManager.isIpBanned(ip, origin)) {
+            if (punishmentsManager.isIpPunished(PunishmentsManager.PunishmentType.BAN,ip, origin)) {
                 color = NamedTextColor.RED;
                 status = "[IP BANNED]";
-            } else if (bansManager.isPlayerBanned(playerUuid, origin)) {
+            } else if (punishmentsManager.isPlayerPunished(PunishmentsManager.PunishmentType.BAN, playerUuid, origin)) {
                 color = NamedTextColor.GOLD;
                 status = "[BANNED]";
             } else if (helper.isPlayerOnline(playerUuid)) {

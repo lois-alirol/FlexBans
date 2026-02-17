@@ -1,37 +1,41 @@
 package fr.neocle.flexbans.velocity.command.subcommand;
 
-import com.velocitypowered.api.command.SimpleCommand;
-import com.velocitypowered.api.proxy.ProxyServer;
-import fr.neocle.flexbans.api.FlexBansAPI;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.velocitypowered.api.command.BrigadierCommand;
+import com.velocitypowered.api.command.CommandSource;
 import fr.neocle.flexbans.common.command.subcommand.DiscordWhitelistCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.DiscordAddUserCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.DiscordRemoveUserCommand;
-import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 
-import java.util.List;
+public final class DiscordWhitelist extends DiscordWhitelistCommand {
 
-public class DiscordWhitelist extends DiscordWhitelistCommand implements SimpleCommand {
+    private static final DiscordWhitelist INSTANCE = new DiscordWhitelist();
 
-    public DiscordWhitelist(FlexBansAPI api, ProxyServer proxyServer, DiscordOAuthHandler discordOAuthHandler) {
-        registerSubCommand("add", new DiscordAddUserCommand(api, discordOAuthHandler));
-        registerSubCommand("remove", new DiscordRemoveUserCommand(api, discordOAuthHandler));
+    private DiscordWhitelist() {
+        registerSubCommand("add", new DiscordAddUserCommand());
+        registerSubCommand("remove", new DiscordRemoveUserCommand());
     }
 
-    @Override
-    public void execute(SimpleCommand.Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        super.execute(wrappedInvocation);
-    }
-
-    @Override
-    public List<String> suggest(SimpleCommand.Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        return super.suggest(wrappedInvocation);
-    }
-
-    @Override
-    public boolean hasPermission(SimpleCommand.Invocation invocation) {
-        return invocation.source().hasPermission("flexbans.discord-whitelist");
+    public static LiteralArgumentBuilder<CommandSource> createNode() {
+        return BrigadierCommand.literalArgumentBuilder("discord")
+                .requires(source -> source.hasPermission("flexbans.discord-whitelist"))
+                .executes(ctx -> {
+                    INSTANCE.execute(new VelocityCommandInvocation(ctx));
+                    return Command.SINGLE_SUCCESS;
+                })
+                .then(BrigadierCommand.requiredArgumentBuilder("args", StringArgumentType.greedyString())
+                        .suggests((ctx, builder) -> {
+                            INSTANCE.suggest(new VelocityCommandInvocation(ctx))
+                                    .forEach(builder::suggest);
+                            return builder.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            INSTANCE.execute(new VelocityCommandInvocation(ctx));
+                            return Command.SINGLE_SUCCESS;
+                        })
+                );
     }
 }

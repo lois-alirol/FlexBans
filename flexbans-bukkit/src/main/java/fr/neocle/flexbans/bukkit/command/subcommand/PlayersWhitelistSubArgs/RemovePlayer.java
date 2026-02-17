@@ -2,7 +2,6 @@ package fr.neocle.flexbans.bukkit.command.subcommand.PlayersWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.command.whitelist.PlayersWhitelistCommand;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,8 +10,8 @@ import org.bukkit.command.CommandSender;
 public class RemovePlayer implements CommandExecutor {
     private final PlayersWhitelistCommand whitelistMethods;
 
-    public RemovePlayer(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
-        this.whitelistMethods = new PlayersWhitelistCommand(api, authenticationHandler) {
+    public RemovePlayer() {
+        this.whitelistMethods = new PlayersWhitelistCommand() {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

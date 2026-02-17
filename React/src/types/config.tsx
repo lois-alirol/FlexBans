@@ -6,6 +6,9 @@ export interface ServerConfig {
   serverColor: string;
   serverColorHover: string;
   isSecured: boolean,
+  detailsPageEnabled: boolean,
+  punishmentRevocation: boolean,
+  punishmentExecution: boolean,
   punishments: {
     bans: {
         enabled: boolean;

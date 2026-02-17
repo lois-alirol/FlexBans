@@ -69,9 +69,6 @@ public class FlexBansBungee extends Plugin implements Listener {
         BaseCommandBungee baseCommand = new BaseCommandBungee(
                 bootstrap.getAPI(),
                 bootstrap.getDataFolder(),
-                bootstrap.getAuthenticatorHandler(),
-                bootstrap.getDiscordOAuthHandler(),
-                bootstrap.getIndexHandler(),
                 bootstrap.getDatabaseUtils()
         );
 

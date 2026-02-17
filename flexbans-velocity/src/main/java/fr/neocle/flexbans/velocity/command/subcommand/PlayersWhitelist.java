@@ -1,37 +1,41 @@
 package fr.neocle.flexbans.velocity.command.subcommand;
 
-import com.velocitypowered.api.command. SimpleCommand;
-import com.velocitypowered.api.proxy.ProxyServer;
-import fr.neocle.flexbans.api.FlexBansAPI;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.velocitypowered.api.command.BrigadierCommand;
+import com.velocitypowered.api.command.CommandSource;
 import fr.neocle.flexbans.common.command.subcommand.PlayersWhitelistCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.PlayersAddPlayerCommand;
 import fr.neocle.flexbans.common.command.subcommand.whitelist.PlayersRemovePlayerCommand;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 
-import java.util.List;
+public final class PlayersWhitelist extends PlayersWhitelistCommand {
 
-public class PlayersWhitelist extends PlayersWhitelistCommand implements SimpleCommand {
+    private static final PlayersWhitelist INSTANCE = new PlayersWhitelist();
 
-    public PlayersWhitelist(FlexBansAPI api, ProxyServer proxyServer, AuthenticationHandler authenticationHandler) {
-        registerSubCommand("add", new PlayersAddPlayerCommand(api, authenticationHandler));
-        registerSubCommand("remove", new PlayersRemovePlayerCommand(api, authenticationHandler));
+    private PlayersWhitelist() {
+        registerSubCommand("add", new PlayersAddPlayerCommand());
+        registerSubCommand("remove", new PlayersRemovePlayerCommand());
     }
 
-    @Override
-    public void execute(SimpleCommand. Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        super.execute(wrappedInvocation);
-    }
-
-    @Override
-    public List<String> suggest(SimpleCommand.Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        return super.suggest(wrappedInvocation);
-    }
-
-    @Override
-    public boolean hasPermission(SimpleCommand.Invocation invocation) {
-        return invocation.source().hasPermission("flexbans.players-whitelist");
+    public static LiteralArgumentBuilder<CommandSource> createNode() {
+        return BrigadierCommand.literalArgumentBuilder("players")
+                .requires(source -> source.hasPermission("flexbans.players-whitelist"))
+                .executes(ctx -> {
+                    INSTANCE.execute(new VelocityCommandInvocation(ctx));
+                    return Command.SINGLE_SUCCESS;
+                })
+                .then(BrigadierCommand.requiredArgumentBuilder("args", StringArgumentType.greedyString())
+                        .suggests((ctx, builder) -> {
+                            INSTANCE.suggest(new VelocityCommandInvocation(ctx))
+                                    .forEach(builder::suggest);
+                            return builder.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            INSTANCE.execute(new VelocityCommandInvocation(ctx));
+                            return Command.SINGLE_SUCCESS;
+                        })
+                );
     }
 }

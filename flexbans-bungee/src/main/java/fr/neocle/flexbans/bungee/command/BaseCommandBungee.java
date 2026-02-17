@@ -6,9 +6,6 @@ import fr.neocle.flexbans.bungee.command.subcommand.PlayersWhitelist;
 import fr.neocle.flexbans.bungee.command.subcommand.Reload;
 import fr.neocle.flexbans.bungee.command.subcommand.Verify;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.web.IndexHandler;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
-import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
@@ -23,16 +20,15 @@ import java.util.Map;
 public class BaseCommandBungee extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public BaseCommandBungee(FlexBansAPI api, Path dataFolder, AuthenticationHandler authenticationHandler,
-                             DiscordOAuthHandler discordOAuthHandler, IndexHandler indexHandler,
+    public BaseCommandBungee(FlexBansAPI api, Path dataFolder,
                              DatabaseUtils databaseUtils) {
 
         super("flexbans", "flexbans.verify", "fb");
 
-        subCommands.put("reload", new Reload(dataFolder, authenticationHandler, indexHandler));
+        subCommands.put("reload", new Reload(dataFolder));
         subCommands.put("verify", new Verify(databaseUtils));
-        subCommands.put("players", new PlayersWhitelist(api, authenticationHandler));
-        subCommands.put("discord", new DiscordWhitelist(api, discordOAuthHandler));
+        subCommands.put("players", new PlayersWhitelist());
+        subCommands.put("discord", new DiscordWhitelist());
     }
 
     @Override

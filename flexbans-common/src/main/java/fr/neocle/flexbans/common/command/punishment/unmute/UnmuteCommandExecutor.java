@@ -3,7 +3,7 @@ package fr.neocle.flexbans.common.command.punishment.unmute;
 import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
-import fr.neocle.flexbans.command.punishment.unmute.UnmuteExecutor;
+import fr.neocle.flexbans.command.punishment.UnmuteExecutorImpl;
 import net.kyori.adventure.text.Component;
 
 import java.util.ArrayList;
@@ -11,11 +11,11 @@ import java.util.Collections;
 import java.util.List;
 
 public class UnmuteCommandExecutor implements ICommandExecutor {
-    private final UnmuteExecutor unmuteExecutor;
+    private final UnmuteExecutorImpl unmuteExecutorImpl;
     private final IUnmuteCommandHelper helper;
 
-    public UnmuteCommandExecutor(UnmuteExecutor unmuteExecutor, IUnmuteCommandHelper helper) {
-        this.unmuteExecutor = unmuteExecutor;
+    public UnmuteCommandExecutor(UnmuteExecutorImpl unmuteExecutorImpl, IUnmuteCommandHelper helper) {
+        this.unmuteExecutorImpl = unmuteExecutorImpl;
         this.helper = helper;
     }
 
@@ -65,7 +65,7 @@ public class UnmuteCommandExecutor implements ICommandExecutor {
 
         String reason = reasonParts.isEmpty() ? "" : String. join(" ", reasonParts);
 
-        unmuteExecutor.executeUnmute(
+        unmuteExecutorImpl.executeUnmute(
                 target,
                 sender,
                 reason,

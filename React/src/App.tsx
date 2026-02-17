@@ -17,42 +17,35 @@ import { AuthProvider } from './components/common/auth/AuthProvider';
 import LogoutRoute from './pages/auth/LogoutRoute';
 import PublicRoute from './components/common/auth/PublicRoute';
 import { ThemeProvider } from './components/common/ThemeContext';
+import AdminPanelPage from "./pages/AdminPanelPage.tsx";
 
 const App: React.FC = () => {
   
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
-          <Route element={<PublicRoute />}>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Route>
+          <Routes>
+              <Route element={<PublicRoute />}>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+              </Route>
 
-          <Route element={<ProtectedRoute />}>
-            <Route path="/logout" element={<LogoutRoute />} />
-            <Route path="/verify" element={<VerifyPage />} />
-          </Route>
-          
-          <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<PunishmentsPage />} />
+              <Route path="/logout" element={<LogoutRoute />} />
 
-              <Route 
-                  path="/player/:playerName"
-                  element={<HistoryPage />} 
-              />
-              <Route 
-                  path="/moderator/:moderatorName"
-                  element={<HistoryPage />} 
-              />
-              <Route 
-                  path="/punishment/:id"
-                  element={<PunishmentDetailsPage />} 
-              />
-          </Route>
+              <Route element={<ProtectedRoute />}>
+                  <Route path="/verify" element={<VerifyPage />} />
+              </Route>
 
-          <Route path="*" element={<Error404 />} />
-        </Routes>
+              <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<PunishmentsPage />} />
+                  <Route path="/player/:playerName" element={<HistoryPage />} />
+                  <Route path="/moderator/:moderatorName" element={<HistoryPage />} />
+                  <Route path="/punishment/:id" element={<PunishmentDetailsPage />} />
+                  <Route path="/admin" element={<AdminPanelPage />} />
+              </Route>
+
+              <Route path="*" element={<Error404 />} />
+          </Routes>
       </AuthProvider>
     </ThemeProvider>
   );

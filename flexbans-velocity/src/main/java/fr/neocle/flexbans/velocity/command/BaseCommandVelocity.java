@@ -1,50 +1,88 @@
 package fr.neocle.flexbans.velocity.command;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.velocitypowered.api.command.BrigadierCommand;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
-import fr.neocle.flexbans.api.FlexBansAPI;
-import fr.neocle.flexbans.common.command.AbstractBaseCommand;
-import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.command.subcommand.HelpCommand;
 import fr.neocle.flexbans.common.command.subcommand.ReloadCommand;
 import fr.neocle.flexbans.common.command.subcommand.VerifyCommand;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.web.IndexHandler;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
-import fr.neocle.flexbans.handler.web.security.oauth. DiscordOAuthHandler;
 import fr.neocle.flexbans.util.JettyReloader;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 import fr.neocle.flexbans.velocity.command.subcommand.*;
 
 import java.nio.file.Path;
-import java.util.List;
 
-public class BaseCommandVelocity extends AbstractBaseCommand implements SimpleCommand {
+public final class BaseCommandVelocity {
 
-    public BaseCommandVelocity(FlexBansAPI api, ProxyServer proxyServer, Path dataFolder,
-                               AuthenticationHandler authenticationHandler, DiscordOAuthHandler discordOAuthHandler,
-                               IndexHandler indexHandler, JettyReloader jettyReloader, DatabaseUtils databaseUtils,
-                               String version) {
-        registerSubCommand("help", new HelpCommand());
-        registerSubCommand("reload", new ReloadCommand(dataFolder, authenticationHandler, indexHandler, jettyReloader));
-        registerSubCommand("verify", new VerifyCommand(databaseUtils.getUserManager()));
-        registerSubCommand("players", new PlayersWhitelist(api, proxyServer, authenticationHandler));
-        registerSubCommand("discord", new DiscordWhitelist(api, proxyServer, discordOAuthHandler));
-        registerSubCommand("dump", new Dump(proxyServer, version));
+    public static BrigadierCommand createCommand(
+            ProxyServer proxyServer,
+            Path dataFolder,
+            JettyReloader jettyReloader,
+            DatabaseUtils databaseUtils,
+            String version
+    ) {
+
+        LiteralArgumentBuilder<CommandSource> root = BrigadierCommand
+                .literalArgumentBuilder("flexbans")
+                .requires(src -> src.hasPermission("flexbans.use"));
+
+        root.then(BrigadierCommand
+                .literalArgumentBuilder("help")
+                .executes(ctx -> {
+                    new HelpCommand().execute(new VelocityCommandInvocation(ctx));
+                    return Command.SINGLE_SUCCESS;
+                })
+        );
+
+        root.then(BrigadierCommand
+                .literalArgumentBuilder("reload")
+                .executes(ctx -> {
+                    new ReloadCommand(dataFolder, jettyReloader).execute(
+                            new VelocityCommandInvocation(ctx)
+                    );
+                    return Command.SINGLE_SUCCESS;
+                })
+        );
+
+        root.then(BrigadierCommand
+                .literalArgumentBuilder("verify")
+                .executes(ctx -> {
+                    new VerifyCommand(databaseUtils.getUserManager()).execute(
+                            new VelocityCommandInvocation(ctx)
+                    );
+                    return Command.SINGLE_SUCCESS;
+                })
+        );
+
+        root.then(PlayersWhitelist.createNode());
+        root.then(DiscordWhitelist.createNode());
+        root.then(new Dump(proxyServer, version).createNode());
+
+        return new BrigadierCommand(root.build());
     }
 
-    @Override
-    public void execute(SimpleCommand.Invocation invocation) {
-        CommandSource source = invocation.source();
-        ICommandInvocation wrappedInvocation = new VelocityCommandInvocation(invocation, source);
-        super.execute(wrappedInvocation);
-    }
+    public static void register(
+            ProxyServer proxyServer,
+            Path dataFolder,
+            JettyReloader jettyReloader,
+            DatabaseUtils databaseUtils,
+            String version
+    ) {
+        CommandManager manager = proxyServer.getCommandManager();
 
-    @Override
-    public List<String> suggest(SimpleCommand. Invocation invocation) {
-        CommandSource source = invocation.source();
-        ICommandInvocation wrappedInvocation = new VelocityCommandInvocation(invocation, source);
-        return super.suggest(wrappedInvocation);
+        BrigadierCommand cmd = createCommand(
+                proxyServer, dataFolder, jettyReloader, databaseUtils, version
+        );
+
+        CommandMeta meta = manager.metaBuilder(cmd)
+                .aliases("flexbans", "fb")
+                .build();
+
+        manager.register(meta, cmd);
     }
 }

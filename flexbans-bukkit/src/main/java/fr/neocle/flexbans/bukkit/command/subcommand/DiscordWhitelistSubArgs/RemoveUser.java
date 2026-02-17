@@ -2,7 +2,6 @@ package fr.neocle.flexbans.bukkit.command.subcommand.DiscordWhitelistSubArgs;
 
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.command.whitelist.DiscordWhitelistCommand;
-import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,8 +10,8 @@ import org.bukkit.command.CommandSender;
 public class RemoveUser implements CommandExecutor {
     private final DiscordWhitelistCommand whitelistMethods;
 
-    public RemoveUser(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
-        this.whitelistMethods = new DiscordWhitelistCommand(api, discordOAuthHandler) {
+    public RemoveUser() {
+        this.whitelistMethods = new DiscordWhitelistCommand() {
             @Override
             protected void sendMessage(Object sender, String message) {
                 if (sender instanceof CommandSender commandSender) {

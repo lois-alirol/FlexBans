@@ -1,10 +1,10 @@
 package fr.neocle.flexbans.handler.factory;
 
-import fr.neocle.flexbans.command.punishment.ban.BanPlatformHandler;
-import fr.neocle.flexbans.command.punishment.kick.KickPlatformHandler;
-import fr.neocle.flexbans.command.punishment.mute.MutePlatformHandler;
-import fr.neocle.flexbans.command.punishment.warning.WarningPlatformHandler;
-import fr.neocle.flexbans.command.server.lock.ServerLockPlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.BanPlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.KickPlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.MutePlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.WarningPlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.ServerLockPlatformHandler;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
 

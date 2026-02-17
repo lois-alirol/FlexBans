@@ -1,7 +1,7 @@
 package fr.neocle.flexbans.database.dashboard;
 
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
-import fr.neocle.flexbans.database.DatabaseUtils;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr.neocle.flexbans.logger.FlexLogger;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -9,352 +9,471 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
+/**
+ * Manages web users and their verification/authentication.
+ * When is_verified=true, the user is permanently linked to a Minecraft profile.
+ */
 public class UserManager {
     private final DatabaseConnectionManager dbManager;
-    private final DatabaseUtils db;
+    private final ProfilesManager profilesManager;
 
-    public UserManager(DatabaseUtils db, DatabaseConnectionManager dbManager) {
-        this.db = db;
+    public UserManager(DatabaseConnectionManager dbManager, ProfilesManager profilesManager) {
         this.dbManager = dbManager;
+        this.profilesManager = profilesManager;
     }
 
-    public void insertUsername(String username, String code) throws SQLException {
-        String checkCodeSQL = "SELECT id, username, discord_id FROM users WHERE verification_code = ?";
-        String checkUsernameSQL = "SELECT id FROM users WHERE username = ?";
-        String insertSQL = "INSERT INTO users (username, verification_code) VALUES (?, ?)";
-        String updateSQL = "UPDATE users SET username = ? WHERE verification_code = ?";
-        String mergeSQL = "UPDATE users SET discord_id = ? WHERE username = ?";
+    /**
+     * Register a new user with username and password.
+     * The user must be linked to a Minecraft profile for this to work.
+     */
+    public boolean registerUser(String username, String password, UUID minecraftUuid) {
+        // Ensure the Minecraft profile exists
+        if (!profilesManager.playerExists(minecraftUuid)) {
+            FlexLogger.error("Cannot register user: Minecraft profile does not exist for UUID " + minecraftUuid);
+            return false;
+        }
 
-        try (Connection connection = dbManager.getConnection()) {
-            connection.setAutoCommit(false);
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-            try {
-                boolean codeExists = false;
-                boolean usernameExists = false;
-                String existingDiscordId = null;
-                Integer existingCodeId = null;
+        String checkSql = "SELECT id, player_uuid FROM users WHERE username = ?";
+        String insertSql = "INSERT INTO users (username, password_hash, player_uuid) VALUES (?, ?, ?)";
+        String updateSql = "UPDATE users SET password_hash = ?, player_uuid = ? WHERE username = ?";
 
-                try (PreparedStatement checkCodeStmt = connection.prepareStatement(checkCodeSQL)) {
-                    checkCodeStmt.setString(1, code);
-                    ResultSet codeResult = checkCodeStmt.executeQuery();
+        try (Connection conn = dbManager.getConnection()) {
+            boolean userExists = false;
+            UUID existingUuid = null;
 
-                    if (codeResult.next()) {
-                        codeExists = true;
-                        existingCodeId = codeResult.getInt("id");
-                        existingDiscordId = codeResult.getString("discord_id");
+            // Check if user exists
+            try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                ps.setString(1, username);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        userExists = true;
+                        String uuidStr = rs.getString("player_uuid");
+                        existingUuid = uuidStr != null ? UUID.fromString(uuidStr) : null;
                     }
                 }
-
-                try (PreparedStatement checkUsernameStmt = connection.prepareStatement(checkUsernameSQL)) {
-                    checkUsernameStmt.setString(1, username);
-                    ResultSet usernameResult = checkUsernameStmt.executeQuery();
-
-                    if (usernameResult.next()) {
-                        usernameExists = true;
-                    }
-                }
-
-                if (codeExists) {
-                    try (PreparedStatement updateStmt = connection.prepareStatement(updateSQL)) {
-                        updateStmt.setString(1, username);
-                        updateStmt.setString(2, code);
-                        updateStmt.executeUpdate();
-                    }
-                } else if (usernameExists && existingDiscordId != null) {
-                    try (PreparedStatement mergeStmt = connection.prepareStatement(mergeSQL)) {
-                        mergeStmt.setString(1, existingDiscordId);
-                        mergeStmt.setString(2, username);
-                        mergeStmt.executeUpdate();
-                    }
-                } else if (!usernameExists && !codeExists) {
-                    try (PreparedStatement insertStmt = connection.prepareStatement(insertSQL)) {
-                        insertStmt.setString(1, username);
-                        insertStmt.setString(2, code);
-                        insertStmt.executeUpdate();
-                    }
-                }
-
-                connection.commit();
-            } catch (SQLException e) {
-                connection.rollback();
-                throw e;
-            } finally {
-                connection.setAutoCommit(true);
             }
-        }
-    }
 
-    public void insertDiscordId(String discordId) throws SQLException {
-        String dbType = db.getDatabaseType().toLowerCase();
-        String sql;
-
-        if (dbType.contains("h2")) {
-            sql = "MERGE INTO users (discord_id) KEY (discord_id) VALUES (?)";
-        } else if (dbType.contains("sqlite")) {
-            sql = "INSERT OR IGNORE INTO users (discord_id) VALUES (?)";
-        } else {
-            sql = "INSERT INTO users (discord_id) VALUES (?) ON DUPLICATE KEY UPDATE discord_id = VALUES(discord_id)";
-        }
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, discordId);
-            stmt.executeUpdate();
-        }
-    }
-
-    public boolean setDiscordIdFromCode(String username, String code) {
-        String getRowWithCodeSQL = "SELECT id, discord_id FROM users WHERE verification_code = ? AND username IS NULL";
-        String getUserRowSQL = "SELECT id FROM users WHERE username = ?";
-        String updateUserRowSQL = "UPDATE users SET discord_id = ? WHERE username = ?";
-        String deleteCodeRowSQL = "DELETE FROM users WHERE id = ?";
-
-        try (Connection connection = dbManager.getConnection()) {
-            connection.setAutoCommit(false);
-
-            try {
-                Integer codeRowId = null;
-                String discordId = null;
-
-                try (PreparedStatement getCodeRowStmt = connection.prepareStatement(getRowWithCodeSQL)) {
-                    getCodeRowStmt.setString(1, code);
-                    ResultSet resultSet = getCodeRowStmt.executeQuery();
-
-                    if (resultSet.next()) {
-                        codeRowId = resultSet.getInt("id");
-                        discordId = resultSet.getString("discord_id");
-                    }
+            if (userExists) {
+                // Update existing user
+                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                    ps.setString(1, hashedPassword);
+                    ps.setString(2, minecraftUuid.toString());
+                    ps.setString(3, username);
+                    ps.executeUpdate();
                 }
-
-                if (codeRowId == null || discordId == null || discordId.isEmpty()) {
-                    FlexLogger.info(codeRowId + " " + discordId);
-                    connection.rollback();
-                    return false;
+            } else {
+                // Insert new user
+                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                    ps.setString(1, username);
+                    ps.setString(2, hashedPassword);
+                    ps.setString(3, minecraftUuid.toString());
+                    ps.executeUpdate();
                 }
-
-                boolean usernameExists = false;
-                try (PreparedStatement getUserStmt = connection.prepareStatement(getUserRowSQL)) {
-                    getUserStmt.setString(1, username);
-                    ResultSet resultSet = getUserStmt.executeQuery();
-                    usernameExists = resultSet.next();
-                }
-
-                if (!usernameExists) {
-                    connection.rollback();
-                    return false;
-                }
-
-                try (PreparedStatement deleteStmt = connection.prepareStatement(deleteCodeRowSQL)) {
-                    deleteStmt.setInt(1, codeRowId);
-                    deleteStmt.executeUpdate();
-                }
-
-                try (PreparedStatement updateStmt = connection.prepareStatement(updateUserRowSQL)) {
-                    updateStmt.setString(1, discordId);
-                    updateStmt.setString(2, username);
-                    updateStmt.executeUpdate();
-                }
-
-                connection.commit();
-                return true;
-
-            } catch (SQLException e) {
-                connection.rollback();
-                FlexLogger.error("Error setting Discord ID from code: " + e.getMessage());
-                return false;
-            } finally {
-                connection.setAutoCommit(true);
             }
+
+            return true;
+
         } catch (SQLException e) {
-            FlexLogger.error("Database connection error: " + e.getMessage());
+            FlexLogger.error("Failed to register user: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
-    public void insertVerificationCodeFromDiscordId(String discordId, String verificationCode) throws SQLException {
-        String updateSQL = "UPDATE users SET verification_code = ? WHERE discord_id = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL)) {
-            preparedStatement.setString(1, verificationCode);
-            preparedStatement.setString(2, discordId);
-            preparedStatement.executeUpdate();
+    /**
+     * Verify a user and permanently link them to their Minecraft profile.
+     * Once verified, the link is permanent and immutable.
+     */
+    public boolean verifyUser(String username, UUID minecraftUuid) {
+        if (!profilesManager.playerExists(minecraftUuid)) {
+            FlexLogger.error("Cannot verify user: Minecraft profile does not exist");
+            return false;
         }
-    }
 
-    public void insertVerificationCodeFromPlayerName(String playerName, String verificationCode) throws SQLException {
-        String updateSQL = "UPDATE users SET verification_code = ? WHERE username = ?;";
+        String sql = """
+            UPDATE users 
+            SET is_verified = TRUE, 
+                verified_at = ?, 
+                player_uuid = ? 
+            WHERE username = ? 
+              AND (player_uuid IS NULL OR player_uuid = ?)
+        """;
 
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL)) {
-            preparedStatement.setString(1, verificationCode);
-            preparedStatement.setString(2, playerName);
-            preparedStatement.executeUpdate();
-        }
-    }
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-    public void registerUser(String username, String password) {
-        try {
-            String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
-            String checkSQL = "SELECT id FROM users WHERE username = ?";
-            String updateSQL = "UPDATE users SET password = ? WHERE username = ?";
-            String insertSQL = "INSERT INTO users (username, password) VALUES (?, ?)";
+            ps.setLong(1, System.currentTimeMillis());
+            ps.setString(2, minecraftUuid.toString());
+            ps.setString(3, username);
+            ps.setString(4, minecraftUuid.toString());
 
-            try (Connection connection = dbManager.getConnection()) {
-                boolean userExists = false;
-                try (PreparedStatement checkStmt = connection.prepareStatement(checkSQL)) {
-                    checkStmt.setString(1, username);
-                    ResultSet resultSet = checkStmt.executeQuery();
-                    userExists = resultSet.next();
-                }
+            int updated = ps.executeUpdate();
 
-                if (userExists) {
-                    try (PreparedStatement updateStmt = connection.prepareStatement(updateSQL)) {
-                        updateStmt.setString(1, hashedPassword);
-                        updateStmt.setString(2, username);
-                        updateStmt.executeUpdate();
-                    }
-                } else {
-                    try (PreparedStatement insertStmt = connection.prepareStatement(insertSQL)) {
-                        insertStmt.setString(1, username);
-                        insertStmt.setString(2, hashedPassword);
-                        insertStmt.executeUpdate();
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to register user: " + e.getMessage());
-        }
-    }
-
-    public void setVerifiedStatusForPlayerName(String playerName, boolean bool) {
-        String updateSQL = "UPDATE users SET is_verified = ? WHERE username = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL)) {
-            preparedStatement.setBoolean(1, bool);
-            preparedStatement.setString(2, playerName);
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            FlexLogger.error("Error setting verified status: " + e.getMessage());
-        }
-    }
-
-    public void setVerifiedStatusForDiscordId(String userId, boolean bool) {
-        String updateSQL = "UPDATE users SET is_verified = ? WHERE discord_id = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(updateSQL)) {
-            preparedStatement.setBoolean(1, bool);
-            preparedStatement.setString(2, userId);
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-            FlexLogger.error("Error setting verified status: " + e.getMessage());
-        }
-    }
-
-    public String getUsername(String discordId) {
-        String selectSQL = "SELECT username FROM users WHERE discord_id = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, discordId);
-            ResultSet resultSet = preparedStatement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getString("username");
-            }
-        } catch (SQLException e) {
-            FlexLogger.error("Error fetching username: " + e.getMessage());
-        }
-        return null;
-    }
-
-    public boolean isUserVerified(String userId) {
-        String selectSQL = "SELECT is_verified FROM users WHERE discord_id = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, userId);
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
-                return resultSet.getBoolean("is_verified");
-            }
-        } catch (SQLException e) {
-            FlexLogger.error("Error checking user verification: " + e.getMessage());
-        }
-        return false;
-    }
-
-
-    public boolean isPlayerVerified(String playerName) {
-        String selectSQL = "SELECT is_verified FROM users WHERE username = ?;";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, playerName);
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
-                return resultSet.getBoolean("is_verified");
-            }
-        } catch (SQLException e) {
-            FlexLogger.error("Error checking user verification: " + e.getMessage());
-        }
-        return false;
-    }
-
-    public boolean isUserRegistered(String username) {
-        String selectSQL = "SELECT username FROM users WHERE username = ? AND password IS NOT NULL AND password != '';";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, username);
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
+            if (updated > 0) {
+                FlexLogger.info("User " + username + " verified and linked to MC UUID " + minecraftUuid);
                 return true;
+            } else {
+                FlexLogger.warn("Failed to verify user " + username + " - user not found or already linked to different profile");
+                return false;
             }
+
         } catch (SQLException e) {
-            FlexLogger.error("Error checking user registration: " + e.getMessage());
+            FlexLogger.error("Failed to verify user: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
+    }
+
+    /**
+     * Set or update Discord ID for a user.
+     */
+    public boolean setDiscordId(String username, String discordId) {
+        String sql = "UPDATE users SET discord_id = ? WHERE username = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, discordId);
+            ps.setString(2, username);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to set Discord ID: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Set verification code for username verification flow.
+     */
+    public boolean setVerificationCode(String username, String code) {
+        String sql = "UPDATE users SET verification_code = ? WHERE username = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setString(2, username);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to set verification code: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Set verification code for Discord verification flow.
+     */
+    public boolean setVerificationCodeByDiscord(String discordId, String code) {
+        String sql = "UPDATE users SET verification_code = ? WHERE discord_id = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, code);
+            ps.setString(2, discordId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to set verification code by Discord: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Validate user credentials for login.
+     */
+    public boolean validateCredentials(String username, String password) {
+        String sql = "SELECT password_hash FROM users WHERE username = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String storedHash = rs.getString("password_hash");
+                    return BCrypt.checkpw(password, storedHash);
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to validate credentials: " + e.getMessage());
+        }
+
         return false;
     }
 
-    public String getUsernameFromDiscordId(String discordId) {
-        String selectSQL = "SELECT username FROM users WHERE discord_id = ?;";
+    /**
+     * Check if a user is verified.
+     */
+    public boolean isUserVerified(String username) {
+        String sql = "SELECT is_verified FROM users WHERE username = ?";
 
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, discordId);
-            ResultSet resultSet = preparedStatement.executeQuery();
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            if (resultSet.next()) {
-                return resultSet.getString("username");
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("is_verified");
+                }
             }
+
         } catch (SQLException e) {
-            FlexLogger.error("Error fetching username from Discord ID: " + e.getMessage());
+            FlexLogger.error("Failed to check verification status: " + e.getMessage());
         }
+
+        return false;
+    }
+
+    /**
+     * Check if user is registered (has password).
+     */
+    public boolean isUserRegistered(String username) {
+        String sql = "SELECT 1 FROM users WHERE username = ? AND password_hash IS NOT NULL";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to check registration status: " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    /**
+     * Get username from Discord ID.
+     */
+    public String getUsernameByDiscordId(String discordId) {
+        String sql = "SELECT username FROM users WHERE discord_id = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, discordId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("username");
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get username by Discord ID: " + e.getMessage());
+        }
+
         return null;
     }
 
-    public boolean validateUserCredentials(String username, String password) {
-        String selectSQL = "SELECT password FROM users WHERE username = ?;";
+    /**
+     * Get Minecraft UUID linked to a user account.
+     */
+    public UUID getMinecraftUuid(String username) {
+        String sql = "SELECT player_uuid FROM users WHERE username = ? AND is_verified = TRUE";
 
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(selectSQL)) {
-            preparedStatement.setString(1, username);
-            ResultSet resultSet = preparedStatement.executeQuery();
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            if (resultSet.next()) {
-                String storedHashedPassword = resultSet.getString("password");
-                return BCrypt.checkpw(password, storedHashedPassword);
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String uuidStr = rs.getString("player_uuid");
+                    return uuidStr != null ? UUID.fromString(uuidStr) : null;
+                }
             }
+
         } catch (SQLException e) {
-            FlexLogger.error("Error validating user credentials: " + e.getMessage());
+            FlexLogger.error("Failed to get Minecraft UUID: " + e.getMessage());
         }
-        return false;
+
+        return null;
+    }
+
+    /**
+     * Get Discord ID for a username.
+     */
+    public String getDiscordId(String username) {
+        String sql = "SELECT discord_id FROM users WHERE username = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("discord_id");
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get Discord ID: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Get verification code for a user.
+     */
+    public String getVerificationCode(String username) {
+        String sql = "SELECT verification_code FROM users WHERE username = ?";
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("verification_code");
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get verification code: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Create a user entry for Minecraft profile verification.
+     * This is used when a player wants to claim their profile on the web interface.
+     */
+    public boolean createUserForVerification(String username, UUID minecraftUuid) {
+        if (!profilesManager.playerExists(minecraftUuid)) {
+            FlexLogger.error("Cannot create user: Minecraft profile does not exist");
+            return false;
+        }
+
+        String sql = """
+            INSERT INTO users (username, password_hash, player_uuid, is_verified) 
+            VALUES (?, '', ?, FALSE)
+        """;
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+            ps.setString(2, minecraftUuid.toString());
+
+            ps.executeUpdate();
+            return true;
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to create user for verification: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get user info including verification status and linked Minecraft profile.
+     */
+    public UserInfo getUserInfo(String username) {
+        String sql = """
+            SELECT id, username, player_uuid, is_verified, verified_at, discord_id 
+            FROM users 
+            WHERE username = ?
+        """;
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int id = rs.getInt("id");
+                    String uuidStr = rs.getString("player_uuid");
+                    UUID mcUuid = uuidStr != null ? UUID.fromString(uuidStr) : null;
+                    boolean verified = rs.getBoolean("is_verified");
+                    long verifiedAt = rs.getLong("verified_at");
+                    String discordId = rs.getString("discord_id");
+
+                    return new UserInfo(id, username, mcUuid, verified, verifiedAt, discordId);
+                }
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to get user info: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public List<UserInfo> getAllUsers() {
+        String sql = """
+        SELECT id, username, player_uuid, is_verified, verified_at, discord_id
+        FROM users
+    """;
+
+        List<UserInfo> users = new ArrayList<>();
+
+        try (Connection conn = dbManager.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String username = rs.getString("username");
+
+                String uuidStr = rs.getString("player_uuid");
+                UUID mcUuid = uuidStr != null ? UUID.fromString(uuidStr) : null;
+
+                boolean verified = rs.getBoolean("is_verified");
+                long verifiedAt = rs.getLong("verified_at");
+                String discordId = rs.getString("discord_id");
+
+                users.add(new UserInfo(id, username, mcUuid, verified, verifiedAt, discordId));
+            }
+
+        } catch (SQLException e) {
+            FlexLogger.error("Failed to fetch all users: " + e.getMessage());
+        }
+
+        return users;
+    }
+
+    /**
+     * Data class for user information.
+     */
+    public static class UserInfo {
+        public final int id;
+        public final String username;
+        public final UUID minecraftUuid;
+        public final boolean isVerified;
+        public final long verifiedAt;
+        public final String discordId;
+
+        public UserInfo(int id, String username, UUID minecraftUuid, boolean isVerified, long verifiedAt, String discordId) {
+            this.id = id;
+            this.username = username;
+            this.minecraftUuid = minecraftUuid;
+            this.isVerified = isVerified;
+            this.verifiedAt = verifiedAt;
+            this.discordId = discordId;
+        }
     }
 }

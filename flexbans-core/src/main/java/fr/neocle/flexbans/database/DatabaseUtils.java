@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.database;
 
+import fr.neocle.flexbans.database.actor.ActorsManager;
+import fr.neocle.flexbans.database.dashboard.RateLimiter;
 import fr.neocle.flexbans.database.dashboard.SessionManager;
 import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.database.player.ProfilesManager;
@@ -13,14 +15,12 @@ import java.sql.SQLException;
 public class DatabaseUtils {
     private final DatabaseConnectionManager dbManager;
     private final UserManager userManager;
+    private final ActorsManager actorsManager;
+    private final RateLimiter rateLimiter;
     private final SessionManager sessionManager;
-    private final BansManager bansManager;
-    private final MutesManager mutesManager;
-    private final KicksManager kicksManager;
-    private final WarningsManager warningsManager;
+    private final PunishmentsManager punishmentsManager;
     private final ServerLocksManager serverLocksManager;
     private final ProfilesManager profilesManager;
-    private final DatabaseCleanupTask cleanupTask;
     private final DatabaseBackupTask backupTask;
     private final String databaseType;
     private final String pluginFolderPath;
@@ -37,7 +37,10 @@ public class DatabaseUtils {
                 password = password;
                 break;
             case "sqlite":
-                jdbcUrl = "jdbc:sqlite:" + pluginFolderPath + "/database.db";
+                jdbcUrl = "jdbc:sqlite:" + pluginFolderPath + "/database.db"
+                        + "?journal_mode=WAL"
+                        + "&synchronous=NORMAL"
+                        + "&busy_timeout=5000";
                 username = "";
                 password = "";
                 break;
@@ -51,15 +54,13 @@ public class DatabaseUtils {
 
         this.dbManager = new DatabaseConnectionManager(jdbcUrl, username, password);
         this.profilesManager = new ProfilesManager(dbManager);
+        this.actorsManager = new ActorsManager(dbManager);
+        this.rateLimiter = new RateLimiter(dbManager);
 
-        this.userManager = new UserManager(this, dbManager);
-        this.bansManager = new BansManager(dbManager, profilesManager);
-        this.mutesManager = new MutesManager(dbManager, profilesManager);
-        this.kicksManager = new KicksManager(dbManager);
-        this.warningsManager = new WarningsManager(dbManager);
-        this.serverLocksManager = new ServerLocksManager(dbManager);
+        this.userManager = new UserManager(dbManager, profilesManager);
+        this.punishmentsManager = new PunishmentsManager(dbManager, actorsManager, profilesManager);
+        this.serverLocksManager = new ServerLocksManager(dbManager, actorsManager);
         this.sessionManager = new SessionManager(dbManager);
-        this.cleanupTask = new DatabaseCleanupTask(dbManager);
         this.backupTask = new DatabaseBackupTask(pluginFolderPath, databaseType);
     }
 
@@ -69,23 +70,16 @@ public class DatabaseUtils {
 
             Connection connection = dbManager.getConnection();
             SchemaInitializer.initializeDatabase(connection, databaseType);
+            connection.close();
 
-            cleanupTask.startSessionCleanupTask();
             backupTask.startBackupCreationTask();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public PreparedStatement prepareStatement(String sql) throws SQLException {
-        Connection connection = dbManager.getConnection();
-        return connection.prepareStatement(sql);
-    }
-
     public void shutdown() {
-        cleanupTask.shutdown();
         backupTask.shutdown();
-        bansManager.shutdown();
     }
 
     public String getDatabaseType() {
@@ -100,19 +94,13 @@ public class DatabaseUtils {
         return sessionManager;
     }
 
-    public BansManager getBansManager() {
-        return bansManager;
+    public RateLimiter getRateLimiter() {
+        return rateLimiter;
     }
 
-    public MutesManager getMutesManager() {
-        return mutesManager;
+    public PunishmentsManager getPunishmentsManager() {
+        return punishmentsManager;
     }
-
-    public KicksManager getKicksManager() {
-        return kicksManager;
-    }
-
-    public WarningsManager getWarningsManager() { return warningsManager; }
 
     public ServerLocksManager getServerLocksManager() {
         return serverLocksManager;

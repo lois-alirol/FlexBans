@@ -10,9 +10,8 @@ import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Command;
 
-import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.logging.Logger;
+import java.util.UUID;
 
 public class Verify extends Command {
     private final UserManager userManager;
@@ -24,12 +23,10 @@ public class Verify extends Command {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof ProxiedPlayer)) {
+        if (!(sender instanceof ProxiedPlayer player)) {
             sender.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.players-only"));
             return;
         }
-
-        ProxiedPlayer player = (ProxiedPlayer) sender;
 
         if (!player.hasPermission("flexbans.verify")) {
             player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.no-permission"));
@@ -43,33 +40,65 @@ public class Verify extends Command {
 
         String code = args[0];
         String username = player.getName();
-
-        if (userManager.isUserRegistered(username) && userManager.isPlayerVerified(username)) {
-            boolean success = userManager.setDiscordIdFromCode(username, code);
-            if (success) {
-                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
-            } else {
-                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
-            }
-            return;
-        }
+        UUID playerUuid = player.getUniqueId();
 
         try {
-            userManager.insertUsername(username, code);
-            userManager.setVerifiedStatusForPlayerName(username, true);
-            player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
-        } catch (SQLException e) {
-            if (e.getMessage().contains("does not exist")) {
-                player.sendMessage(Arrays.stream(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.unknown-code"))
-                        .map(component -> component instanceof TextComponent ? new TextComponent(((TextComponent) component).getText().replace("%code%", code)) : component)
-                        .toArray(BaseComponent[]::new));
-            } else {
-                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
-                FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.sql-exception").replace("%error%", e.getMessage()));
+            boolean isRegistered = userManager.isUserRegistered(username);
+            boolean isVerified = userManager.isUserVerified(username);
+
+            if (isRegistered && isVerified) {
+                // Already registered & verified → just link Discord
+                boolean success = userManager.setDiscordId(username, code);
+                if (success) {
+                    player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
+                } else {
+                    player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
+                }
+                return;
             }
+
+            if (!isRegistered) {
+                // Create user for verification
+                if (!userManager.createUserForVerification(username, playerUuid)) {
+                    player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
+                    return;
+                }
+            }
+
+            // Verify the user
+            if (!userManager.verifyUser(username, playerUuid)) {
+                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
+                return;
+            }
+
+            // Link Discord ID
+            if (!userManager.setDiscordId(username, code)) {
+                player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
+                return;
+            }
+
+            player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
+
         } catch (Exception e) {
-            player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.error"));
-            FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.exception").replace("%error%", e.getMessage()));
+            // Handle unknown code or SQL issues
+            String messageKey = e.getMessage() != null && e.getMessage().contains("does not exist")
+                    ? "commands.verify.unknown-code"
+                    : "commands.verify.error";
+
+            BaseComponent[] components = LanguageManager.getBungeeMessageComponent(sender, messageKey);
+
+            if ("commands.verify.unknown-code".equals(messageKey)) {
+                // Replace %code% placeholder
+                components = Arrays.stream(components)
+                        .map(c -> c instanceof TextComponent tc
+                                ? new TextComponent(tc.getText().replace("%code%", code))
+                                : c)
+                        .toArray(BaseComponent[]::new);
+            }
+
+            player.sendMessage(components);
+            FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.exception")
+                    .replace("%error%", e.getMessage() != null ? e.getMessage() : "Unknown error"));
         }
     }
 }

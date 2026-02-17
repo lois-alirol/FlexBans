@@ -3,15 +3,12 @@ package fr.neocle.flexbans.command.whitelist;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.PlayersWhitelist;
 import fr.neocle.flexbans.config.ConfigManager;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 
 public abstract class PlayersWhitelistCommand {
     private final PlayersWhitelist whitelist;
-    private final AuthenticationHandler authenticationHandler;
 
-    public PlayersWhitelistCommand(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
-        this.whitelist = api.getPlayersWhitelist();
-        this.authenticationHandler = authenticationHandler;
+    public PlayersWhitelistCommand() {
+        this.whitelist = FlexBansAPI.getInstance().getPlayersWhitelist();
     }
 
     /**

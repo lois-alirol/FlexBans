@@ -1,6 +1,6 @@
 commands:
-  unknown: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Commande inconnue, utilisez /flexbans help pour obtenir la liste des commandes."
-  players-only: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Seuls les joueurs peuvent utiliser cette commande."
+  unknown: "<bold><>FlexBans</gradient></bold><gray> » <white>Commande inconnue, utilisez /flexbans help pour obtenir la liste des commandes."
+    players-only: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Seuls les joueurs peuvent utiliser cette commande."
   no-permission: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Vous n'avez pas la permission d'utiliser cette commande."
   verify:
     usage: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Utilisation : /flexbans verify <code>"
@@ -10,7 +10,7 @@ commands:
     error: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Une erreur inattendue s'est produite. Veuillez contacter un administrateur."
   reload:
     usage: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Utilisation : /flexbans reload"
-    success: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Configuration de FlexBans rechargée avec succès."
+    success: "<bold><gradient:#ffa600:#fgradient:#ffa600:#ffd04efd04e>FlexBans</gradient></bold><gray> » <white>Configuration de FlexBans rechargée avec succès."
     fail: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Échec du rechargement de la configuration."
     error: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Une erreur inattendue s'est produite. Veuillez contacter un administrateur."
   players-whitelist:

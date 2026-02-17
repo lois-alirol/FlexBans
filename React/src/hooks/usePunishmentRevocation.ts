@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
-import { getAuthToken } from '../utils/tokenUtils';
+import authService from "../services/authService.ts";
 
 const BASE_API_URL = import.meta.env.VITE_APP_API_URL;
-const REVOKE_API_URL = `${BASE_API_URL}/punishments/revoke`; 
+const REVOKE_API_URL = `${BASE_API_URL}/punishments/revoke`;
 
 interface RevocationPayload {
+    punishmentId: number;
     punishmentType: string;
-    punishmentId: string;
-    identity: string;
-    removalReason: string;
+    reason: string;
+    silent?: boolean;
 }
 
 export const usePunishmentRevocation = () => {
@@ -18,32 +18,30 @@ export const usePunishmentRevocation = () => {
     const revokePunishment = useCallback(async (payload: RevocationPayload): Promise<void> => {
         setIsRevoking(true);
         setError(null);
-        
+
         try {
+            const csrfToken = await authService.getCsrfToken();
+
             const response = await fetch(REVOKE_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getAuthToken()}`
+                    'X-CSRF-Token': csrfToken,
                 },
+                credentials: 'include',
                 body: JSON.stringify(payload),
             });
 
-            if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData.message) {
-                        errorMessage = errorData.message;
-                    }
-                } catch (e) {
-                    console.log(e);
-                }
-                throw new Error(errorMessage);
+            const apiResponse = await response.json();
+
+            // Backend returns 201 for success as per your Java code
+            if (!response.ok || (apiResponse.code !== 200 && apiResponse.code !== 201)) {
+                throw new Error(apiResponse.message || `Error: ${response.status}`);
             }
+
+            console.log('Punishment revoked successfully:', apiResponse);
         } catch (e) {
-            const message = e instanceof Error ? e.message : 'An unknown error occurred during revocation.';
-            console.error('Error revoking punishment:', e);
+            const message = e instanceof Error ? e.message : 'An unknown error occurred.';
             setError(message);
             throw e;
         } finally {
@@ -51,9 +49,5 @@ export const usePunishmentRevocation = () => {
         }
     }, []);
 
-    return { 
-        revokePunishment, 
-        isRevoking, 
-        error 
-    };
+    return { revokePunishment, isRevoking, error };
 };

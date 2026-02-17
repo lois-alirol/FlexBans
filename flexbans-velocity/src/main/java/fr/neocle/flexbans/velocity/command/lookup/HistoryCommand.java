@@ -1,44 +1,60 @@
 package fr.neocle.flexbans.velocity.command.lookup;
 
-import com.velocitypowered.api.command.SimpleCommand;
-import com.velocitypowered.api.proxy. ProxyServer;
-import fr. neocle.flexbans. common.command.lookup.history. HistoryCommandExecutor;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.velocitypowered.api.command.BrigadierCommand;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandMeta;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.ProxyServer;
+import fr.neocle.flexbans.common.command.lookup.history.HistoryCommandExecutor;
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 import fr.neocle.flexbans.velocity.command.helper.lookup.VelocityHistoryCommandHelper;
 
-import java.util.List;
-
-public class HistoryCommand implements SimpleCommand {
+public final class HistoryCommand {
     private final HistoryCommandExecutor commandExecutor;
 
     public HistoryCommand(ProxyServer proxyServer, DatabaseUtils databaseUtils,
                           DatabaseConnectionManager dbManager) {
         this.commandExecutor = new HistoryCommandExecutor(
-                databaseUtils.getProfilesManager(),
-                databaseUtils.getBansManager(),
-                databaseUtils.getMutesManager(),
-                databaseUtils.getWarningsManager(),
-                databaseUtils.getKicksManager(),
                 new VelocityHistoryCommandHelper(proxyServer, databaseUtils, dbManager)
         );
     }
 
-    @Override
-    public void execute(Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        commandExecutor.execute(wrappedInvocation);
+    public LiteralArgumentBuilder<CommandSource> createNode() {
+        return BrigadierCommand.literalArgumentBuilder("history")
+                .requires(source -> source.hasPermission("flexbans.command.history"))
+                .executes(ctx -> {
+                    commandExecutor.execute(new VelocityCommandInvocation(ctx));
+                    return Command.SINGLE_SUCCESS;
+                })
+                .then(BrigadierCommand.requiredArgumentBuilder("args", StringArgumentType.greedyString())
+                        .suggests((ctx, builder) -> {
+                            commandExecutor.suggest(new VelocityCommandInvocation(ctx))
+                                    .forEach(builder::suggest);
+                            return builder.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            commandExecutor.execute(new VelocityCommandInvocation(ctx));
+                            return Command.SINGLE_SUCCESS;
+                        })
+                );
     }
 
-    @Override
-    public List<String> suggest(Invocation invocation) {
-        var wrappedInvocation = new VelocityCommandInvocation(invocation, invocation.source());
-        return commandExecutor. suggest(wrappedInvocation);
-    }
+    public static void register(CommandManager commandManager,
+                                ProxyServer proxyServer,
+                                DatabaseUtils databaseUtils,
+                                DatabaseConnectionManager dbManager) {
+        HistoryCommand command = new HistoryCommand(proxyServer, databaseUtils, dbManager);
 
-    @Override
-    public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission("flexbans.command.history");
+        BrigadierCommand brigadier = new BrigadierCommand(command.createNode().build());
+        CommandMeta meta = commandManager.metaBuilder(brigadier)
+                .aliases("history")
+                .build();
+
+        commandManager.register(meta, brigadier);
     }
 }

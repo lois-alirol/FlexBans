@@ -5,6 +5,8 @@ import com.velocitypowered.api.proxy.Player;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import net.kyori.adventure.text.Component;
 
+import java.util.UUID;
+
 public class VelocityCommandSource implements ICommandSource {
     private final CommandSource source;
     private final String origin;
@@ -46,5 +48,10 @@ public class VelocityCommandSource implements ICommandSource {
     @Override
     public String getPlayerName() {
         return isPlayer() ? ((Player) source).getUsername() : null;
+    }
+
+    @Override
+    public UUID getPlayerUUID() {
+        return isPlayer() ? ((Player) source).getUniqueId() : null;
     }
 }

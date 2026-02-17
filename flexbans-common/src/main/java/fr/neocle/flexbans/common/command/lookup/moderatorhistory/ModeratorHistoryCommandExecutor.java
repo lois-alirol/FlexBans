@@ -18,22 +18,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
-    private final ProfilesManager profilesManager;
-    private final BansManager bansManager;
-    private final MutesManager mutesManager;
-    private final WarningsManager warningsManager;
-    private final KicksManager kicksManager;
     private final IModeratorHistoryCommandHelper helper;
     private static final int ENTRIES_PER_PAGE = 5;
 
-    public ModeratorHistoryCommandExecutor(ProfilesManager profilesManager, BansManager bansManager,
-                                           MutesManager mutesManager, WarningsManager warningsManager,
-                                           KicksManager kicksManager, IModeratorHistoryCommandHelper helper) {
-        this.profilesManager = profilesManager;
-        this.bansManager = bansManager;
-        this.mutesManager = mutesManager;
-        this.warningsManager = warningsManager;
-        this.kicksManager = kicksManager;
+    public ModeratorHistoryCommandExecutor(IModeratorHistoryCommandHelper helper) {
         this.helper = helper;
     }
 

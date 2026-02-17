@@ -25,35 +25,42 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class PlayerHeadImage {
-    private final UsernameUUIDConverters usernameUUIDConverters;
+    private final UuidUsernameResolver resolver;
     private static Path cacheDirectory;
+    private static Path skinCacheDirectory;
     private final FloodgateApi floodgateApi;
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    public PlayerHeadImage(UsernameUUIDConverters usernameUUIDConverters, File pluginFolder) {
-        this.usernameUUIDConverters = usernameUUIDConverters;
+    public PlayerHeadImage(File pluginFolder) {
+        this.resolver = UuidUsernameResolver.get();
         this.floodgateApi = isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
+
         cacheDirectory = Paths.get(pluginFolder.getAbsolutePath(), "cache", "heads");
+        skinCacheDirectory = Paths.get(pluginFolder.getAbsolutePath(), "cache", "skins");
 
         try {
             Files.createDirectories(cacheDirectory);
+            Files.createDirectories(skinCacheDirectory);
         } catch (IOException e) {
-            System.err.println("Failed to create cache directory: " + e.getMessage());
+            System.err.println("Failed to create cache directories: " + e.getMessage());
         }
 
         scheduler.scheduleAtFixedRate(this::cleanUpCache, 0, 6, TimeUnit.HOURS);
     }
 
     public void cleanUpCache() {
-        File cacheDir = cacheDirectory.toFile();
+        cleanUpDirectory(cacheDirectory.toFile());
+        cleanUpDirectory(skinCacheDirectory.toFile());
+    }
 
-        if (!cacheDir.exists() || !cacheDir.isDirectory()) {
-            FlexLogger.warn("Cache directory does not exist or is not a directory.");
+    private void cleanUpDirectory(File directory) {
+        if (!directory.exists() || !directory.isDirectory()) {
+            FlexLogger.warn("Cache directory does not exist or is not a directory: " + directory.getName());
             return;
         }
 
-        File[] files = cacheDir.listFiles();
+        File[] files = directory.listFiles();
         if (files == null) return;
 
         long now = System.currentTimeMillis();
@@ -122,8 +129,7 @@ public class PlayerHeadImage {
     }
 
     public String getPlayerHeadUrl(String username, String size) throws Exception {
-        String uuidstr = usernameUUIDConverters.usernameToUUID(username);
-        UUID uuid = UUID.fromString(uuidstr);
+        UUID uuid = resolver.usernameToUuid(username);
         Path cachedImagePath = getCachedImagePath(username);
 
         if (Files.exists(cachedImagePath)) {
@@ -157,6 +163,36 @@ public class PlayerHeadImage {
         }
 
         return "https://mc-heads.net/avatar/" + uuid + "/" + size;
+    }
+
+    public String getPlayerSkinUrl(String username) throws Exception {
+        UUID uuid = resolver.usernameToUuid(username);
+        Path cachedSkinPath = getCachedSkinPath(username);
+
+        if (Files.exists(cachedSkinPath)) {
+            return "/player-skins/" + username;
+        }
+
+        if (floodgateApi != null && floodgateApi.isFloodgateId(uuid)) {
+            username = username.startsWith(floodgateApi.getPlayerPrefix()) ?
+                    username.substring(floodgateApi.getPlayerPrefix().length()) : username;
+
+            String xuidStr = uuid.toString().replaceAll("-", "").substring(16);
+            if (!xuidStr.isEmpty()) {
+                long xuidDecimal = Long.parseLong(xuidStr, 16);
+                String apiUrl = "https://api.geysermc.org/v2/skin/" + xuidDecimal;
+                String imageUrl = fetchTextureUrlFromAPI(apiUrl);
+
+                if (imageUrl != null) {
+                    return processAndCacheSkin(floodgateApi.getPlayerPrefix() + username, imageUrl);
+                }
+            }
+        } else {
+            String imageUrl = "https://mc-heads.net/skin/" + uuid;
+            return processAndCacheSkin(username, imageUrl);
+        }
+
+        return "https://mc-heads.net/skin/" + uuid;
     }
 
     private String fetchTextureUrlFromAPI(String apiUrl) {
@@ -196,9 +232,12 @@ public class PlayerHeadImage {
         return null;
     }
 
-
     private Path getCachedImagePath(String username) {
         return cacheDirectory.resolve(username + ".png");
+    }
+
+    private Path getCachedSkinPath(String username) {
+        return skinCacheDirectory.resolve(username + ".png");
     }
 
     @SuppressWarnings("deprecation")
@@ -266,5 +305,54 @@ public class PlayerHeadImage {
             ImageIO.write(img, "PNG", cachedImagePath.toFile());
         }
         return "/player-heads/" + username;
+    }
+
+    @SuppressWarnings("deprecation")
+    public String processAndCacheSkin(String username, String imageUrl) throws IOException {
+        Path cachedSkinPath = getCachedSkinPath(username);
+
+        if (Files.exists(cachedSkinPath)) {
+            return "/player-skins/" + username;
+        }
+
+        BufferedImage img = null;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                img = readImageFromUrl(imageUrl);
+                break;
+            } catch (IOException e) {
+                lastException = e;
+                FlexLogger.warn("Attempt " + (attempt + 1) + " failed to download skin: " + e.getMessage());
+                if (attempt < 2) {
+                    try {
+                        Thread.sleep(1000 * (attempt + 1));
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (img == null) {
+            FlexLogger.error("Failed to download skin after 3 attempts. Using fallback skin.");
+
+            File fallbackFile = new File("plugins/FlexBans/images/fallback_skin.png");
+
+            if (!fallbackFile.exists()) {
+                throw new IOException("Fallback skin not found at: " + fallbackFile.getAbsolutePath(), lastException);
+            }
+
+            img = ImageIO.read(fallbackFile);
+
+            if (img == null) {
+                throw new IOException("Failed to load fallback skin image!", lastException);
+            }
+        }
+
+        ImageIO.write(img, "PNG", cachedSkinPath.toFile());
+        return "/player-skins/" + username;
     }
 }

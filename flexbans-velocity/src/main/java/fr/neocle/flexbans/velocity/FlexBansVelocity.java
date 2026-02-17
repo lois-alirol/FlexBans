@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.velocity;
 
 import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.event.EventManager;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -141,29 +142,69 @@ public class FlexBansVelocity {
     private void registerCommands() {
         FlexLogger.info("Registering commands...");
         CommandManager commandManager = proxyServer.getCommandManager();
-        commandManager.register(commandManager.metaBuilder("flexbans").aliases("fb").build(), new BaseCommandVelocity(
-                bootstrap.getAPI(),
+
+        BaseCommandVelocity.register(
                 proxyServer,
                 bootstrap.getDataFolder(),
-                bootstrap.getAuthenticatorHandler(),
-                bootstrap.getDiscordOAuthHandler(),
-                bootstrap.getIndexHandler(),
                 bootstrap.getJettyReloader(),
                 bootstrap.getDatabaseUtils(),
                 bootstrap.getVersion()
-        ));
+        );
 
-        commandManager.register("ban", new BanCommand(bootstrap.getBanExecutor(), proxyServer), "ipban", "banip", "ban-ip", "ip-ban", "flexbans:ban", "flexbans:ipban", "flexbans:banip", "flexbans:ban-ip", "flexbans:ip-ban");
-        commandManager.register("mute", new MuteCommand(bootstrap.getMuteExecutor(), proxyServer), "flexbans:mute");
-        commandManager.register("kick", new KickCommand(bootstrap.getKickExecutor(), proxyServer), "flexbans:kick");
-        commandManager.register("warning",  new WarningCommand(bootstrap.getWarningExecutor(), proxyServer), "warn", "flexbans:warning", "flexbans:warn");
-        commandManager.register("unban", new UnbanCommand(bootstrap.getUnbanExecutor(), proxyServer), "flexbans:unban");
-        commandManager.register("unmute", new UnmuteCommand(bootstrap.getUnmuteExecutor(), proxyServer), "flexbans:unmute");
-        commandManager.register("serverlock", new ServerLockCommand(bootstrap.getServerLockExecutor(), proxyServer), "flexbans:serverlock");
-        commandManager.register("serverunlock", new ServerUnlockCommand(bootstrap.getServerUnlockExecutor(), proxyServer), "flexbans:serverunlock");
-        commandManager.register("alt", new AltCommand(proxyServer, bootstrap.getDatabaseUtils()), "flexbans:alt");
-        commandManager.register("history", new HistoryCommand(proxyServer, bootstrap.getDatabaseUtils(), bootstrap.getDatabaseUtils().getDatabaseConnectionManager()), "flexbans:history");
-        commandManager.register("mhistory", new ModeratorHistoryCommand(proxyServer, bootstrap.getDatabaseUtils(), bootstrap.getDatabaseUtils().getDatabaseConnectionManager()), "flexbans:mhistory");
+        BanCommand.register(
+                commandManager,
+                bootstrap.getBanExecutor(),
+                proxyServer
+        );
+
+        MuteCommand.register(
+                commandManager,
+                bootstrap.getMuteExecutor(),
+                proxyServer
+        );
+
+        KickCommand.register(
+                commandManager,
+                bootstrap.getKickExecutor(),
+                proxyServer
+        );
+
+        WarningCommand.register(
+                commandManager,
+                bootstrap.getWarningExecutor(),
+                proxyServer
+        );
+
+        UnbanCommand.register(
+                commandManager,
+                bootstrap.getUnbanExecutor(),
+                proxyServer
+        );
+
+        UnmuteCommand.register(
+                commandManager,
+                bootstrap.getUnmuteExecutor(),
+                proxyServer
+        );
+
+        ServerLockCommand.register(
+                commandManager,
+                bootstrap.getServerLockExecutor(),
+                proxyServer
+        );
+
+        ServerUnlockCommand.register(
+                commandManager,
+                bootstrap.getServerUnlockExecutor(),
+                proxyServer
+        );
+
+        AltCommand.register(commandManager, proxyServer, bootstrap.getDatabaseUtils());
+        HistoryCommand.register(commandManager, proxyServer, bootstrap.getDatabaseUtils(),
+                                bootstrap.getDatabaseUtils().getDatabaseConnectionManager());
+        ModeratorHistoryCommand.register(commandManager, proxyServer, bootstrap.getDatabaseUtils(),
+                                         bootstrap.getDatabaseUtils().getDatabaseConnectionManager());
+
     }
 
     private void registerListeners() {
@@ -181,7 +222,7 @@ public class FlexBansVelocity {
             LiteBansEvents listener = new LiteBansEvents(bootstrap.getDatabaseUtils());
             Events.get().register(listener);
         } else if (HooksUtils.usingFlexBansSystem()) {
-            eventManager.register(this, new FlexBansEvents(bootstrap.getDatabaseUtils(), bootstrap.getPunishmentSSEHandler()));
+            eventManager.register(this, new FlexBansEvents(bootstrap.getDatabaseUtils()));
         }
     }
 

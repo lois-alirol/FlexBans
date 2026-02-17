@@ -66,7 +66,7 @@ public class UnbanCommandExecutor implements ICommandExecutor {
 
         String reason = reasonParts.isEmpty() ? "" : String. join(" ", reasonParts);
 
-        unbanExecutor. executeUnban(target, sender, reason, scope, silent,
+        unbanExecutor.executeUnban(target, sender, scope, reason, silent,
                 message -> source.sendMessage(Component.text(message)));
     }
 

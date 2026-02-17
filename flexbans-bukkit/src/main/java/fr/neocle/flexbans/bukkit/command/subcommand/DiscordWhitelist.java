@@ -3,7 +3,6 @@ package fr.neocle.flexbans.bukkit.command.subcommand;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.bukkit.command.subcommand.DiscordWhitelistSubArgs.AddUser;
 import fr.neocle.flexbans.bukkit.command.subcommand.DiscordWhitelistSubArgs.RemoveUser;
-import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -18,9 +17,9 @@ import java.util.Map;
 public class DiscordWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public DiscordWhitelist(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
-        subCommands.put("add", new AddUser(api, discordOAuthHandler));
-        subCommands.put("remove", new RemoveUser(api, discordOAuthHandler));
+    public DiscordWhitelist() {
+        subCommands.put("add", new AddUser());
+        subCommands.put("remove", new RemoveUser());
     }
 
     @Override

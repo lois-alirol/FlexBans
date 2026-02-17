@@ -6,80 +6,55 @@ import fr.neocle.flexbans.api.event.velocity.punishment.KickAddedEvent;
 import fr.neocle.flexbans.api.event.velocity.punishment.MuteAddedEvent;
 import fr.neocle.flexbans.api.event.velocity.punishment.PunishmentAddedEvent;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.handler.web.api.PunishmentSSEHandler;
-import fr.neocle.flexbans.handler.web.cache.CountsCache;
+import fr.neocle.flexbans.web.cache.PunishmentCache;
+import fr.neocle.flexbans.web.provider.PunishmentDataProvider;
 
 public class FlexBansEvents {
     private final DatabaseUtils databaseUtils;
-    private final PunishmentSSEHandler punishmentSSEHandler;
+    private final PunishmentDataProvider punishmentDataProvider;
 
-    public FlexBansEvents(DatabaseUtils databaseUtils, PunishmentSSEHandler punishmentSSEHandler) {
+    public FlexBansEvents(DatabaseUtils databaseUtils) {
         this.databaseUtils = databaseUtils;
-        this.punishmentSSEHandler = punishmentSSEHandler;
-
-        CountsCache.update(databaseUtils, true, false);
+        this.punishmentDataProvider = PunishmentDataProvider.getInstance(databaseUtils);
     }
 
     @Subscribe
     public void onAnyPunishment(PunishmentAddedEvent event) {
-        CountsCache.update(databaseUtils, true, false);
-
-        String countsJson = String.format(
-                "{\"type\":\"counts\",\"bans\":%d,\"mutes\":%d,\"kicks\":%d,\"warnings\":%d}",
-                CountsCache.bansCount, CountsCache.mutesCount, CountsCache.kicksCount, CountsCache.warningsCount
-        );
-        punishmentSSEHandler.broadcastUpdate(countsJson);
     }
 
     @Subscribe
     public void onBan(BanAddedEvent event) {
-        try {
-            String jsonUpdate = String.format(
-                    "{\"type\":\"ban\",\"player\":\"%s\",\"uuid\":\"%s\",\"moderator\":\"%s\",\"reason\":\"%s\",\"duration\":\"%s\",\"server\":\"%s\"}",
-                    event.getTargetName(),
-                    event.getTargetUUID(),
-                    event.getSenderName(),
-                    event.getReason().replace("\"", "'"),
-                    (event.getDuration() == -1 ? "Permanent" : event.getDuration() + "ms"),
-                    event.getServerScope()
-            );
-            punishmentSSEHandler.broadcastUpdate(jsonUpdate);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        PunishmentCache.addPunishment(
+                event.getTargetName(),
+                event.getSenderName(),
+                event.getReason(),
+                event.getDuration(),
+                event.getServerScope(),
+                "BAN"
+        );
     }
 
     @Subscribe
     public void onMute(MuteAddedEvent event) {
-        try {
-            String jsonUpdate = String.format(
-                    "{\"type\":\"mute\",\"player\":\"%s\",\"uuid\":\"%s\",\"moderator\":\"%s\",\"reason\":\"%s\",\"duration\":\"%s\",\"server\":\"%s\"}",
-                    event.getTargetName(),
-                    event.getTargetUUID(),
-                    event.getSenderName(),
-                    event.getReason().replace("\"", "'"),
-                    (event.getDuration() == -1 ? "Permanent" : event.getDuration() + "ms"),
-                    event.getServerScope()
-            );
-            punishmentSSEHandler.broadcastUpdate(jsonUpdate);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        PunishmentCache.addPunishment(
+                event.getTargetName(),
+                event.getSenderName(),
+                event.getReason(),
+                event.getDuration(),
+                event.getServerScope(),
+                "MUTE"
+        );
     }
 
     @Subscribe
     public void onKick(KickAddedEvent event) {
-        try {
-            String jsonUpdate = String.format(
-                    "{\"type\":\"mute\",\"player\":\"%s\",\"uuid\":\"%s\",\"moderator\":\"%s\",\"reason\":\"%s\"}",
-                    event.getTargetName(),
-                    event.getTargetUUID(),
-                    event.getSenderName(),
-                    event.getReason().replace("\"", "'")
-            );
-            punishmentSSEHandler.broadcastUpdate(jsonUpdate);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        PunishmentCache.addPunishment(
+                event.getTargetName(),
+                event.getSenderName(),
+                event.getReason(),
+                0,
+                "",
+                "KICK"
+        );
     }
 }

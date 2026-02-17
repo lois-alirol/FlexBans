@@ -17,23 +17,26 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
 public class DialogEvents implements PluginMessageListener, Listener {
     private final JavaPlugin plugin;
     private static final String DIALOGS_IDENTIFIER = "flexbans:dialogs";
+    private static final String BAN_CHANNEL = "flexbans:ban";
 
     private static final Key DIALOG_KEY = Key.key("flexbans", "ban_dialog");
-    private static final Key EXECUTE_ACTION_KEY = Key.key("flexbans", "ban_execute");
+    private static final Key BAN_EXECUTE_ACTION_KEY = Key.key("flexbans", "ban_execute");
 
     private static final String KEY_TARGET_NAME = "ban_target_name";
     private static final String KEY_REASON = "ban_reason";
     private static final String KEY_DURATION_VALUE = "ban_duration_value";
-    // Key for the duration unit slider
+
     private static final String KEY_DURATION_UNIT = "ban_duration_unit";
-    // Key for the permanent checkbox (renamed from KEY_DURATION_UNIT)
+
     private static final String KEY_PERMANENT = "ban_permanent";
     private static final String KEY_SILENT = "ban_silent";
     private static final String KEY_SERVER_SCOPE = "ban_server_scope";
@@ -88,12 +91,12 @@ public class DialogEvents implements PluginMessageListener, Listener {
             return;
         }
 
-        if (event.getIdentifier().equals(EXECUTE_ACTION_KEY)) {
+        if (event.getIdentifier().equals(BAN_EXECUTE_ACTION_KEY)) {
             handleExecuteBan(player, event.getDialogResponseView());
         }
     }
 
-    public static void handleExecuteBan(Player player, DialogResponseView input) {
+    public void handleExecuteBan(Player player, DialogResponseView input) {
 
         String target = input.getText(KEY_TARGET_NAME);
         String reason = input.getText(KEY_REASON);
@@ -110,37 +113,55 @@ public class DialogEvents implements PluginMessageListener, Listener {
 
         long durationMs;
 
-        // Check if the ban is permanent first
         if (permanent) {
             durationMs = -1L;
-            unit = "permanent"; // Set unit for debug output
+            unit = "permanent";
         } else {
-            // Use the unit selected by the slider
             switch (unit) {
                 case "minutes": durationMs = durationValueLong * 60_000L; break;
                 case "hours":   durationMs = durationValueLong * 3_600_000L; break;
                 case "days":    durationMs = durationValueLong * 86_400_000L; break;
-                // Note: using 30 days for month and 365 days for year is an approximation
                 case "months":  durationMs = durationValueLong * 30L * 86_400_000L; break;
                 case "years":   durationMs = durationValueLong * 365L * 86_400_000L; break;
-                // 'seconds' case removed as it was not in the unitOptions list from the previous code
                 default:
                     durationMs = 0;
-                    // Optional: Log an error if an unexpected unit is found
             }
         }
 
-        //────────────────────────────────────────────────────────────────────────────
-        // Debug Output
-        //────────────────────────────────────────────────────────────────────────────
-        player.sendMessage(Component.text("---- Ban Config ----").color(NamedTextColor.YELLOW));
-        player.sendMessage(Component.text("Target: " + target).color(NamedTextColor.AQUA));
-        player.sendMessage(Component.text("Reason: " + reason));
-        player.sendMessage(Component.text("Duration: " + durationValue + " " + unit));
-        player.sendMessage(Component.text("Milliseconds: " + durationMs));
-        player.sendMessage(Component.text("Silent: " + silent));
-        player.sendMessage(Component.text("Scope: " + scope));
-        player.sendMessage(Component.text("Type: " + banType));
-        player.sendMessage(Component.text("---------------------").color(NamedTextColor.YELLOW));
+        String durationString = permanent ? "permanent" : (durationValueLong + " " + unit);
+        boolean ipScope = "ip".equalsIgnoreCase(banType);
+
+        sendBanToProxy(player, target, player.getName(), durationString,
+                        reason, scope, silent, ipScope);
+
+        player.sendMessage(Component.text("Ban data sent to proxy.").color(NamedTextColor.GREEN));
+    }
+
+    private void sendBanToProxy(Player player,
+                                String target,
+                                String sender,
+                                String duration,
+                                String reason,
+                                String serverScope,
+                                boolean silent,
+                                boolean ipScope) {
+
+        try {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(bytes);
+
+            out.writeUTF(target != null ? target : "");
+            out.writeUTF(sender != null ? sender : "");
+            out.writeUTF(duration != null ? duration : "");
+            out.writeUTF(reason != null ? reason : "");
+            out.writeUTF(serverScope != null ? serverScope : "");
+            out.writeBoolean(silent);
+            out.writeBoolean(ipScope);
+
+            player.sendPluginMessage(plugin, BAN_CHANNEL, bytes.toByteArray());
+        } catch (IOException e) {
+            player.sendMessage(Component.text("Failed to send ban data to proxy.").color(NamedTextColor.RED));
+            e.printStackTrace();
+        }
     }
 }

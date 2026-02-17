@@ -11,10 +11,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
-import java.util.logging.Logger;
+import java.util.UUID;
 
 public class Verify implements CommandExecutor {
-    private UserManager userManager;
+    private final UserManager userManager;
 
     public Verify(DatabaseUtils databaseUtils) {
         this.userManager = databaseUtils.getUserManager();
@@ -22,12 +22,10 @@ public class Verify implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(LanguageManager.getMessageComponent("commands.players-only"));
             return true;
         }
-
-        Player player = (Player) sender;
 
         if (!player.hasPermission("flexbans.verify")) {
             player.sendMessage(LanguageManager.getMessageComponent("commands.no-permission"));
@@ -41,37 +39,44 @@ public class Verify implements CommandExecutor {
 
         String code = args[0];
         String username = player.getName();
+        UUID playerUuid = player.getUniqueId();
 
         try {
             boolean isRegistered = userManager.isUserRegistered(username);
-            boolean isVerified = userManager.isPlayerVerified(username);
+            boolean isVerified = userManager.isUserVerified(username);
 
             if (isRegistered && isVerified) {
-                userManager.setDiscordIdFromCode(username, code);
-                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
+                // Already registered and verified → just link Discord
+                if (userManager.setDiscordId(username, code)) {
+                    player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
+                } else {
+                    player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
+                }
                 return true;
             }
 
-            if (isRegistered) {
-                userManager.insertVerificationCodeFromPlayerName(username, code);
-                userManager.setVerifiedStatusForPlayerName(username, true);
-            } else {
-                userManager.insertUsername(username, code);
-                userManager.setVerifiedStatusForPlayerName(username, true);
+            if (!isRegistered) {
+                // User doesn't exist → create for verification
+                if (!userManager.createUserForVerification(username, playerUuid)) {
+                    player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
+                    return true;
+                }
             }
 
-            userManager.setDiscordIdFromCode(username, code);
+            // Mark as verified
+            if (!userManager.verifyUser(username, playerUuid)) {
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
+                return true;
+            }
+
+            // Set Discord ID
+            if (!userManager.setDiscordId(username, code)) {
+                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
+                return true;
+            }
+
             player.sendMessage(LanguageManager.getMessageComponent("commands.verify.success"));
 
-        } catch (SQLException e) {
-            if (e.getMessage().contains("does not exist")) {
-                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.unknown-code")
-                        .replaceText(builder -> builder.matchLiteral("%code%").replacement(Component.text(code))));
-            } else {
-                player.sendMessage(LanguageManager.getMessageComponent("commands.verify.fail"));
-                FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.sql-exception")
-                        .replace("%error%", e.getMessage()));
-            }
         } catch (Exception e) {
             player.sendMessage(LanguageManager.getMessageComponent("commands.verify.error"));
             FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.exception"));

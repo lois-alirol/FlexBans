@@ -21,8 +21,16 @@ dependencies {
     implementation("org.eclipse.jetty:jetty-util:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-http:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-io:9.4.56.v20240826")
+    implementation("org.eclipse.jetty:jetty-servlet:9.4.56.v20240826")
+    implementation("org.eclipse.jetty:jetty-rewrite:9.4.56.v20240826")
+    implementation("commons-codec:commons-codec:1.16.1")
 
-    implementation("javax.servlet:javax.servlet-api:3.1.0")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    implementation("io.jsonwebtoken:jjwt-impl:0.12.3")
+    implementation("io.jsonwebtoken:jjwt-jackson:0.12.3")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+
+    implementation("javax.servlet:javax.servlet-api:4.0.1")
 
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("com.h2database:h2:2.2.224")
@@ -40,6 +48,7 @@ dependencies {
 
     compileOnly("org.geysermc.geyser:api:2.4.2-SNAPSHOT")
     compileOnly("org.geysermc.floodgate:api:2.2.3-SNAPSHOT")
+    compileOnly("net.luckperms:api:5.4")
 
     compileOnly("com.gitlab.ruany:LiteBansAPI:0.5.0")
 

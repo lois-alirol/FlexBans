@@ -3,7 +3,6 @@ package fr.neocle.flexbans.bungee.command.subcommand;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.bungee.command.subcommand.PlayersWhitelistSubArgs.AddPlayer;
 import fr.neocle.flexbans.bungee.command.subcommand.PlayersWhitelistSubArgs.RemovePlayer;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.plugin.Command;
@@ -17,10 +16,10 @@ import java.util.Map;
 public class PlayersWhitelist extends Command implements TabExecutor {
     private final Map<String, Command> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
+    public PlayersWhitelist() {
         super("players");
-        subCommands.put("add", new AddPlayer(api, authenticationHandler));
-        subCommands.put("remove", new RemovePlayer(api, authenticationHandler));
+        subCommands.put("add", new AddPlayer());
+        subCommands.put("remove", new RemovePlayer());
     }
 
     @Override

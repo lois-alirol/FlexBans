@@ -69,9 +69,6 @@ public class FlexBansBukkit extends JavaPlugin {
         getLogger().warning("/_____________\\\\");
 
         setupBackendImplementation(dialogListener);
-
-        getCommand("test").setExecutor(new TestCommand());
-        getServer().getPluginManager().registerEvents(new TestCommand(), this);
         getServer().getPluginManager().registerEvents(dialogListener, this);
     }
 
@@ -111,11 +108,7 @@ public class FlexBansBukkit extends JavaPlugin {
 
     private void registerCommands() {
         BaseCommandBukkit baseCommand = new BaseCommandBukkit(
-                bootstrap.getAPI(),
                 bootstrap.getDataFolder(),
-                bootstrap.getAuthenticatorHandler(),
-                bootstrap.getDiscordOAuthHandler(),
-                bootstrap.getIndexHandler(),
                 bootstrap.getDatabaseUtils()
         );
 

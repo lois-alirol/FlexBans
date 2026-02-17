@@ -1,41 +1,89 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { AuthContext } from './AuthContext';
-import { getAuthToken, getUserData, clearAuthData } from '../../../utils/tokenUtils';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {AuthContext, type AuthContextType, type UserContext} from './AuthContext';
+import { getUserData, clearAuthData, setUserData } from '../../../utils/tokenUtils';
 import authService from '../../../services/authService';
-
-export interface UserContext {
-  id: string;
-  username: string;
-  isVerified: boolean;
-}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchUserFromBackend = useCallback(async () => {
+    try {
+      const meData = await authService.getMe();
+
+      const updatedUser: UserContext = {
+        id: meData.username,
+        username: meData.username,
+        isVerified: meData.is_verified,
+        permissions: meData.permissions,
+      };
+
+      setUser(updatedUser);
+      setUserData(updatedUser, localStorage.getItem('stayLoggedIn') === 'true');
+
+      return updatedUser;
+    } catch (err) {
+      console.error('Failed to fetch user from backend:', err);
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
-      const token = await getAuthToken();
-      const userData = await getUserData();
+      try {
+        await authService.fetchCsrfToken().catch((err: any) => {
+          console.warn('Initial CSRF fetch failed:', err);
+        });
 
-      if (token && userData) {
-        setUser(userData);
-      } else {
+        const userData = getUserData();
+
+        if (userData) {
+          setUser(userData);
+
+          if (userData.isVerified) {
+            const backendUser = await fetchUserFromBackend();
+            if (backendUser) {
+              setUser(backendUser);
+            }
+          }
+        } else {
+          clearAuthData();
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         clearAuthData();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [fetchUserFromBackend]);
 
-  const value = useMemo(() => ({
+  const refreshUserVerification = useCallback(async () => {
+    try {
+      const user = await fetchUserFromBackend();
+      if (user) {
+        setUser(user);
+      } else {
+        clearAuthData();
+        setUser(null);
+      }
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
+      clearAuthData();
+      setUser(null);
+    }
+  }, [fetchUserFromBackend]);
+
+  const value: AuthContextType = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     isVerified: user?.isVerified ?? false,
-    login: async (...args: Parameters<typeof authService.login>) => {
-      const response = await authService.login(...args);
+    login: async (username: string, password: string, stayLoggedIn: boolean) => {
+      const response = await authService.login(username, password, stayLoggedIn);
       setUser(response.user);
       return response;
     },
@@ -43,12 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authService.logout();
       setUser(null);
     },
+    refreshUserVerification,
     isLoading,
-  }), [user, isLoading]);
+  }), [user, isLoading, refreshUserVerification]);
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+      <AuthContext.Provider value={value}>
+        {children}
+      </AuthContext.Provider>
+);
 };

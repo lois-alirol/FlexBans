@@ -3,15 +3,12 @@ package fr.neocle.flexbans.command.whitelist;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.api.whitelist.DiscordWhitelist;
 import fr.neocle.flexbans.config.ConfigManager;
-import fr.neocle.flexbans.handler.web.security.oauth.DiscordOAuthHandler;
 
 public abstract class DiscordWhitelistCommand {
     private final DiscordWhitelist whitelist;
-    private final DiscordOAuthHandler discordOAuthHandler;
 
-    public DiscordWhitelistCommand(FlexBansAPI api, DiscordOAuthHandler discordOAuthHandler) {
-        this.whitelist = api.getDiscordWhitelist();
-        this.discordOAuthHandler = discordOAuthHandler;
+    public DiscordWhitelistCommand() {
+        this.whitelist = FlexBansAPI.getInstance().getDiscordWhitelist();
     }
 
     /**

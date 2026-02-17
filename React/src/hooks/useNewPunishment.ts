@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
-import { getAuthToken } from '../utils/tokenUtils';
+import authService from '../services/authService';
 
 const BASE_API_URL = import.meta.env.VITE_APP_API_URL;
 const NEW_PUNISHMENT_API_URL = `${BASE_API_URL}/punishments/create`;
 
 interface NewPunishmentPayload {
     target: string;
-    identity: string;
     punishmentType: string;
     silent: boolean;
     reason: string;
@@ -31,23 +30,20 @@ export const useNewPunishment = () => {
         setSuccess(false);
 
         try {
-            const token = getAuthToken();
-
-            if (!token) {
-                throw new Error("Authentication token not found. Please log in.");
-            }
+            const csrfToken = await authService.getCsrfToken();
 
             const response = await fetch(NEW_PUNISHMENT_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'X-CSRF-Token': csrfToken,
                 },
+                credentials: 'include',
                 body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                let errorMessage = `HTTP error! Status: ${response.status}`;
+                let errorMessage = `Error: ${response.status}`;
                 try {
                     const errorData = await response.json();
                     if (errorData.message) {
@@ -58,12 +54,19 @@ export const useNewPunishment = () => {
                 }
                 throw new Error(errorMessage);
             }
-            
+
+            const apiResponse = await response.json();
+
+            if (apiResponse.code && apiResponse.code >= 400) {
+                throw new Error(apiResponse.message || 'Failed to create punishment');
+            }
+
+            console.log('Punishment created successfully:', apiResponse.data);
             setSuccess(true);
 
             setTimeout(() => {
                 setSuccess(false);
-            }, 5000); 
+            }, 5000);
 
         } catch (e) {
             const message = e instanceof Error ? e.message : 'An unknown error occurred during punishment creation.';
@@ -75,9 +78,9 @@ export const useNewPunishment = () => {
         }
     }, []);
 
-    return { 
-        createPunishment, 
-        isCreating, 
+    return {
+        createPunishment,
+        isCreating,
         error,
         success,
         resetState

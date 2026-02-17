@@ -93,8 +93,8 @@ public class BanDialog {
                 .build();
 
         List<SingleOptionDialogInput.OptionEntry> serverScopeOptions = List.of(
-                SingleOptionDialogInput.OptionEntry.create("local", Component.text("This Server Only"), true),
-                SingleOptionDialogInput.OptionEntry.create("global", Component.text("All Servers").color(NamedTextColor.RED), false)
+                SingleOptionDialogInput.OptionEntry.create("local", Component.text("This Server Only"), false),
+                SingleOptionDialogInput.OptionEntry.create("global", Component.text("All Servers"), true)
         );
 
         SingleOptionDialogInput serverScopeInput = DialogInput.singleOption(
@@ -107,7 +107,7 @@ public class BanDialog {
 
         List<SingleOptionDialogInput.OptionEntry> banTypeOptions = List.of(
                 SingleOptionDialogInput.OptionEntry.create("account", Component.text("Account Only"), true),
-                SingleOptionDialogInput.OptionEntry.create("ip_and_account", Component.text("Account + IP").color(NamedTextColor.RED), false)
+                SingleOptionDialogInput.OptionEntry.create("ip", Component.text("Account + IP"), false)
         );
         SingleOptionDialogInput banTypeInput = DialogInput.singleOption(KEY_BAN_TYPE, Component.text("Ban Type"), banTypeOptions)
                 .width(256)

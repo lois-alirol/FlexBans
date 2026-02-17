@@ -1,22 +1,22 @@
 package fr.neocle.flexbans.velocity.handler;
 
 import com.velocitypowered.api.proxy.ProxyServer;
-import fr.neocle.flexbans.command.punishment.ban.BanPlatformHandler;
-import fr.neocle.flexbans.command.punishment.ban.platform.VelocityBan;
-import fr.neocle.flexbans.command.punishment.kick.KickPlatformHandler;
-import fr.neocle.flexbans.command.punishment.kick.platform.VelocityKick;
-import fr.neocle.flexbans.command.punishment.mute.MutePlatformHandler;
-import fr.neocle.flexbans.command.punishment.mute.platform.VelocityMute;
-import fr.neocle.flexbans.command.punishment.warning.WarningPlatformHandler;
-import fr.neocle.flexbans.command.punishment.warning.platform.VelocityWarning;
-import fr.neocle.flexbans.command.server.lock.ServerLockPlatformHandler;
-import fr.neocle.flexbans.command.server.lock.platform.VelocityServerLock;
+import fr.neocle.flexbans.api.platform.handler.BanPlatformHandler;
+import fr.neocle.flexbans.api.platform.handler.KickPlatformHandler;
+import fr.neocle.flexbans.velocity.handler.punishment.KickHandler;
+import fr.neocle.flexbans.api.platform.handler.MutePlatformHandler;
+import fr.neocle.flexbans.velocity.handler.punishment.MuteHandler;
+import fr.neocle.flexbans.api.platform.handler.WarningPlatformHandler;
+import fr.neocle.flexbans.velocity.handler.punishment.WarningHandler;
+import fr.neocle.flexbans.api.platform.handler.ServerLockPlatformHandler;
+import fr.neocle.flexbans.velocity.handler.server.lock.ServerLockHandler;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handler.factory.PlatformHandlerFactory;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.broadcast.BroadcasterVelocity;
 import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
 import fr.neocle.flexbans.util.commandsexecution.CommandsExecutionVelocity;
+import fr.neocle.flexbans.velocity.handler.punishment.BanHandler;
 
 public class VelocityHandlerFactory implements PlatformHandlerFactory {
     private final ProxyServer proxyServer;
@@ -39,26 +39,26 @@ public class VelocityHandlerFactory implements PlatformHandlerFactory {
 
     @Override
     public BanPlatformHandler createBanHandler() {
-        return new VelocityBan(proxyServer, databaseUtils.getProfilesManager());
+        return new BanHandler(proxyServer, databaseUtils.getProfilesManager());
     }
 
     @Override
     public MutePlatformHandler createMuteHandler() {
-        return new VelocityMute(proxyServer);
+        return new MuteHandler(proxyServer);
     }
 
     @Override
     public KickPlatformHandler createKickHandler() {
-        return new VelocityKick(proxyServer);
+        return new KickHandler(proxyServer);
     }
 
     @Override
     public WarningPlatformHandler createWarningHandler() {
-        return new VelocityWarning(proxyServer);
+        return new WarningHandler(proxyServer);
     }
 
     @Override
     public ServerLockPlatformHandler createServerLockHandler() {
-        return new VelocityServerLock(proxyServer);
+        return new ServerLockHandler(proxyServer);
     }
 }

@@ -3,7 +3,6 @@ package fr.neocle.flexbans.bukkit.command.subcommand;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.bukkit.command.subcommand.PlayersWhitelistSubArgs.AddPlayer;
 import fr.neocle.flexbans.bukkit.command.subcommand.PlayersWhitelistSubArgs.RemovePlayer;
-import fr.neocle.flexbans.handler.web.security.AuthenticationHandler;
 import fr.neocle.flexbans.locale.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -18,9 +17,9 @@ import java.util.Map;
 public class PlayersWhitelist implements CommandExecutor, TabCompleter {
     private final Map<String, CommandExecutor> subCommands = new HashMap<>();
 
-    public PlayersWhitelist(FlexBansAPI api, AuthenticationHandler authenticationHandler) {
-        subCommands.put("add", new AddPlayer(api, authenticationHandler));
-        subCommands.put("remove", new RemovePlayer(api, authenticationHandler));
+    public PlayersWhitelist() {
+        subCommands.put("add", new AddPlayer());
+        subCommands.put("remove", new RemovePlayer());
     }
 
     @Override
