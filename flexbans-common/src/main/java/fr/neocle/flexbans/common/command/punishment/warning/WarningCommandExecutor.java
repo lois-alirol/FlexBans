@@ -29,8 +29,12 @@ public class WarningCommandExecutor implements ICommandExecutor {
         ICommandSource source = invocation.getSource();
         String[] args = invocation.getArguments();
 
-        if (args.length < 1) {
-            source.sendMessage(Component.text("Usage: /warn <player/uuid> [reason] [-s] [-sender=<name>] [-scope=<server>]"));
+        if (args. length < 1) {
+            if (source.isPlayer()) {
+                helper.sendDialogMessage(source. getPlayerName(), "warning");
+                return;
+            }
+            source.sendMessage(Component.text("Usage: /warning <player/uuid> [reason] [-s] [-sender=<name>] [-scope=<server>]"));
             return;
         }
 

@@ -1,6 +1,7 @@
 package fr.neocle.flexbans.database;
 
 import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.util.scheduler.TaskScheduler;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -8,24 +9,20 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class DatabaseBackupTask implements Runnable {
     private final String pluginFolderPath;
     private final String databaseType;
 
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final FlexLogger LOGGER = FlexLogger.get(DatabaseBackupTask.class);
 
     public DatabaseBackupTask(String pluginFolderPath, String databaseType) {
         this.pluginFolderPath = pluginFolderPath;
         this.databaseType = databaseType;
     }
 
-    public void startBackupCreationTask() {
-        scheduler.scheduleAtFixedRate(this::run, 0, 3, TimeUnit.HOURS);
+    public void start() {
+        TaskScheduler.get().runRepeating(this, 10800000);
     }
 
     @Override
@@ -36,20 +33,34 @@ public class DatabaseBackupTask implements Runnable {
             Files.createDirectories(backupDir);
 
             switch (databaseType.toLowerCase()) {
-                case "sqlite":
-                case "h2": {
-                    String dbFile = databaseType.equals("sqlite") ? "database.db" : "database.db";
-                    Path source = Paths.get(pluginFolderPath, dbFile);
-                    Path destination = backupDir.resolve("backup_" + timestamp + "_" + dbFile);
+                case "sqlite": {
+                    Path source = Paths.get(pluginFolderPath, "sqlite.db");
+                    if (!Files.exists(source)) {
+                        LOGGER.warn("SQLite database file not found, skipping backup.");
+                        break;
+                    }
+                    Path destination = backupDir.resolve("backup_" + timestamp + "_sqlite.db");
                     Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
-                    FlexLogger.info("Database backup created: " + destination);
+                    LOGGER.info("SQLite database backup created: {}", destination);
+                    break;
+                }
+                case "h2": {
+                    Path source = Paths.get(pluginFolderPath, "h2.mv.db");
+                    if (!Files.exists(source)) {
+                        LOGGER.warn("H2 database file not found, skipping backup.");
+                        break;
+                    }
+                    Path destination = backupDir.resolve("backup_" + timestamp + "_h2.mv.db");
+                    Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+                    LOGGER.debug("H2 database backup created: {}", destination);
                     break;
                 }
                 case "mysql": {
+                    LOGGER.debug("MySQL database backup not implemented yet!");
                     break;
                 }
                 default:
-                    FlexLogger.warn("Unsupported database type for backup.");
+                    LOGGER.debug("Unsupported database type for backup.");
             }
 
             Files.list(backupDir)
@@ -65,28 +76,14 @@ public class DatabaseBackupTask implements Runnable {
                     .forEach(file -> {
                         try {
                             Files.deleteIfExists(file);
-                            FlexLogger.info("Deleted old backup: " + file.getFileName());
+                            LOGGER.info("Deleted old backup: {}", file.getFileName());
                         } catch (Exception e) {
-                            FlexLogger.warn("Failed to delete old backup: " + file.getFileName() + " - " + e.getMessage());
+                            LOGGER.warn("Failed to delete old backup: {} - ", file.getFileName(), e);
                         }
                     });
 
         } catch (Exception e) {
-            FlexLogger.error("Failed to create database backup: " + e.getMessage());
-        }
-    }
-
-    public void shutdown() {
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(60, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-            }
-            FlexLogger.info("Database backups creation scheduler stopped");
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-            Thread.currentThread().interrupt();
-            FlexLogger.warn("Database backups creation scheduler interrupted while shutting down");
+            LOGGER.error("Failed to create database backup: ", e);
         }
     }
 }

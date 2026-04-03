@@ -7,7 +7,7 @@ import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.config.WebhooksConfigManager;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.util.JettyReloader;
+import fr.neocle.flexbans.util.loader.JettyReloader;
 
 import java.nio.file.Path;
 import java.util.Collections;
@@ -15,12 +15,12 @@ import java.util.List;
 import java.util.Map;
 
 public class ReloadCommand implements ICommandExecutor {
-    private final Path dataFolder;
     private final JettyReloader jettyReloader;
+
+    private static final FlexLogger LOGGER = FlexLogger.get(ReloadCommand.class);
 
     public ReloadCommand(Path dataFolder,
                          JettyReloader jettyReloader) {
-        this.dataFolder = dataFolder;
         this.jettyReloader = jettyReloader;
     }
 
@@ -40,9 +40,6 @@ public class ReloadCommand implements ICommandExecutor {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord-oauth");
 
-                if (oauthConfig != null) {
-                }
-
                 ConfigManager.reload();
                 WebhooksConfigManager.reload();
 
@@ -50,10 +47,10 @@ public class ReloadCommand implements ICommandExecutor {
                 LanguageManager.reload(lang);
 
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload. success"));
-                FlexLogger.info(LanguageManager.getMessageString("commands.logging.reload. success"));
+                LOGGER.info(LanguageManager.getMessageString("commands.logging.reload. success"));
             } else {
                 source.sendMessage(LanguageManager.getMessageComponent("commands.reload.fail"));
-                FlexLogger.error(LanguageManager.getMessageString("commands.logging.reload. fail"));
+                LOGGER.error(LanguageManager.getMessageString("commands.logging.reload. fail"));
             }
 
             jettyReloader.reload();

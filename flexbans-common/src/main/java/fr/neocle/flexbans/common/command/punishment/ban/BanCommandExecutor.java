@@ -43,7 +43,7 @@ public class BanCommandExecutor implements ICommandExecutor {
 
         if (args.length < 1) {
             if (source.isPlayer()) {
-                helper.sendDialogMessage(source. getPlayerName(), "ban");
+                helper.sendDialogMessage(source.getPlayerName(), "ban");
                 return;
             }
 

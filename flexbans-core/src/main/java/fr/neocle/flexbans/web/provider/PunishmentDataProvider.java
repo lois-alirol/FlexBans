@@ -13,12 +13,13 @@ import fr.neocle.flexbans.util.PunishmentIdGenerator;
 import fr.neocle.flexbans.util.TextUtils;
 import fr.neocle.flexbans.web.cache.PunishmentCache;
 import fr.neocle.flexbans.web.loader.DatabasePunishmentLoader;
-import fr.neocle.flexbans.database.punishment.PunishmentsManager;
 
 public class PunishmentDataProvider {
     private static PunishmentDataProvider instance;
     private final DatabaseUtils databaseUtils;
     private boolean initialized = false;
+
+    private static final FlexLogger LOGGER = FlexLogger.get(PunishmentDataProvider.class);
 
     private enum PunishmentStatus {
         ACTIVE("Active"),
@@ -45,12 +46,8 @@ public class PunishmentDataProvider {
                 case "active" -> ACTIVE.getValue();
                 case "removed" -> REMOVED.getValue();
                 case "expired" -> EXPIRED.getValue();
-                default -> capitalize(status);
+                default -> TextUtils.capitalize(status);
             };
-        }
-
-        private static String capitalize(String str) {
-            return TextUtils.capitalize(str);
         }
     }
 
@@ -71,12 +68,13 @@ public class PunishmentDataProvider {
         try {
             DatabasePunishmentLoader loader = new DatabasePunishmentLoader(databaseUtils);
             List<Map<String, Object>> allPunishments = loader.loadAllPunishments();
+
             PunishmentCache.initialize(allPunishments);
             initialized = true;
-            FlexLogger.info("Punishment data provider initialized");
+
+            LOGGER.info("Punishment data provider initialized");
         } catch (Exception e) {
-            FlexLogger.error("Error initializing punishment data provider: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Error initializing punishment data provider: ", e);
         }
     }
 
@@ -88,7 +86,6 @@ public class PunishmentDataProvider {
         return data;
     }
 
-    // Remove duplicate fields, ensure player is a username if available
     public List<Map<String, Object>> getPunishmentsPage(int page, int pageSize) {
         List<Map<String, Object>> rawList = PunishmentCache.getPunishmentsPage(page, pageSize);
         List<Map<String, Object>> result = new ArrayList<>();
@@ -100,9 +97,8 @@ public class PunishmentDataProvider {
             seenIds.add(hexId);
 
             Map<String, Object> cleaned = new HashMap<>(punishment);
-            // Remove duplicate player_uuid entries, ensure "player" is username
-            if (cleaned.containsKey("player") && cleaned.containsKey("player_uuid")) {
-                // Only send "player" field, remove player_uuid from output (web API prefers name)
+
+            if (cleaned.containsKey("player")) {
                 cleaned.remove("player_uuid");
             }
             result.add(cleaned);
@@ -118,16 +114,12 @@ public class PunishmentDataProvider {
         return PunishmentCache.getGlobalCounts();
     }
 
-    /**
-     * Get punishment details by hex ID from cache or DB (new schema: punishments/actors)
-     */
     public Object getPunishmentDetails(String hexId) throws Exception {
         if (hexId == null || hexId.isEmpty() || !PunishmentIdGenerator.validateId(hexId)) {
-            FlexLogger.warn("Invalid hex ID format: " + hexId);
+            LOGGER.warn("Invalid hex ID format: {}", hexId);
             return null;
         }
 
-        // Try cache first
         List<Map<String, Object>> allPunishments = PunishmentCache.getAllPunishments();
         for (Map<String, Object> punishment : allPunishments) {
             String cachedHexId = (String) punishment.get("punishment_id");
@@ -152,7 +144,7 @@ public class PunishmentDataProvider {
             seenIds.add(hexId);
 
             Map<String, Object> cleaned = new HashMap<>(punishment);
-            if (cleaned.containsKey("player") && cleaned.containsKey("player_uuid")) {
+            if (cleaned.containsKey("player")) {
                 cleaned.remove("player_uuid");
             }
             result.add(cleaned);
@@ -170,7 +162,7 @@ public class PunishmentDataProvider {
      */
     private Object fetchPunishmentDetailsByHexIdFromDatabase(String hexId) throws Exception {
         String sql = """
-            SELECT p.*, 
+            SELECT p.*,
                    pn.mc_username AS player_name,
                    issuer.type AS issuer_type, issuer.name AS issuer_name, issuer.player_uuid AS issuer_uuid,
                    pa.reason AS removal_reason, pa.action_time AS removal_time,
@@ -196,7 +188,8 @@ public class PunishmentDataProvider {
                 }
             }
         }
-        FlexLogger.warn("Punishment not found with hex ID: " + hexId);
+
+        LOGGER.warn("Punishment not found with hex ID: {}", hexId);
         return null;
     }
 

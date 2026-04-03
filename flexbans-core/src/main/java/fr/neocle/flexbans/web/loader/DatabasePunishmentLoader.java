@@ -13,20 +13,16 @@ import fr.neocle.flexbans.util.PunishmentIdGenerator;
 public class DatabasePunishmentLoader {
     private final DatabaseUtils databaseUtils;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(DatabasePunishmentLoader.class);
+
     public DatabasePunishmentLoader(DatabaseUtils databaseUtils) {
         this.databaseUtils = databaseUtils;
     }
 
-    /**
-     * Loads all punishments from the centralized 'punishments' table (new schema),
-     * including joined actor names and mapped player usernames.
-     * Output JSON will only have the player name in "player", not UUID,
-     * and will not repeat data. 'id' and 'database_id' will be properly set.
-     */
     public List<Map<String, Object>> loadAllPunishments() throws Exception {
         List<Map<String, Object>> allPunishments = new ArrayList<>();
         String sql = """
-            SELECT 
+            SELECT
                    p.id AS punishment_id,
                    p.type,
                    p.target_uuid,
@@ -127,14 +123,13 @@ public class DatabasePunishmentLoader {
 
                     allPunishments.add(punishment);
                 } catch (Exception e) {
-                    FlexLogger.error("Error mapping punishment from table: " + e.getMessage());
-                    e.printStackTrace();
+                    LOGGER.error("Error mapping punishment from table: ", e);
                 }
             }
         } catch (Exception e) {
-            FlexLogger.error("Error loading punishments from central schema: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Error loading punishments from central schema: ", e);
         }
+
         allPunishments.sort((a, b) -> Long.compare((Long) b.get("time_raw"), (Long) a.get("time_raw"))); // already ordered, but fine for safety
         return allPunishments;
     }

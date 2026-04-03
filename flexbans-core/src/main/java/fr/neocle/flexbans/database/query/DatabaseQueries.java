@@ -4,10 +4,6 @@ import java.util.Map;
 
 public class DatabaseQueries {
 
-    /* =========================
-       PLAYERS (Minecraft core)
-       ========================= */
-
     private static final Map<String, String> CREATE_PLAYERS_TABLE = Map.of(
             "mysql", """
                 CREATE TABLE IF NOT EXISTS players (
@@ -98,10 +94,6 @@ public class DatabaseQueries {
             """
     );
 
-    /* =========================
-       USERS (Web accounts)
-       ========================= */
-
     private static final Map<String, String> CREATE_USERS_TABLE = Map.of(
             "mysql", """
                 CREATE TABLE IF NOT EXISTS users (
@@ -177,10 +169,6 @@ public class DatabaseQueries {
             """
     );
 
-    /* =========================
-   RATE LIMITING
-   ========================= */
-
     private static final Map<String, String> CREATE_RATE_LIMITS_TABLE = Map.of(
             "mysql", """
             CREATE TABLE IF NOT EXISTS rate_limits (
@@ -227,10 +215,6 @@ public class DatabaseQueries {
         """
     );
 
-    /* =========================
-       ACTORS (staff / console)
-       ========================= */
-
     private static final Map<String, String> CREATE_ACTORS_TABLE = Map.of(
             "mysql", """
                 CREATE TABLE IF NOT EXISTS actors (
@@ -260,10 +244,6 @@ public class DatabaseQueries {
                 );
             """
     );
-
-    /* =========================
-       PUNISHMENTS (central)
-       ========================= */
 
     private static final Map<String, String> CREATE_PUNISHMENTS_TABLE = Map.of(
             "mysql", """
@@ -376,10 +356,6 @@ public class DatabaseQueries {
             """
     );
 
-    /* =========================
-       SERVER LOCKS
-       ========================= */
-
     private static final Map<String, String> CREATE_SERVER_LOCKS_TABLE = Map.of(
             "mysql", """
                 CREATE TABLE IF NOT EXISTS server_locks (
@@ -464,10 +440,6 @@ public class DatabaseQueries {
                 );
             """
     );
-
-    /* =========================
-       QUERY DISPATCH
-       ========================= */
 
     public static String getCreateTableQuery(String dbType, String tableName) {
         return switch (tableName.toLowerCase()) {

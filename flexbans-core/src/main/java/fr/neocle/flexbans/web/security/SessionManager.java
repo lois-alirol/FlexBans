@@ -25,7 +25,7 @@ public class SessionManager {
 
         String token = extractBearerToken(req);
         if (token != null) {
-            return TokenManager.getTokenId(token);
+            return TokenManager.get().getTokenId(token);
         }
 
         return null;

@@ -1,4 +1,4 @@
-package fr.neocle.flexbans.util;
+package fr.neocle.flexbans.util.network;
 
 import java.net.http.HttpClient;
 import java.time.Duration;

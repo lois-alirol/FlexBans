@@ -3,15 +3,15 @@ package fr.neocle.flexbans.web.handler;
 import com.google.gson.JsonObject;
 import fr.neocle.flexbans.api.FlexBansAPI;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
 import fr.neocle.flexbans.web.auth.TokenManager;
 import fr.neocle.flexbans.web.response.ApiResponse;
 import fr.neocle.flexbans.web.util.RequestUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.function.Consumer;
 
 public class PunishmentCreationHandler {
+    private static FlexLogger LOGGER = FlexLogger.get(PunishmentCreationHandler.class);
+
     public ApiResponse<?> createPunishment(HttpServletRequest req, JsonObject jsonBody) {
         if (jsonBody == null) {
             return ApiResponse.badRequest("Request body is required");
@@ -21,11 +21,11 @@ public class PunishmentCreationHandler {
         if (token == null) {
             return ApiResponse.unauthorized("Missing authorization token");
         }
-        if (!TokenManager.isValidToken(token, "access")) {
+        if (!TokenManager.get().isValidToken(token, "access")) {
             return ApiResponse.unauthorized("Invalid or expired token");
         }
 
-        String executor = TokenManager.getUsernameFromToken(token);
+        String executor = TokenManager.get().getUsernameFromToken(token);
         if (executor == null || executor.isEmpty()) {
             return ApiResponse.unauthorized("Invalid or expired token");
         }
@@ -127,7 +127,7 @@ public class PunishmentCreationHandler {
         } catch (IllegalArgumentException e) {
             return ApiResponse.badRequest(e.getMessage());
         } catch (Exception e) {
-            FlexLogger.error("Error creating punishment: " + e.getMessage());
+            LOGGER.error("Error creating punishment: ", e);
             return ApiResponse.error(500, "Unable to process the request");
         }
     }

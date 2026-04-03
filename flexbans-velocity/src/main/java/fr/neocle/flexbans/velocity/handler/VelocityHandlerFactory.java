@@ -14,8 +14,6 @@ import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.handler.factory.PlatformHandlerFactory;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.broadcast.BroadcasterVelocity;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecutionVelocity;
 import fr.neocle.flexbans.velocity.handler.punishment.BanHandler;
 
 public class VelocityHandlerFactory implements PlatformHandlerFactory {
@@ -25,11 +23,6 @@ public class VelocityHandlerFactory implements PlatformHandlerFactory {
     public VelocityHandlerFactory(ProxyServer proxyServer, DatabaseUtils databaseUtils) {
         this.proxyServer = proxyServer;
         this.databaseUtils = databaseUtils;
-    }
-
-    @Override
-    public CommandsExecution createCommandsExecution() {
-        return new CommandsExecutionVelocity(proxyServer);
     }
 
     @Override

@@ -2,22 +2,27 @@ package fr.neocle.flexbans.command;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.util.network.HttpClientProvider;
 import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class Common {
-
+    private static final FlexLogger LOGGER = FlexLogger.get(Common.class);
     private static final Gson GSON = new Gson();
     private static final String CONSOLE_NAME = "Console";
+    private static final HttpClient CLIENT = HttpClientProvider.CLIENT;
 
     public static boolean isFloodgateLoaded() {
         try {
@@ -48,30 +53,33 @@ public class Common {
     }
 
     public static UUID fetchUUIDFromMojang(String playerName) {
+        if (playerName == null || playerName.isEmpty()) return null;
+
+        String url = "https://api.mojang.com/users/profiles/minecraft/" + playerName;
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(5))
+                .GET()
+                .build();
+
         try {
-            HttpURLConnection connection = (HttpURLConnection)
-                    new URL("https://api.mojang.com/users/profiles/minecraft/" + playerName).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
+            HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) return null;
 
-            if (connection.getResponseCode() == 200) {
-                try (InputStreamReader reader = new InputStreamReader(connection.getInputStream())) {
-                    JsonObject json = GSON.fromJson(reader, JsonObject.class);
-                    if (json.has("id")) {
-                        String rawId = json.get("id").getAsString();
+            JsonObject json = GSON.fromJson(response.body(), JsonObject.class);
+            if (!json.has("id")) return null;
 
-                        String formatted = rawId.replaceFirst(
-                                "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})",
-                                "$1-$2-$3-$4-$5"
-                        );
-                        return UUID.fromString(formatted);
-                    }
-                }
-            }
-        } catch (IOException ignored) {
+            String rawId = json.get("id").getAsString();
+            String formatted = rawId.replaceFirst(
+                    "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})",
+                    "$1-$2-$3-$4-$5"
+            );
+
+            return UUID.fromString(formatted);
+        } catch (IOException | InterruptedException e) {
+            LOGGER.error("Unable to get UUID from Mojang API", e);
+            return null;
         }
-        return null;
     }
 
     public static long parseDuration(String duration) {

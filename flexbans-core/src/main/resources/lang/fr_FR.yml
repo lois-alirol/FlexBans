@@ -1,6 +1,6 @@
 commands:
   unknown: "<bold><>FlexBans</gradient></bold><gray> » <white>Commande inconnue, utilisez /flexbans help pour obtenir la liste des commandes."
-    players-only: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Seuls les joueurs peuvent utiliser cette commande."
+  players-only: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Seuls les joueurs peuvent utiliser cette commande."
   no-permission: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Vous n'avez pas la permission d'utiliser cette commande."
   verify:
     usage: "<bold><gradient:#ffa600:#ffd04e>FlexBans</gradient></bold><gray> » <white>Utilisation : /flexbans verify <code>"
@@ -40,3 +40,409 @@ commands:
     reload:
       fail: "Échec du rechargement de la configuration."
       success: "Configuration de FlexBans rechargée avec succès."
+
+dashboard:
+  loading: "Chargement..."
+  "yes": "Oui"
+  "no": "Non"
+
+  home:
+    title: "Sanctions de {{server_name}}"
+    description: "Affichage de <0>{{type}}</0>. Sélectionnez un autre type dans le menu."
+    search-placeholder: "Rechercher un joueur..."
+    table-header:
+      id: "ID"
+      player: "Joueur"
+      moderator: "Modérateur"
+      reason: "Raison"
+      date: "Date"
+      duration: "Durée"
+      status: "Statut"
+    context-menu:
+      details: "Voir les détails"
+      edit: "Modifier la sanction"
+      revoke: "Révoquer"
+
+  details:
+    title: "{{type}} de {{player}}"
+    core:
+      title: "Informations principales"
+      items-titles:
+        player: "Joueur"
+        executor: "Exécuteur"
+        type: "Type"
+        database-id: "ID de base de données"
+    time:
+      title: "Temps & Durée"
+      items-titles:
+        execution: "Date d'exécution"
+        duration: "Durée"
+        expiration: "Date d'expiration"
+    server:
+      title: "Serveur & Contexte"
+      items-titles:
+        origin: "Serveur d'origine"
+        scope: "Serveur cible"
+        ip: "Portée IP"
+    reason: "Raison de la sanction"
+    removal:
+      title: "Détails du retrait"
+      remover: "Retirée par"
+      reason: "Raison"
+
+  history:
+    title: "Aperçu de l'historique"
+    badges:
+      console: "Profil Système"
+      staff: "Profil Staff"
+      player: "Profil Joueur"
+    short:
+      console: "Système"
+      staff: "Staff"
+      player: "Joueur"
+    skin-preview:
+      controls: "Glisser pour pivoter • Défiler pour zoomer"
+      error: "Contexte WebGL perdu - actualisation..."
+    breakdown:
+      title: "Répartition des sanctions"
+      count: "{{count}} au total"
+    stats:
+      player:
+        total: "Total reçues"
+        active: "Actives"
+        removed: "Retirées"
+        expired: "Expirées"
+      staff:
+        total: "Total envoyées"
+        bans: "Bannissements émis"
+        active: "Cas actifs"
+        revoked: "Révoquées"
+    search-placeholder: "Rechercher un joueur..."
+    table:
+      title: "Historique détaillé"
+      results-amount: "{{count}} sur {{count_max}} résultats"
+    no-results:
+      title: "Aucun enregistrement trouvé"
+      description: "Aucune sanction n'a été trouvée pour cet utilisateur."
+    headers:
+      id: "ID"
+      type: "Type"
+      player: "Joueur"
+      moderator: "Modérateur"
+      reason: "Raison"
+      date: "Date"
+      duration: "Durée"
+      status: "Statut"
+
+  admin:
+    title: "Panneau d'administration"
+    description: "Gérer les utilisateurs, l'image de marque, les sanctions et les paramètres détaillés."
+    sections:
+      metrics:
+        total: "Total Utilisateurs"
+        admins: "Admins"
+        sessions: "Sessions actives"
+        actions: "Actions en attente"
+
+      user-management:
+        title: "Gestion des utilisateurs"
+        description: "Gérer les utilisateurs du panel, leurs permissions et leurs accès."
+        error-loading: "Erreur lors du chargement des utilisateurs"
+        search:
+          placeholder: "Rechercher un utilisateur..."
+          no-results-title: "Aucun utilisateur trouvé"
+          no-results-description: "Essayez de modifier vos termes de recherche"
+        user:
+          you: "Vous"
+          verified: "Vérifié"
+          unverified: "Non vérifié"
+          buttons:
+            edit: "Modifier"
+            confirm-edit: "Enregistrer"
+            revoke: "Révoquer l'accès"
+            confirm-revoke: "Confirmer ?"
+          permissions-count: "Permissions ({{count}})"
+          no-permissions: "Aucune permission assignée"
+          add-permission: "Ajouter une permission..."
+        permissions:
+          update-error: "Impossible de mettre à jour les permissions ! {{details}}"
+          blocked-add: "Impossible d'ajouter : {{permissions}}"
+          blocked-remove: "Impossible de retirer : {{permissions}}"
+          fallback-error: "Échec de la mise à jour des permissions"
+        buttons:
+          invite: "Inviter un utilisateur"
+          refresh: "Actualiser"
+          add: "Ajouter"
+
+      branding-meta:
+        title: "Image de marque & Meta"
+        description: "Contrôler le nom du serveur, les couleurs, le logo, le favicon et la description."
+        fields:
+          server-name: "Nom du serveur"
+          server-name-placeholder: "Mon Serveur"
+          primary-color: "Couleur principale"
+          secondary-color: "Couleur secondaire"
+          logo-url: "URL du Logo"
+          favicon-url: "URL du Favicon"
+          description: "Description"
+          description-placeholder: "Courte description pour le panel..."
+
+      punishment-settings:
+        title: "Paramètres des sanctions"
+        description: "Activer ou désactiver des catégories et contrôler les limites de pagination."
+        types:
+          bans: "Bannissements"
+          mutes: "Mutes"
+          warnings: "Avertissements"
+          kicks: "Kicks"
+        enabled: "{{type}} activés"
+        toggle-helper: "Basculer la visibilité et les actions pour les {{type}}"
+        max-per-page: "Max par page"
+        execution:
+          title: "Appliquer de nouvelles sanctions"
+          description: "Autoriser les modérateurs à appliquer des sanctions directement depuis le dashboard."
+        revocation:
+          title: "Révoquer des sanctions actives"
+          description: "Autoriser la révocation des sanctions en cours depuis le dashboard."
+
+      detail-history-settings:
+        title: "Paramètres des détails & historique"
+        description: "Contrôler la visibilité et la pagination des pages de détails modérateur/joueur."
+        max-per-page: "Max par page"
+        moderator:
+          title: "Historique modérateur"
+        player:
+          title: "Historique joueur"
+        punishment:
+          title: "Détails de la sanction"
+          revoke-button: "Bouton de révocation"
+          revoke-helper: "Afficher le bouton révoquer dans la vue détaillée"
+
+    logs:
+      title: "Consulter les logs"
+      description: "Voir les événements système récents"
+      modal:
+        title: "Logs Système"
+        buttons:
+          close: "Fermer"
+          export: "Exporter les logs"
+
+    buttons:
+      save: "Enregistrer les modifications"
+      cancel: "Annuler"
+
+  account-menu:
+    title: "Connecté en tant que"
+    badges:
+      user: "Utilisateur"
+      admin: "Administrateur"
+    buttons:
+      profile: "Profil"
+      settings: "Paramètres"
+      log-out: "Déconnexion"
+
+  sidebar:
+    navigation-title: "Navigation"
+    player-search:
+      label: "Trouver un joueur"
+      placeholder: "Nom..."
+    moderator-search:
+      label: "Trouver un staff"
+      placeholder: "Nom..."
+    punishment-search:
+      label: "ID de sanction"
+      placeholder: "B582B9"
+    buttons:
+      admin-panel: "Panneau d'admin"
+      new-punishment: "Nouvelle sanction"
+
+  filter-modal:
+    title: "Filtrer les sanctions"
+    active-count: "{{count}} filtre(s) actif(s)"
+    filters:
+      moderator:
+        label: "Appliqué par"
+        placeholder: "Nom du modérateur..."
+      statuses:
+        title: "Statut"
+        all: "Tous les statuts"
+        active: "Actifs"
+        removed: "Retirées"
+        expired: "Expirées"
+      date:
+        title: "Filtre de date"
+        none: "Aucun filtre"
+        exact: "Date exacte"
+        before: "Avant le"
+        after: "Après le"
+    buttons:
+      reset: "Réinitialiser"
+      apply: "Appliquer"
+    apply-notification: "Filtres appliqués avec succès"
+
+  create-modal:
+    title: "Nouvelle sanction"
+    badge: "SÉLECTIONNER LE TYPE"
+    error: "Erreur :"
+    target: "Joueur à sanctionner"
+    executor: "Nom de l'exécuteur"
+    reason: "Raison"
+    type: "Type de sanction"
+    silent:
+      title: "Mode silencieux"
+      description: "Ne pas notifier tout le monde lors de l'exécution"
+    duration:
+      label: "Durée"
+      placeholder: "ex: 1h, 1d"
+    permanent:
+      title: "Permanent"
+      description: "Action indéfinie ; désactive la durée"
+    success:
+      message: "Sanction appliquée avec succès."
+    buttons:
+      submit: "Envoyer la sanction"
+      submitting: "Envoi en cours..."
+
+  punishments:
+    ban: "Bannissement"
+    mute: "Mute"
+    kick: "Kick"
+    warning: "Avertissement"
+
+  edit-modal:
+    title: "Modifier la sanction"
+    new-date:
+      label: "Nouvelle date d'expiration"
+      placeholder: "Cette sanction n'expirera pas."
+    permanent: "Permanent"
+    new-reason:
+      title: "Raison"
+      placeholder: "Quelle est la nouvelle raison de cette sanction ?"
+    buttons:
+      cancel: "Annuler"
+      confirm:
+        saving: "Enregistrement..."
+        save: "Enregistrer les modifications"
+
+  revoke-modal:
+    title: "Révoquer la sanction"
+    badge: "RÉVOQUER"
+    identity:
+      label: "Qui êtes-vous ?"
+    reason:
+      label: "Raison du retrait"
+      placeholder: "Indiquez une raison concise…"
+    silent:
+      title: "Mode silencieux"
+      description: "Ne pas notifier tout le monde de la révocation"
+    buttons:
+      cancel: "Annuler"
+      submit:
+        submit: "Confirmer"
+        submitting: "Envoi en cours..."
+
+  preferences-modal:
+    title: "Préférences"
+    description: "Configurez votre environnement de bord"
+    themes:
+      title: "Apparence"
+      light: "Clair"
+      dark: "Sombre"
+      quartz: "Quartz"
+      midnight: "Minuit"
+    languages:
+      title: "Langue & Région"
+    button:
+      save: "Enregistrer les préférences"
+      saving: "Enregistrement..."
+
+  pagination:
+    previous: "Précédent"
+    next: "Suivant"
+
+  empty-state:
+    checking-access:
+      title: "Protocole de sécurité"
+      description: "Vérification des exigences de sécurité et des permissions."
+    loading:
+      title: "Synchronisation des données"
+      description: "Récupération des dernières entrées depuis la base de données."
+    error:
+      title: "Échec de la connexion"
+      description: "Impossible de charger les données depuis l'API."
+    config-error:
+      title: "Problème de configuration"
+      description: "Aucun type de sanction n'est activé dans les paramètres actuels du serveur."
+    no-punishments:
+      title: "Aucun résultat"
+      description: "Aucun(e) {{type}} ne correspond à vos critères."
+
+  back-button:
+    label: "Retour"
+
+  statuses:
+    active: "Actif"
+    removed: "Retirée"
+    expired: "Expirée"
+
+  login:
+    title: "Connexion"
+    page-title: "Connexion"
+    username: "Nom d'utilisateur"
+    password: "Mot de passe"
+    stay-logged-in: "Rester connecté"
+    button: "Se connecter"
+    no-account: "Vous n'avez pas de compte ?"
+    register-link: "S'inscrire ici"
+    oauth:
+      redirect: "Redirection vers {{service}} pour l'authentification..."
+    status:
+      logging-in: "Connexion en cours..."
+      success: "Connexion réussie ! Redirection..."
+      2fa-required: "Connexion réussie ! Authentification à deux facteurs requise. Redirection..."
+      unknown-error: "Une erreur inconnue est survenue."
+
+  register:
+    title: "Inscription"
+    page-title: "S'inscrire"
+    username: "Nom d'utilisateur"
+    password: "Mot de passe"
+    confirm-password: "Confirmer le mot de passe"
+    button: "S'inscrire"
+    already-have-account: "Vous avez déjà un compte ?"
+    login-link: "Se connecter ici"
+    oauth-redirect: "Redirection vers {{service}} pour l'inscription..."
+    fix-errors: "Veuillez corriger les erreurs dans le formulaire."
+    registering: "Inscription en cours..."
+    success: "Inscription réussie ! Redirection..."
+    unknown-error: "Une erreur inconnue est survenue lors de l'inscription."
+    passwords-no-match: "Les mots de passe ne correspondent pas."
+    password-criteria:
+      length: "Au moins 8 caractères."
+      uppercase: "Au moins une majuscule."
+      lowercase: "Au moins une minuscule."
+      special: "Au moins un caractère spécial."
+
+  verify:
+    title: "Vérifier"
+    page-title: "Vérification"
+    initializing: "Initialisation de la vérification…"
+    failed-fetch: "Échec de la récupération du code. Veuillez réessayer."
+    try-again: "Réessayer"
+    no-code: "Impossible d'obtenir le code de vérification"
+    success: "Vérification réussie !"
+    validate-on-server: "Validez votre compte sur {{server}}."
+    waiting: "En attente de la vérification en jeu…"
+    wrong-account: "Mauvais compte ?"
+    logout-link: "Se déconnecter ici"
+
+  errors:
+    "403":
+      title: "Accès refusé"
+      description: "Vous n'avez pas l'autorisation d'accéder à cette page."
+    "404":
+      title: "Page introuvable"
+      description: "Oups ! La page que vous recherchez n'existe pas."
+    "500":
+      title: "Erreur interne"
+      description: "Un problème est survenu de notre côté. Veuillez réessayer plus tard."

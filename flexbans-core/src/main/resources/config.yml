@@ -49,7 +49,7 @@ webserver:
         revoke-button: true
 
 database:
-  #H2, SQLITE or MYSQL are supported. You will most likely need MySQL if you run a multi-proxy instance.
+  #SQLITE or MYSQL are supported. You will most likely need MySQL if you run a multi-proxy instance.
   type: "H2"
   hostname: "example.com"
   port: 3306

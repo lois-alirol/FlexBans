@@ -27,9 +27,10 @@ public class HooksUtils {
 
     public static boolean isLiteBansAvailable() {
         try {
-            Database.get();
+            Class<?> dbClass = Class.forName("litebans.api.Database");
+            dbClass.getMethod("get").invoke(null);
             return true;
-        } catch (MissingImplementationException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | java.lang.reflect.InvocationTargetException e) {
             return false;
         }
     }

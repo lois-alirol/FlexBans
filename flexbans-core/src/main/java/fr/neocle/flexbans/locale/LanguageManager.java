@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.locale;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import fr.neocle.flexbans.logger.FlexLogger;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -17,13 +19,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class LanguageManager {
     private static File langFolder;
     private static Yaml yaml;
     private static MiniMessage miniMessage;
     public static Map<String, String> languageData = new HashMap<>();
+
+    private static final FlexLogger LOGGER = FlexLogger.get(LanguageManager.class);
 
     private static final String DEFAULT_LANGUAGE = "en_US.yml";
     private static final String[] AVAILABLE_LANGUAGES = {"en_US.yml", "fr_FR.yml", "de_DE.yml"};
@@ -40,10 +43,33 @@ public class LanguageManager {
         miniMessage = MiniMessage.miniMessage();
 
         ensureLanguageFilesExist();
+        updateAllLanguageFiles();
+        exportDashboardJson(dataFolder);
+    }
+
+    private static void updateAllLanguageFiles() {
+        for (String langFile : AVAILABLE_LANGUAGES) {
+            File file = new File(langFolder, langFile);
+            if (!file.exists()) continue;
+
+            try (InputStream inputStream = new FileInputStream(file)) {
+                Map<String, Object> loadedData = yaml.load(inputStream);
+
+                if (loadedData == null) {
+                    loadedData = new HashMap<>();
+                }
+
+                ensureDefaults(file, loadedData);
+
+            } catch (IOException e) {
+                LOGGER.error("Error updating defaults for {}: ", langFile, e);
+            }
+        }
     }
 
     private static void ensureLanguageFilesExist() {
-        if (!langFolder.exists() && langFolder.mkdirs()) {
+        if (!langFolder.exists()) {
+            langFolder.mkdirs();
         }
 
         for (String langFile : AVAILABLE_LANGUAGES) {
@@ -53,10 +79,10 @@ public class LanguageManager {
                     if (resourceStream != null) {
                         Files.copy(resourceStream, targetFile.toPath());
                     } else {
-                        FlexLogger.warn("Missing language file: " + langFile + ". Contact plugin's developer.");
+                        LOGGER.warn("Missing language file: {}. Contact plugin's developer.", langFile);
                     }
                 } catch (IOException e) {
-                    FlexLogger.error("Failed to load language file " + langFile + ": " + e.getMessage());
+                    LOGGER.error("Failed to load language file {}: ", langFile, e);
                 }
             }
         }
@@ -65,7 +91,7 @@ public class LanguageManager {
     public static void loadLanguage(String lang) {
         File langFile = new File(langFolder, lang + ".yml");
         if (!langFile.exists()) {
-            FlexLogger.warn("Language file not found: " + lang + ".yml. Defaulting to " + DEFAULT_LANGUAGE);
+            LOGGER.warn("Language file not found: {}.yml. Defaulting to ", lang, DEFAULT_LANGUAGE);
             langFile = new File(langFolder, DEFAULT_LANGUAGE);
         }
 
@@ -74,21 +100,69 @@ public class LanguageManager {
             if (loadedData != null) {
                 ensureDefaults(langFile, loadedData);
                 flattenMap("", loadedData);
-                FlexLogger.info("Loaded language: " + lang);
+
+                LOGGER.info("Loaded language: {}", lang);
             }
         } catch (IOException e) {
-            FlexLogger.error("Error loading language file " + lang + ": " + e.getMessage());
+            LOGGER.error("Error loading language file {}: ", lang, e);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static void flattenMap(String parentKey, Map<String, Object> map) {
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            String key = parentKey.isEmpty() ? entry.getKey() : parentKey + "." + entry.getKey();
-            if (entry.getValue() instanceof Map) {
-                flattenMap(key, (Map<String, Object>) entry.getValue());
+    public static void exportDashboardJson(Path dataFolder) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+        for (String langFile : AVAILABLE_LANGUAGES) {
+            File file = new File(langFolder, langFile);
+
+            if (!file.exists()) {
+                LOGGER.warn("Skipping {} (file does not exist).", langFile);
+                continue;
+            }
+
+            try (InputStream input = new FileInputStream(file)) {
+                Map<String, Object> yamlData = yaml.load(input);
+                if (yamlData == null) {
+                    LOGGER.warn("Dashboard Export: Skipping {} (file is empty or invalid YAML).", langFile);
+                    continue;
+                }
+
+                Object dashboardNode = yamlData.get("dashboard");
+                if (!(dashboardNode instanceof Map)) {
+                    LOGGER.warn("Skipping {} (no root 'dashboard' map found).", langFile);
+                    continue;
+                }
+
+                String lang = langFile.replace(".yml", "");
+                File outDir = new File(dataFolder.toFile(), "public/locales/" + lang);
+
+                if (!outDir.exists() && !outDir.mkdirs()) {
+                    LOGGER.error("Failed to create directory {}", outDir.getPath());
+                    continue;
+                }
+
+                File outFile = new File(outDir, "common.json");
+
+                try (Writer writer = new FileWriter(outFile)) {
+                    gson.toJson(dashboardNode, writer);
+                }
+
+            } catch (Exception e) {
+                LOGGER.error("Failed exporting dashboard JSON for {}: ", langFile, e);
+            }
+        }
+    }
+
+    private static void flattenMap(String parentKey, Map<?, ?> map) {
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String currentKey = String.valueOf(entry.getKey());
+            String key = parentKey.isEmpty() ? currentKey : parentKey + "." + currentKey;
+
+            Object value = entry.getValue();
+
+            if (value instanceof Map) {
+                flattenMap(key, (Map<?, ?>) value);
             } else {
-                languageData.put(key, entry.getValue().toString());
+                languageData.put(key, value != null ? value.toString() : "");
             }
         }
     }
@@ -107,7 +181,7 @@ public class LanguageManager {
                 }
             }
         } catch (IOException e) {
-            FlexLogger.error("Failed to check or update missing language keys: " + e.getMessage());
+            LOGGER.error("Failed to check or update missing language keys: ", e);
         }
     }
 

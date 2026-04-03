@@ -1,4 +1,4 @@
-package fr.neocle.flexbans.util;
+package fr.neocle.flexbans.util.loader;
 
 import fr.neocle.flexbans.logger.FlexLogger;
 

@@ -1,85 +1,98 @@
 package fr.neocle.flexbans.logger;
 
 import fr.neocle.flexbans.config.ConfigManager;
-
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 
 public final class FlexLogger {
-    private static Logger logger = Logger.getLogger("X");
+
+    private static final Map<String, FlexLogger> LOGGER_CACHE = new ConcurrentHashMap<>();
+    private static Logger platformLogger;
     private static boolean debugMode = false;
 
-    private FlexLogger() {}
+    private final Logger contextLogger;
+    private final String contextName;
 
-    public static void init(Logger platformLogger) {
-        logger = platformLogger;
+    private FlexLogger(Logger logger, String contextName) {
+        this.contextLogger = logger;
+        this.contextName = contextName;
+    }
+
+    public static void init(Logger rootLogger) {
+        platformLogger = rootLogger;
         debugMode = ConfigManager.getBoolean("debug-mode");
     }
 
-    public static boolean isDebugMode() {
-        return debugMode;
+    public static FlexLogger get(Class<?> clazz) {
+        return LOGGER_CACHE.computeIfAbsent(clazz.getSimpleName(), name -> {
+            Logger base = (platformLogger != null)
+                    ? platformLogger
+                    : Logger.getLogger("FlexBans");
+            return new FlexLogger(base, clazz.getSimpleName());
+        });
     }
 
-    public static void info(String message) {
-        logger.info(message);
+    public static FlexLogger get(String name) {
+        return LOGGER_CACHE.computeIfAbsent(name, n -> {
+            Logger base = (platformLogger != null)
+                    ? platformLogger
+                    : Logger.getLogger("FlexBans");
+            return new FlexLogger(base, n);
+        });
     }
 
-    public static void info(String message, Object... args) {
-        info(String.format(message, args));
+    public void info(String message, Object... args) {
+        log(Level.INFO, message, args);
     }
 
-    public static void warn(String message) {
-        logger.warning(message);
+    public void warn(String message, Object... args) {
+        log(Level.WARNING, message, args);
     }
 
-    public static void warn(String message, Object... args) {
-        warn(String.format(message, args));
+    public void error(String message, Object... args) {
+        if (args != null && args.length > 0) {
+            Object last = args[args.length - 1];
+
+            if (last instanceof Throwable throwable) {
+                Object[] trimmed = new Object[args.length - 1];
+                System.arraycopy(args, 0, trimmed, 0, args.length - 1);
+
+                String formatted = format(message, trimmed);
+                contextLogger.log(Level.SEVERE, "[" + contextName + "] " + formatted, throwable);
+                return;
+            }
+        }
+
+        String formatted = format(message, args);
+        contextLogger.log(Level.SEVERE, "[" + contextName + "] " + formatted);
     }
 
-    public static void error(String message) {
-        logger.severe(message);
+    public void error(String message, Throwable throwable) {
+        contextLogger.log(Level.SEVERE, "[" + contextName + "] " + message, throwable);
     }
 
-    public static void error(String message, Object... args) {
-        error(String.format(message, args));
-    }
-
-    public static void error(String message, Throwable throwable) {
-        logger.log(Level.SEVERE, message, throwable);
-    }
-
-    public static void debug(String message) {
+    public void debug(String message, Object... args) {
         if (debugMode) {
-            logger.info("[DEBUG] " + message);
+            log(Level.INFO, "[DEBUG] " + message, args);
         }
     }
 
-    public static void debug(String message, Object... args) {
-        debug(String.format(message, args));
+    private void log(Level level, String message, Object... args) {
+        if (!contextLogger.isLoggable(level)) return;
+
+        String formatted = format(message, args);
+        contextLogger.log(level, "[" + contextName + "] " + formatted);
     }
 
-    // -------- Convenience aliases --------
-    public static void log(String message) {
-        info(message);
-    }
+    private String format(String message, Object... args) {
+        if (args == null) return message;
 
-    public static void log(String message, Object... args) {
-        info(message, args);
-    }
-
-    public static void config(String message) {
-        logger.config(message);
-    }
-
-    public static void fine(String message) {
-        logger.fine(message);
-    }
-
-    public static void finer(String message) {
-        logger.finer(message);
-    }
-
-    public static void finest(String message) {
-        logger.finest(message);
+        for (Object arg : args) {
+            message = message.replaceFirst("\\{}", Matcher.quoteReplacement(String.valueOf(arg)));
+        }
+        return message;
     }
 }

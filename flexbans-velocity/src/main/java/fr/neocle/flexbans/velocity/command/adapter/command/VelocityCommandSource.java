@@ -31,6 +31,11 @@ public class VelocityCommandSource implements ICommandSource {
     }
 
     @Override
+    public void sendPlainMessage(String message) {
+        source.sendPlainMessage(message);
+    }
+
+    @Override
     public boolean hasPermission(String permission) {
         return source.hasPermission(permission);
     }

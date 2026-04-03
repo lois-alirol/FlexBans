@@ -1,90 +1,187 @@
 package fr.neocle.flexbans.util.player;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.util.network.HttpClientProvider;
+import fr.neocle.flexbans.util.scheduler.TaskScheduler;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class PlayerHeadImage {
-    private final UuidUsernameResolver resolver;
-    private static Path cacheDirectory;
-    private static Path skinCacheDirectory;
-    private final FloodgateApi floodgateApi;
+    private static final FlexLogger LOGGER = FlexLogger.get(PlayerHeadImage.class);
+    private static final HttpClient CLIENT = HttpClientProvider.CLIENT;
 
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final UuidUsernameResolver resolver;
+    private final FloodgateApi floodgateApi;
+    private final Path headCache;
+    private final Path skinCache;
 
     public PlayerHeadImage(File pluginFolder) {
         this.resolver = UuidUsernameResolver.get();
         this.floodgateApi = isFloodgateLoaded() ? FloodgateApi.getInstance() : null;
 
-        cacheDirectory = Paths.get(pluginFolder.getAbsolutePath(), "cache", "heads");
-        skinCacheDirectory = Paths.get(pluginFolder.getAbsolutePath(), "cache", "skins");
+        this.headCache = pluginFolder.toPath().resolve("cache/heads");
+        this.skinCache = pluginFolder.toPath().resolve("cache/skins");
 
+        initDirectories();
+
+        TaskScheduler.get().runRepeating(this::cleanUpCache, 21600000);
+    }
+
+    private void initDirectories() {
         try {
-            Files.createDirectories(cacheDirectory);
-            Files.createDirectories(skinCacheDirectory);
+            Files.createDirectories(headCache);
+            Files.createDirectories(skinCache);
         } catch (IOException e) {
-            System.err.println("Failed to create cache directories: " + e.getMessage());
+            LOGGER.error("Could not create image cache directories", e);
         }
+    }
 
-        scheduler.scheduleAtFixedRate(this::cleanUpCache, 0, 6, TimeUnit.HOURS);
+    public CompletableFuture<String> getPlayerHeadUrl(String username, int size) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                UUID uuid = resolver.usernameToUuid(username);
+                Path cached = headCache.resolve(username + ".png");
+
+                if (Files.exists(cached)) return "/player-heads/" + username;
+
+                boolean isBedrock = floodgateApi != null && floodgateApi.isFloodgateId(uuid);
+                String imageUrl = isBedrock
+                        ? fetchBedrockTextureUrl(uuid).join()
+                        : "https://mc-heads.net/avatar/" + uuid + "/" + size;
+
+                if (imageUrl == null) return "/fallback-head";
+
+                return processAndCache(username, imageUrl, cached, isBedrock).join();
+            } catch (Exception e) {
+                LOGGER.error("Error providing head URL for {}", username, e);
+                return "/fallback-head";
+            }
+        });
+    }
+
+    public CompletableFuture<String> getPlayerSkinUrl(String username) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                UUID uuid = resolver.usernameToUuid(username);
+                Path cached = skinCache.resolve(username + ".png");
+
+                if (Files.exists(cached)) return "/player-skins/" + username;
+
+                boolean isBedrock = floodgateApi != null && floodgateApi.isFloodgateId(uuid);
+                String imageUrl = isBedrock
+                        ? fetchBedrockTextureUrl(uuid).join()
+                        : "https://mc-heads.net/skin/" + uuid;
+
+                if (imageUrl == null) return "/fallback-skin";
+
+                return processAndCache(username, imageUrl, cached, false).join();
+            } catch (Exception e) {
+                LOGGER.error("Error providing skin URL for {}", username, e);
+                return "/fallback-skin";
+            }
+        });
+    }
+
+    private CompletableFuture<String> fetchBedrockTextureUrl(UUID uuid) {
+        long xuid = Long.parseUnsignedLong(uuid.toString().replace("-", "").substring(16), 16);
+        String url = "https://api.geysermc.org/v2/skin/" + xuid;
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+
+        return CLIENT.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(resp -> {
+                    if (resp.statusCode() != 200) return null;
+                    JsonObject json = JsonParser.parseString(resp.body()).getAsJsonObject();
+                    return json.has("texture_id")
+                            ? "https://textures.minecraft.net/texture/" + json.get("texture_id").getAsString()
+                            : null;
+                }).exceptionally(ex -> {
+                    LOGGER.warn("Geyser API unreachable for XUID: {}", xuid);
+                    return null;
+                });
+    }
+
+    private CompletableFuture<String> processAndCache(String name, String url, Path targetPath, boolean shouldCropHead) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                BufferedImage img = downloadImage(url);
+                if (img == null) throw new IOException("Download failed");
+
+                if (shouldCropHead) {
+                    img = img.getSubimage(8, 8, 8, 8);
+                    BufferedImage resized = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
+                    Graphics2D g = resized.createGraphics();
+                    g.drawImage(img, 0, 0, 32, 32, null);
+                    g.dispose();
+                    img = resized;
+                }
+
+                ImageIO.write(img, "PNG", targetPath.toFile());
+
+                return targetPath.startsWith(headCache) ? "/player-heads/" + name : "/player-skins/" + name;
+            } catch (Exception e) {
+                LOGGER.error("Failed to process image for {} at {}", name, url, e);
+                return "/fallback";
+            }
+        });
+    }
+
+    private BufferedImage downloadImage(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("User-Agent", "FlexBans-Web-Client/1.0")
+                .GET()
+                .build();
+
+        for (int i = 0; i < 3; i++) {
+            try {
+                HttpResponse<byte[]> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() == 200) {
+                    try (var is = new ByteArrayInputStream(response.body())) {
+                        return ImageIO.read(is);
+                    }
+                }
+            } catch (IOException e) {
+                if (i == 2) throw e;
+                Thread.sleep(500);
+            }
+        }
+        return null;
     }
 
     public void cleanUpCache() {
-        cleanUpDirectory(cacheDirectory.toFile());
-        cleanUpDirectory(skinCacheDirectory.toFile());
+        cleanDir(headCache);
+        cleanDir(skinCache);
     }
 
-    private void cleanUpDirectory(File directory) {
-        if (!directory.exists() || !directory.isDirectory()) {
-            FlexLogger.warn("Cache directory does not exist or is not a directory: " + directory.getName());
-            return;
-        }
-
-        File[] files = directory.listFiles();
-        if (files == null) return;
-
-        long now = System.currentTimeMillis();
-        long oneWeekAgo = now - TimeUnit.DAYS.toMillis(7);
-
-        for (File file : files) {
-            if (file.isFile() && file.lastModified() < oneWeekAgo) {
-                if (!file.delete()) {
-                    FlexLogger.warn("Failed to delete old cached file: " + file.getName());
-                } else {
-                    FlexLogger.info("Deleted old cached file: " + file.getName());
-                }
-            }
-        }
-    }
-
-    public void shutdown() {
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
+    private void cleanDir(Path dir) {
+        try (var stream = Files.list(dir)) {
+            long threshold = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7);
+            stream.filter(p -> p.toFile().lastModified() < threshold)
+                    .forEach(p -> {
+                        try {
+                            Files.delete(p);
+                            LOGGER.info("Purged old cache file: {}", p.getFileName());
+                        } catch (IOException ignored) {}
+                    });
+        } catch (IOException e) {
+            LOGGER.error("Cache cleanup failed for directory: {}", dir, e);
         }
     }
 
@@ -93,266 +190,7 @@ public class PlayerHeadImage {
             Class.forName("org.geysermc.floodgate.api.FloodgateApi");
             return true;
         } catch (ClassNotFoundException e) {
-            FlexLogger.info("Floodgate is not loaded. Skipping Bedrock players head retrieval.");
             return false;
         }
-    }
-
-    private BufferedImage readImageFromUrl(String imageUrl) throws IOException {
-        URL url = new URL(imageUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        connection.setRequestProperty("Accept", "image/png,image/webp,image/*,*/*;q=0.8");
-        connection.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
-        connection.setRequestProperty("Connection", "keep-alive");
-
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(10000);
-        connection.setInstanceFollowRedirects(true);
-
-        int responseCode = connection.getResponseCode();
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            connection.disconnect();
-            throw new IOException("Server returned HTTP code: " + responseCode + " for URL: " + imageUrl);
-        }
-
-        try (var inputStream = connection.getInputStream()) {
-            BufferedImage image = ImageIO.read(inputStream);
-            if (image == null) {
-                throw new IOException("ImageIO returned null for URL: " + imageUrl);
-            }
-            return image;
-        } finally {
-            connection.disconnect();
-        }
-    }
-
-    public String getPlayerHeadUrl(String username, String size) throws Exception {
-        UUID uuid = resolver.usernameToUuid(username);
-        Path cachedImagePath = getCachedImagePath(username);
-
-        if (Files.exists(cachedImagePath)) {
-            return "/player-heads/" + username;
-        }
-
-        if (floodgateApi != null && floodgateApi.isFloodgateId(uuid)) {
-            username = username.startsWith(floodgateApi.getPlayerPrefix()) ?
-                    username.substring(floodgateApi.getPlayerPrefix().length()) : username;
-
-            String xuidStr = uuid.toString().replaceAll("-", "").substring(16);
-            if (!xuidStr.isEmpty()) {
-                long xuidDecimal = Long.parseLong(xuidStr, 16);
-                String apiUrl = "https://api.geysermc.org/v2/skin/" + xuidDecimal;
-                String imageUrl = fetchTextureUrlFromAPI(apiUrl);
-
-                if (imageUrl != null) {
-                    return processAndCacheImage(floodgateApi.getPlayerPrefix() + username, imageUrl, true);
-                }
-            }
-        } else {
-            int sizeInt;
-            try {
-                sizeInt = Integer.parseInt(size);
-            } catch (NumberFormatException e) {
-                sizeInt = 32;
-            }
-
-            String imageUrl = "https://mc-heads.net/avatar/" + uuid + "/" + sizeInt;
-            return processAndCacheImage(username, imageUrl, false);
-        }
-
-        return "https://mc-heads.net/avatar/" + uuid + "/" + size;
-    }
-
-    public String getPlayerSkinUrl(String username) throws Exception {
-        UUID uuid = resolver.usernameToUuid(username);
-        Path cachedSkinPath = getCachedSkinPath(username);
-
-        if (Files.exists(cachedSkinPath)) {
-            return "/player-skins/" + username;
-        }
-
-        if (floodgateApi != null && floodgateApi.isFloodgateId(uuid)) {
-            username = username.startsWith(floodgateApi.getPlayerPrefix()) ?
-                    username.substring(floodgateApi.getPlayerPrefix().length()) : username;
-
-            String xuidStr = uuid.toString().replaceAll("-", "").substring(16);
-            if (!xuidStr.isEmpty()) {
-                long xuidDecimal = Long.parseLong(xuidStr, 16);
-                String apiUrl = "https://api.geysermc.org/v2/skin/" + xuidDecimal;
-                String imageUrl = fetchTextureUrlFromAPI(apiUrl);
-
-                if (imageUrl != null) {
-                    return processAndCacheSkin(floodgateApi.getPlayerPrefix() + username, imageUrl);
-                }
-            }
-        } else {
-            String imageUrl = "https://mc-heads.net/skin/" + uuid;
-            return processAndCacheSkin(username, imageUrl);
-        }
-
-        return "https://mc-heads.net/skin/" + uuid;
-    }
-
-    private String fetchTextureUrlFromAPI(String apiUrl) {
-        HttpURLConnection connection = null;
-        try {
-            connection = (HttpURLConnection) new URL(apiUrl).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                JsonObject jsonObject = new JsonParser().parse(response.toString()).getAsJsonObject();
-                JsonElement textureIdElement = jsonObject.get("texture_id");
-
-                if (textureIdElement != null && textureIdElement.isJsonPrimitive()) {
-                    return "https://textures.minecraft.net/texture/" + textureIdElement.getAsString();
-                }
-            }
-        } catch (Exception e) {
-            FlexLogger.warn("Failed to retrieve Bedrock player skin from API: " + e.getMessage());
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-        return null;
-    }
-
-    private Path getCachedImagePath(String username) {
-        return cacheDirectory.resolve(username + ".png");
-    }
-
-    private Path getCachedSkinPath(String username) {
-        return skinCacheDirectory.resolve(username + ".png");
-    }
-
-    @SuppressWarnings("deprecation")
-    public String processAndCacheImage(String username, String imageUrl, boolean bedrockHead) throws IOException {
-        Path cachedImagePath = getCachedImagePath(username);
-
-        if (Files.exists(cachedImagePath)) {
-            return "/player-heads/" + username;
-        }
-
-        BufferedImage img = null;
-        Exception lastException = null;
-
-        for (int attempt = 0; attempt < 3; attempt++) {
-            try {
-                img = readImageFromUrl(imageUrl);
-                break;
-            } catch (IOException e) {
-                lastException = e;
-                FlexLogger.warn("Attempt " + (attempt + 1) + " failed to download image: " + e.getMessage());
-                if (attempt < 2) {
-                    try {
-                        Thread.sleep(1000 * (attempt + 1));
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (img == null) {
-            FlexLogger.error("Failed to download image after 3 attempts. Using fallback image.");
-
-            File fallbackFile = new File("plugins/FlexBans/images/fallback_head.png");
-
-            if (!fallbackFile.exists()) {
-                throw new IOException("Fallback head not found at: " + fallbackFile.getAbsolutePath(), lastException);
-            }
-
-            img = ImageIO.read(fallbackFile);
-
-            if (img == null) {
-                throw new IOException("Failed to load fallback image!", lastException);
-            }
-        }
-
-        if (bedrockHead) {
-            int width = img.getWidth();
-            int height = img.getHeight();
-
-            if (width < 64 || height < 64) {
-                throw new IOException("Image is too small to crop the required areas.");
-            }
-
-            BufferedImage croppedImage = img.getSubimage(8, 8, 8, 8);
-
-            BufferedImage resizedImage = new BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = resizedImage.createGraphics();
-            g2d.drawImage(croppedImage, 0, 0, 32, 32, null);
-            g2d.dispose();
-
-            ImageIO.write(resizedImage, "PNG", cachedImagePath.toFile());
-        } else {
-            ImageIO.write(img, "PNG", cachedImagePath.toFile());
-        }
-        return "/player-heads/" + username;
-    }
-
-    @SuppressWarnings("deprecation")
-    public String processAndCacheSkin(String username, String imageUrl) throws IOException {
-        Path cachedSkinPath = getCachedSkinPath(username);
-
-        if (Files.exists(cachedSkinPath)) {
-            return "/player-skins/" + username;
-        }
-
-        BufferedImage img = null;
-        Exception lastException = null;
-
-        for (int attempt = 0; attempt < 3; attempt++) {
-            try {
-                img = readImageFromUrl(imageUrl);
-                break;
-            } catch (IOException e) {
-                lastException = e;
-                FlexLogger.warn("Attempt " + (attempt + 1) + " failed to download skin: " + e.getMessage());
-                if (attempt < 2) {
-                    try {
-                        Thread.sleep(1000 * (attempt + 1));
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (img == null) {
-            FlexLogger.error("Failed to download skin after 3 attempts. Using fallback skin.");
-
-            File fallbackFile = new File("plugins/FlexBans/images/fallback_skin.png");
-
-            if (!fallbackFile.exists()) {
-                throw new IOException("Fallback skin not found at: " + fallbackFile.getAbsolutePath(), lastException);
-            }
-
-            img = ImageIO.read(fallbackFile);
-
-            if (img == null) {
-                throw new IOException("Failed to load fallback skin image!", lastException);
-            }
-        }
-
-        ImageIO.write(img, "PNG", cachedSkinPath.toFile());
-        return "/player-skins/" + username;
     }
 }

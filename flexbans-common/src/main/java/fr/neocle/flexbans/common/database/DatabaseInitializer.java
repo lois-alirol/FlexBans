@@ -4,13 +4,16 @@ import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
 import fr.neocle.flexbans.logger.FlexLogger;
 
+import java.nio.file.Path;
 import java.sql.SQLException;
 
 public class DatabaseInitializer {
-    public DatabaseInitializer() {}
+    private static final FlexLogger LOGGER = FlexLogger.get(DatabaseInitializer.class);
+    private final Path dataFolder;
+
+    public DatabaseInitializer(Path dataFolder) { this.dataFolder = dataFolder; }
 
     public DatabaseUtils initialize() throws SQLException {
-        // Validate config is loaded
         String type = ConfigManager.getString("database.type");
         if (type == null || type.isEmpty()) {
             throw new IllegalStateException("Database type not configured!  Check your config.yml");
@@ -34,16 +37,16 @@ public class DatabaseInitializer {
         String username = ConfigManager.getString("database.username");
         String password = ConfigManager.getString("database.password");
 
-        FlexLogger.info("Initializing database (" + type + ") at " + host + ":" + port);
+        LOGGER.info("Initializing database (" + type + ") at " + host + ":" + port);
 
         try {
-            DatabaseUtils databaseUtils = new DatabaseUtils("./plugins/FlexBans", type, host, port, database, username, password);
+            DatabaseUtils databaseUtils = new DatabaseUtils(dataFolder.toAbsolutePath().toString(), type, host, port, database, username, password);
             databaseUtils.initialize();
 
-            FlexLogger.info("Database initialized successfully!");
+            LOGGER.info("Database initialized successfully!");
             return databaseUtils;
         } catch (SQLException e) {
-            FlexLogger.error("Failed to initialize database: " + e.getMessage());
+            LOGGER.error("Failed to initialize database: ", e);
             throw e;
         }
     }

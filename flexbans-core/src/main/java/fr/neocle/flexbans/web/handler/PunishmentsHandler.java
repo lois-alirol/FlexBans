@@ -12,6 +12,8 @@ import java.util.Map;
 public class PunishmentsHandler {
     private final PunishmentDataProvider dataProvider;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(PunishmentsHandler.class);
+
     public PunishmentsHandler(PunishmentDataProvider dataProvider) {
         this.dataProvider = dataProvider;
     }
@@ -51,8 +53,7 @@ public class PunishmentsHandler {
 
             return ApiResponse.success(payload);
         } catch (Exception e) {
-            FlexLogger.error("Failed to fetch punishments: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Failed to fetch punishments: ", e);
             return ApiResponse.error(500, "Failed to fetch punishments");
         }
     }
@@ -75,14 +76,13 @@ public class PunishmentsHandler {
 
             return ApiResponse.success(details);
         } catch (Exception e) {
-            FlexLogger.error("Failed to fetch punishment details for ID " + punishmentId + ": " + e.getMessage());
+            LOGGER.error("Failed to fetch punishment details for ID {}: ", e);
             return ApiResponse.error(500, "Failed to fetch punishment details");
         }
     }
 
     public int getMaxPerPage(String type) {
         if (type == null) {
-            // If type is null, return the largest per-page limit or a default value
             return Math.max(
                     Math.max(
                             ConfigManager.getInt("webserver.pages.punishments.bans.max-per-page"),

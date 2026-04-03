@@ -9,6 +9,7 @@ import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import fr.neocle.flexbans.common.listener.PlayerEventHandler;
+import fr.neocle.flexbans.common.messaging.Channel;
 import fr.neocle.flexbans.velocity.command.adapter.VelocityPlatform;
 import fr.neocle.flexbans.velocity.command.adapter.VelocityPlayer;
 
@@ -20,7 +21,7 @@ import java.util.UUID;
 public class PlayerEvents {
     private final PlayerEventHandler commonHandler;
     private final VelocityPlatform adapter;
-    public static final MinecraftChannelIdentifier MUTE_QUERY_CHANNEL = MinecraftChannelIdentifier.from("muting:query");
+    public static final MinecraftChannelIdentifier MUTE_QUERY_CHANNEL = MinecraftChannelIdentifier.from(Channel.MUTED_QUERY);
 
     public PlayerEvents(PlayerEventHandler commonHandler, VelocityPlatform adapter) {
         this.commonHandler = commonHandler;
@@ -54,7 +55,7 @@ public class PlayerEvents {
 
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
-        if (! event.getIdentifier().equals(MUTE_QUERY_CHANNEL)) return;
+        if (!event.getIdentifier().equals(MUTE_QUERY_CHANNEL)) return;
         if (!(event.getSource() instanceof ServerConnection server)) return;
 
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {

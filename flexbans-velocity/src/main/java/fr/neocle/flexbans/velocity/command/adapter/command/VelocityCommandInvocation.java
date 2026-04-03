@@ -14,6 +14,12 @@ public class VelocityCommandInvocation implements ICommandInvocation {
     private final String[] arguments;
     private final ICommandSource source;
 
+    public VelocityCommandInvocation(CommandContext<CommandSource> ctx, String... args) {
+        this.source = new VelocityCommandSource(ctx.getSource());
+        this.label = ctx.getNodes().isEmpty() ? "" : ctx.getNodes().get(0).getNode().getName();
+        this.arguments = args;
+    }
+
     public VelocityCommandInvocation(CommandContext<CommandSource> ctx) {
         this.source = new VelocityCommandSource(ctx.getSource());
 

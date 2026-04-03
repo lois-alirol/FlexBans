@@ -9,23 +9,25 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
-/**
- * Manages server locks using the new schema with actors table.
- */
 public class ServerLocksManager {
     private final DatabaseConnectionManager dbManager;
     private final ActorsManager actorsManager;
+    private final ExecutorService dbExecutor;
 
-    public ServerLocksManager(DatabaseConnectionManager dbManager, ActorsManager actorsManager) {
+    private static final FlexLogger LOGGER = FlexLogger.get(ServerLocksManager.class);
+
+    public ServerLocksManager(DatabaseConnectionManager dbManager,
+                              ActorsManager actorsManager,
+                              ExecutorService dbExecutor) {
         this.dbManager = dbManager;
         this.actorsManager = actorsManager;
+        this.dbExecutor = dbExecutor;
     }
 
-    /**
-     * Insert a new server lock.
-     */
-    public long insertServerLock(
+    public CompletableFuture<Long> insertServerLock(
             String serverName,
             String reason,
             long duration,
@@ -34,223 +36,212 @@ public class ServerLocksManager {
             String serverOrigin,
             boolean silent
     ) {
-        int issuerActorId = issuerUuid != null
-                ? actorsManager.getOrCreatePlayerActor(issuerUuid, issuerName)
-                : actorsManager.getOrCreateConsoleActor();
+        CompletableFuture<Integer> issuerActorFuture =
+                issuerUuid != null
+                        ? actorsManager.getOrCreatePlayerActor(issuerUuid, issuerName)
+                        : actorsManager.getOrCreateConsoleActor();
 
-        String sql = """
-            INSERT INTO server_locks (
-                server_name, issuer_actor_id, created_at, reason, 
-                duration, server_origin, silent, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'LOCKED')
-        """;
+        return issuerActorFuture.thenComposeAsync(issuerActorId ->
+                        CompletableFuture.supplyAsync(() -> {
+                            String sql = """
+                        INSERT INTO server_locks (
+                            server_name, issuer_actor_id, created_at, reason,
+                            duration, server_origin, silent, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'LOCKED')
+                    """;
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                            try (Connection conn = dbManager.getConnection();
+                                 PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
-            ps.setString(1, serverName);
-            ps.setInt(2, issuerActorId);
-            ps.setLong(3, System.currentTimeMillis());
-            ps.setString(4, reason);
-            ps.setLong(5, duration);
-            ps.setString(6, serverOrigin);
-            ps.setBoolean(7, silent);
+                                ps.setString(1, serverName);
+                                ps.setInt(2, issuerActorId);
+                                ps.setLong(3, System.currentTimeMillis());
+                                ps.setString(4, reason);
+                                ps.setLong(5, duration);
+                                ps.setString(6, serverOrigin);
+                                ps.setBoolean(7, silent);
 
-            ps.executeUpdate();
+                                ps.executeUpdate();
 
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    return rs.getLong(1);
-                }
-            }
+                                try (ResultSet rs = ps.getGeneratedKeys()) {
+                                    if (rs.next()) {
+                                        return rs.getLong(1);
+                                    }
+                                }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to insert server lock for " + serverName + ": " + e.getMessage());
-            e.printStackTrace();
-        }
+                            } catch (SQLException e) {
+                                LOGGER.error("Failed to insert server lock for {}: ", serverName, e);
+                            }
 
-        return -1;
+                            return -1L;
+                        }, dbExecutor)
+                , dbExecutor);
     }
 
-    /**
-     * Unlock a server.
-     */
-    public boolean unlockServer(String serverName, UUID removerUuid, String removerName, String reason) {
-        int removerActorId = removerUuid != null
-                ? actorsManager.getOrCreatePlayerActor(removerUuid, removerName)
-                : actorsManager.getOrCreateConsoleActor();
+    public CompletableFuture<Boolean> unlockServer(String serverName, UUID removerUuid, String removerName, String reason) {
+        CompletableFuture<Integer> removerActorFuture =
+                removerUuid != null
+                        ? actorsManager.getOrCreatePlayerActor(removerUuid, removerName)
+                        : actorsManager.getOrCreateConsoleActor();
 
-        String updateSql = """
-            UPDATE server_locks 
-            SET status = 'UNLOCKED' 
-            WHERE server_name = ? 
-              AND status = 'LOCKED'
-        """;
+        return removerActorFuture.thenComposeAsync(removerActorId ->
+                        CompletableFuture.supplyAsync(() -> {
+                            String updateSql = """
+                        UPDATE server_locks
+                        SET status = 'UNLOCKED'
+                        WHERE server_name = ?
+                          AND status = 'LOCKED'
+                    """;
 
-        try (Connection conn = dbManager.getConnection()) {
-            conn.setAutoCommit(false);
+                            try (Connection conn = dbManager.getConnection()) {
+                                conn.setAutoCommit(false);
 
-            try {
-                // Get lock ID
-                long lockId = -1;
-                String selectSql = "SELECT id FROM server_locks WHERE server_name = ? AND status = 'LOCKED'";
+                                try {
+                                    long lockId = -1;
+                                    String selectSql = "SELECT id FROM server_locks WHERE server_name = ? AND status = 'LOCKED'";
 
-                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                    ps.setString(1, serverName);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            lockId = rs.getLong("id");
-                        }
-                    }
-                }
+                                    try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                                        ps.setString(1, serverName);
+                                        try (ResultSet rs = ps.executeQuery()) {
+                                            if (rs.next()) {
+                                                lockId = rs.getLong("id");
+                                            }
+                                        }
+                                    }
 
-                if (lockId == -1) {
-                    conn.rollback();
-                    return false;
-                }
+                                    if (lockId == -1) {
+                                        conn.rollback();
+                                        return false;
+                                    }
 
-                // Update lock status
-                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                    ps.setString(1, serverName);
-                    ps.executeUpdate();
-                }
+                                    try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                                        ps.setString(1, serverName);
+                                        ps.executeUpdate();
+                                    }
 
-                // Record action
-                recordLockAction(conn, lockId, removerActorId, "UNLOCKED", reason);
+                                    recordLockAction(lockId, removerActorId, "UNLOCKED", reason);
 
-                conn.commit();
-                return true;
+                                    conn.commit();
+                                    return true;
 
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
-            }
+                                } catch (SQLException e) {
+                                    conn.rollback();
+                                    throw e;
+                                } finally {
+                                    conn.setAutoCommit(true);
+                                }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to unlock server " + serverName + ": " + e.getMessage());
-            e.printStackTrace();
-        }
+                            } catch (SQLException e) {
+                                LOGGER.error("Failed to unlock server {}: ", serverName, e);
+                            }
 
-        return false;
+                            return false;
+                        }, dbExecutor)
+                , dbExecutor);
     }
 
-    /**
-     * Record a server lock action.
-     */
-    private void recordLockAction(
-            Connection conn,
+    private CompletableFuture<Void> recordLockAction(
             long lockId,
             int actorId,
             String action,
             String reason
-    ) throws SQLException {
-        String sql = """
+    ) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = """
             INSERT INTO server_lock_actions (lock_id, actor_id, action, reason, action_time)
             VALUES (?, ?, ?, ?, ?)
         """;
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, lockId);
-            ps.setInt(2, actorId);
-            ps.setString(3, action);
-            ps.setString(4, reason);
-            ps.setLong(5, System.currentTimeMillis());
-            ps.executeUpdate();
-        }
-    }
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-    /**
-     * Check if a server is locked.
-     */
-    public boolean isServerLocked(String serverName) {
-        String sql = "SELECT 1 FROM server_locks WHERE server_name = ? AND status = 'LOCKED' LIMIT 1";
+                ps.setLong(1, lockId);
+                ps.setInt(2, actorId);
+                ps.setString(3, action);
+                ps.setString(4, reason);
+                ps.setLong(5, System.currentTimeMillis());
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.executeUpdate();
 
-            ps.setString(1, serverName);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
+            } catch (SQLException e) {
+                LOGGER.error("Failed to record lock action: ", e);
             }
-
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to check if server is locked: " + e.getMessage());
-            return false;
-        }
+        }, dbExecutor);
     }
 
-    /**
-     * Get lock information.
-     */
-    public ServerLockInfo getLockInfo(String serverName) {
-        String sql = """
-            SELECT id, issuer_actor_id, created_at, reason, duration, server_origin, silent
-            FROM server_locks 
-            WHERE server_name = ? 
-              AND status = 'LOCKED'
-        """;
+    public CompletableFuture<Boolean> isServerLocked(String serverName) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = "SELECT 1 FROM server_locks WHERE server_name = ? AND status = 'LOCKED' LIMIT 1";
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, serverName);
+                ps.setString(1, serverName);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return new ServerLockInfo(
-                            rs.getLong("id"),
-                            serverName,
-                            rs.getInt("issuer_actor_id"),
-                            rs.getLong("created_at"),
-                            rs.getString("reason"),
-                            rs.getLong("duration"),
-                            rs.getString("server_origin"),
-                            rs.getBoolean("silent")
-                    );
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
                 }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to check if server is locked: ", e);
+                return false;
+            }
+        }, dbExecutor);
+    }
+
+    public CompletableFuture<ServerLockInfo> getLockInfo(String serverName) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                SELECT id, issuer_actor_id, created_at, reason, duration, server_origin, silent
+                FROM server_locks
+                WHERE server_name = ?
+                  AND status = 'LOCKED'
+            """;
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, serverName);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return new ServerLockInfo(
+                                rs.getLong("id"),
+                                serverName,
+                                rs.getInt("issuer_actor_id"),
+                                rs.getLong("created_at"),
+                                rs.getString("reason"),
+                                rs.getLong("duration"),
+                                rs.getString("server_origin"),
+                                rs.getBoolean("silent")
+                        );
+                    }
+                }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to get lock info: ", e);
             }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to get lock info: " + e.getMessage());
-        }
-
-        return null;
+            return null;
+        }, dbExecutor);
     }
 
-    /**
-     * Get reason for a locked server.
-     */
-    public String getReason(String serverName) {
-        ServerLockInfo info = getLockInfo(serverName);
-        return info != null ? info.reason : null;
+    public CompletableFuture<String> getReason(String serverName) {
+        return getLockInfo(serverName).thenApply(info -> info != null ? info.reason : null);
     }
 
-    /**
-     * Get issuer name for a locked server.
-     */
-    public String getIssuer(String serverName) {
-        ServerLockInfo info = getLockInfo(serverName);
-        if (info != null) {
-            var actorInfo = actorsManager.getActorInfo(info.issuerActorId);
-            return actorInfo != null ? actorInfo.name : null;
-        }
-        return null;
+    public CompletableFuture<String> getIssuer(String serverName) {
+        return getLockInfo(serverName).thenComposeAsync(info -> {
+            if (info == null) return CompletableFuture.completedFuture(null);
+            return actorsManager.getActorInfo(info.issuerActorId)
+                    .thenApply(actorInfo -> actorInfo != null ? actorInfo.name() : null);
+        }, dbExecutor);
     }
 
-    /**
-     * Get lock time for a locked server.
-     */
-    public long getTime(String serverName) {
-        ServerLockInfo info = getLockInfo(serverName);
-        return info != null ? info.createdAt : -1;
+    public CompletableFuture<Long> getTime(String serverName) {
+        return getLockInfo(serverName).thenApply(info -> info != null ? info.createdAt : -1L);
     }
 
-    /**
-     * Data class for server lock information.
-     */
     public static class ServerLockInfo {
         public final long id;
         public final String serverName;

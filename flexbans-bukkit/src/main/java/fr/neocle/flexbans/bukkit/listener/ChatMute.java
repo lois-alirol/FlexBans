@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.bukkit.listener;
 
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
+import fr.neocle.flexbans.common.messaging.Channel;
 import fr.neocle.flexbans.config.ConfigManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.entity.Player;
@@ -21,22 +23,18 @@ public class ChatMute implements Listener, PluginMessageListener {
     private final Map<UUID, MuteInfo> mutedPlayers = new HashMap<>();
     private final JavaPlugin plugin;
 
-    private static final String MUTE_CHANNEL = "muting:channel";
-    private static final String MUTE_RESPONSE = "muting:response";
-    private static final String MUTE_QUERY = "muting:query";
-
     public ChatMute(JavaPlugin plugin) {
         this.plugin = plugin;
 
-        plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, "muting:channel", this);
-        plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, "muting:response", this);
-        plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, "muting:query");
+        plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, Channel.MUTED, this);
+        plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, Channel.MUTED_RESPONSE, this);
+        plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, Channel.MUTED_RESPONSE);
     }
 
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(message))) {
-            if (channel.equals(MUTE_RESPONSE)) {
+            if (channel.equals(Channel.MUTED_RESPONSE)) {
                 if (in.available() < 4) {
                     plugin.getLogger().warning("Received malformed muting:response message (too short)");
                     return;
@@ -68,16 +66,16 @@ public class ChatMute implements Listener, PluginMessageListener {
                         }
                     }
                 }
-            } else if (channel.equals(MUTE_CHANNEL)) {
+            } else if (channel.equals(Channel.MUTED)) {
                 if (in.available() < 4) {
-                    plugin.getLogger().warning("Received malformed muting:channel message (too short)");
+                    plugin.getLogger().warning("Received malformed message (too short)");
                     return;
                 }
 
                 UUID uuid = UUID.fromString(in.readUTF());
 
                 if (in.available() < 1) {
-                    plugin.getLogger().warning("Received incomplete muting:channel message for player " + uuid);
+                    plugin.getLogger().warning("Received incomplete message for player " + uuid);
                     return;
                 }
 
@@ -186,7 +184,7 @@ public class ChatMute implements Listener, PluginMessageListener {
              DataOutputStream data = new DataOutputStream(out)) {
             data.writeUTF(player.getUniqueId().toString());
 
-            player.sendPluginMessage(plugin, MUTE_QUERY, out.toByteArray());
+            player.sendPluginMessage(plugin, Channel.MUTED_QUERY, out.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();
         }

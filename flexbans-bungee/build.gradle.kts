@@ -24,9 +24,13 @@ dependencies {
     implementation(project(":flexbans-api"))
 
     implementation("org.eclipse.jetty:jetty-server:9.4.56.v20240826")
+    implementation("org.eclipse.jetty.websocket:websocket-server:9.4.56.v20240826")
+    implementation("org.eclipse.jetty.websocket:websocket-servlet:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-util:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-http:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-io:9.4.56.v20240826")
+    implementation("org.eclipse.jetty:jetty-servlet:9.4.56.v20240826")
+    implementation("org.eclipse.jetty:jetty-rewrite:9.4.56.v20240826")
 
     compileOnly("net.md-5:bungeecord-api:1.21-R0.4-SNAPSHOT")
     compileOnly("com.gitlab.ruany:LiteBansAPI:0.5.0")

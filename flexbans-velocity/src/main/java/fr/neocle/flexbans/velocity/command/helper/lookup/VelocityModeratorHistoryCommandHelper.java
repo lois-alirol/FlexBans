@@ -3,17 +3,12 @@ package fr.neocle.flexbans.velocity.command.helper.lookup;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.common.command.lookup.moderatorhistory.IModeratorHistoryCommandHelper;
-import fr.neocle. flexbans.common.command.lookup.moderatorhistory.ModeratorHistoryEntry;
 import fr.neocle.flexbans.database.DatabaseConnectionManager;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr. neocle.flexbans. database.player.ProfilesManager;
+import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr.neocle.flexbans.logger.FlexLogger;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java. sql.SQLException;
-import java. text.SimpleDateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -26,10 +21,12 @@ public class VelocityModeratorHistoryCommandHelper implements IModeratorHistoryC
     private final DatabaseConnectionManager dbManager;
     private final SimpleDateFormat dateFormat;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(VelocityModeratorHistoryCommandHelper.class);
+
     public VelocityModeratorHistoryCommandHelper(ProxyServer proxyServer, DatabaseUtils databaseUtils,
                                                  DatabaseConnectionManager dbManager) {
         this.proxyServer = proxyServer;
-        this. profilesManager = databaseUtils. getProfilesManager();
+        this.profilesManager = databaseUtils.getProfilesManager();
         this.dbManager = dbManager;
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy HH:mm");
     }
@@ -41,213 +38,40 @@ public class VelocityModeratorHistoryCommandHelper implements IModeratorHistoryC
             return optPlayer.get().getUniqueId();
         }
 
-        UUID uuid = profilesManager.getUuid(moderatorName);
+        UUID uuid = null;
+        try {
+            uuid = profilesManager.getUuid(moderatorName).join();
+        } catch (Exception e) {
+            LOGGER.error("Failed to resolve moderator UUID from database for '{}'", moderatorName, e);
+        }
+
         if (uuid != null) {
-            FlexLogger.info("[ModeratorHistory] Moderator '" + moderatorName + "' found in database: " + uuid);
+            LOGGER.debug("Moderator '{}' found in database: {}", moderatorName, uuid);
         }
         return uuid;
     }
 
     @Override
-    public List<ModeratorHistoryEntry> getModeratorHistory(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
+    public List<ProfilesManager.ModeratorHistoryEntry> getModeratorHistory(UUID moderatorUuid) {
+        List<ProfilesManager.ModeratorHistoryEntry> entries = new ArrayList<>();
 
-        entries.addAll(getIssuedBans(moderatorUuid));
-        entries.addAll(getIssuedMutes(moderatorUuid));
-        entries.addAll(getIssuedWarnings(moderatorUuid));
-        entries.addAll(getIssuedKicks(moderatorUuid));
-        entries.addAll(getRemovedPunishments(moderatorUuid));
+        try {
+            List<ProfilesManager.ModeratorHistoryEntry> issued =
+                    profilesManager.getIssuedPunishments(moderatorUuid).join();
+            if (issued != null) {
+                entries.addAll(issued);
+            }
+
+            List<ProfilesManager.ModeratorHistoryEntry> removed =
+                    profilesManager.getRemovedPunishments(moderatorUuid).join();
+            if (removed != null) {
+                entries.addAll(removed);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to load moderator history for {}", moderatorUuid, e);
+        }
+
         entries.sort((a, b) -> Long.compare(b.timestamp(), a.timestamp()));
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getIssuedBans(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-        String query = "SELECT id, target_name, reason, time, duration, status, ip_scope " +
-                "FROM flexbans_bans WHERE issuer_uuid = ? ORDER BY time DESC";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, moderatorUuid. toString());
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    boolean ipScope = rs.getBoolean("ip_scope");
-                    String type = ipScope ? "ip-ban" : "ban";
-
-                    entries.add(new ModeratorHistoryEntry(
-                            rs. getInt("id"),
-                            "issued",
-                            type,
-                            rs.getString("target_name"),
-                            rs.getString("reason"),
-                            rs.getLong("time"),
-                            rs.getLong("duration"),
-                            rs.getString("status"),
-                            null,
-                            ipScope
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.warn("[ModeratorHistory] Failed to fetch issued bans for " + moderatorUuid + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getIssuedMutes(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-        String query = "SELECT id, target_name, reason, time, duration, status, ip_scope " +
-                "FROM flexbans_mutes WHERE issuer_uuid = ? ORDER BY time DESC";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, moderatorUuid.toString());
-
-            try (ResultSet rs = stmt. executeQuery()) {
-                while (rs.next()) {
-                    boolean ipScope = rs.getBoolean("ip_scope");
-                    String type = ipScope ? "ip-mute" : "mute";
-
-                    entries.add(new ModeratorHistoryEntry(
-                            rs.getInt("id"),
-                            "issued",
-                            type,
-                            rs.getString("target_name"),
-                            rs.getString("reason"),
-                            rs.getLong("time"),
-                            rs.getLong("duration"),
-                            rs.getString("status"),
-                            null,
-                            ipScope
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.warn("[ModeratorHistory] Failed to fetch issued mutes for " + moderatorUuid + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getIssuedWarnings(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-        String query = "SELECT id, target_name, reason, time, duration, status, ip_scope " +
-                "FROM flexbans_warnings WHERE issuer_uuid = ? ORDER BY time DESC";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection. prepareStatement(query)) {
-            stmt.setString(1, moderatorUuid.toString());
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    boolean ipScope = rs.getBoolean("ip_scope");
-                    String type = ipScope ?  "ip-warning" : "warning";
-
-                    entries.add(new ModeratorHistoryEntry(
-                            rs.getInt("id"),
-                            "issued",
-                            type,
-                            rs.getString("target_name"),
-                            rs.getString("reason"),
-                            rs.getLong("time"),
-                            rs. getLong("duration"),
-                            rs.getString("status"),
-                            null,
-                            ipScope
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.warn("[ModeratorHistory] Failed to fetch issued warnings for " + moderatorUuid + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getIssuedKicks(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-        String query = "SELECT id, target_name, reason, time, ip_scope FROM flexbans_kicks WHERE issuer_uuid = ? ORDER BY time DESC";
-
-        try (Connection connection = dbManager.getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, moderatorUuid.toString());
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    entries.add(new ModeratorHistoryEntry(
-                            rs. getInt("id"),
-                            "issued",
-                            "kick",
-                            rs.getString("target_name"),
-                            rs.getString("reason"),
-                            rs.getLong("time"),
-                            0,
-                            "completed",
-                            null,
-                            rs.getBoolean("ip_scope")
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.warn("[ModeratorHistory] Failed to fetch issued kicks for " + moderatorUuid + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getRemovedPunishments(UUID moderatorUuid) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-
-        // Get removed bans
-        entries.addAll(getRemovedType(moderatorUuid, "flexbans_bans", "ban"));
-        // Get removed mutes
-        entries. addAll(getRemovedType(moderatorUuid, "flexbans_mutes", "mute"));
-        // Get removed warnings
-        entries.addAll(getRemovedType(moderatorUuid, "flexbans_warnings", "warning"));
-
-        return entries;
-    }
-
-    private List<ModeratorHistoryEntry> getRemovedType(UUID moderatorUuid, String tableName, String type) {
-        List<ModeratorHistoryEntry> entries = new ArrayList<>();
-        String query = "SELECT id, target_name, removal_reason, removal_time, ip_scope " +
-                "FROM " + tableName + " WHERE remover_uuid = ? AND removal_time IS NOT NULL ORDER BY removal_time DESC";
-
-        try (Connection connection = dbManager. getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, moderatorUuid.toString());
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    boolean ipScope = rs.getBoolean("ip_scope");
-                    String fullType = ipScope ? "ip-" + type : type;
-
-                    entries.add(new ModeratorHistoryEntry(
-                            rs.getInt("id"),
-                            "removed",
-                            fullType,
-                            rs.getString("target_name"),
-                            rs.getString("removal_reason"),
-                            rs.getLong("removal_time"),
-                            0,
-                            "removed",
-                            null,
-                            ipScope
-                    ));
-                }
-            }
-        } catch (SQLException e) {
-            FlexLogger.warn("[ModeratorHistory] Failed to fetch removed " + type + "s for " + moderatorUuid + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-
         return entries;
     }
 
@@ -260,7 +84,7 @@ public class VelocityModeratorHistoryCommandHelper implements IModeratorHistoryC
     public List<String> getOnlineModerators(String partialName) {
         List<String> suggestions = new ArrayList<>();
 
-        for (Player player : proxyServer. getAllPlayers()) {
+        for (Player player : proxyServer.getAllPlayers()) {
             if (player.hasPermission("flexbans.command.moderatorhistory") &&
                     player.getUsername().toLowerCase().startsWith(partialName.toLowerCase())) {
                 suggestions.add(player.getUsername());

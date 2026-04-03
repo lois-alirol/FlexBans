@@ -3,6 +3,7 @@ package fr.neocle.flexbans.common.listener;
 import fr.neocle.flexbans.Bootstrap;
 import fr.neocle.flexbans.common.adapter.IPlatform;
 import fr.neocle.flexbans.common.adapter.IPlayer;
+import fr.neocle.flexbans.common.messaging.Channel;
 import fr.neocle.flexbans.config.ConfigManager;
 import fr.neocle.flexbans.database.player.ProfilesManager;
 import fr.neocle.flexbans.database.punishment.PunishmentsManager;
@@ -11,7 +12,9 @@ import fr.neocle.flexbans.util.DateCalculator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +35,7 @@ public class PlayerEventHandler {
 
     public void handlePlayerLogin(IPlayer player) {
         UUID playerUuid = player.getUniqueId();
+        // async fire-and-forget
         profilesManager.recordPlayerLogin(playerUuid, player.getUsername(), player.getInetAddress());
     }
 
@@ -42,18 +46,19 @@ public class PlayerEventHandler {
         String rawBanMessage = LanguageManager.getMessageString("punishments.ban.disconnect-message");
         String rawLockMessage = LanguageManager.getMessageString("server-locks.disconnect-message");
 
-        // Player Ban (scoped)
+        // BAN on targetServer
         if (punishmentsManager.isPlayerPunished(
-                PunishmentsManager.PunishmentType.BAN, playerUuid, targetServer)) {
+                PunishmentsManager.PunishmentType.BAN, playerUuid, targetServer
+        ).join()) {
             Component msg = formatBanMessage(rawBanMessage, playerUuid, targetServer);
             if (player.getCurrentServer().isEmpty()) player.disconnect(msg);
             else player.sendMessage(msg);
             return;
         }
-        // IP Ban (scoped)
+
         if (punishmentsManager.isIpPunished(
-                PunishmentsManager.PunishmentType.BAN, playerIp, targetServer)) {
-            // For showing message, get a profile by IP if available; fallback to self
+                PunishmentsManager.PunishmentType.BAN, playerIp, targetServer
+        ).join()) {
             List<UUID> playerUuids = profilesManager.getPlayersByIp(playerIp);
             UUID banOwner = !playerUuids.isEmpty() ? playerUuids.get(0) : playerUuid;
             Component msg = formatBanMessage(rawBanMessage, banOwner, targetServer);
@@ -61,16 +66,19 @@ public class PlayerEventHandler {
             else player.sendMessage(msg);
             return;
         }
-        // Player Ban (global)
+
+        // Global bans
         if (punishmentsManager.isPlayerPunished(
-                PunishmentsManager.PunishmentType.BAN, playerUuid, "Global")) {
+                PunishmentsManager.PunishmentType.BAN, playerUuid, "Global"
+        ).join()) {
             Component msg = formatBanMessage(rawBanMessage, playerUuid, "Global");
             player.disconnect(msg);
             return;
         }
-        // IP Ban (global)
+
         if (punishmentsManager.isIpPunished(
-                PunishmentsManager.PunishmentType.BAN, playerIp, "Global")) {
+                PunishmentsManager.PunishmentType.BAN, playerIp, "Global"
+        ).join()) {
             List<UUID> playerUuids = profilesManager.getPlayersByIp(playerIp);
             UUID banOwner = !playerUuids.isEmpty() ? playerUuids.get(0) : playerUuid;
             Component msg = formatBanMessage(rawBanMessage, banOwner, "Global");
@@ -78,15 +86,16 @@ public class PlayerEventHandler {
             return;
         }
 
-        // Server Lock handling (replace with correct manager if needed)
+        // Server locks
         if (!player.hasPermission("flexbans.serverlock.bypass")) {
-            // TODO: Replace this with PunishmentsManager call if server locks are unified, else keep legacy
-            if (bootstrap.getDatabaseUtils().getServerLocksManager().isServerLocked("Global")) {
+            if (bootstrap.getDatabaseUtils().getServerLocksManager()
+                    .isServerLocked("Global").join()) {
                 Component formattedLockMessage = formatLockMessage(rawLockMessage, "Global");
                 player.disconnect(formattedLockMessage);
                 return;
             }
-            if (bootstrap.getDatabaseUtils().getServerLocksManager().isServerLocked(targetServer)) {
+            if (bootstrap.getDatabaseUtils().getServerLocksManager()
+                    .isServerLocked(targetServer).join()) {
                 Component formattedLockMessage = formatLockMessage(rawLockMessage, targetServer);
                 if (player.getCurrentServer().isEmpty()) {
                     player.disconnect(formattedLockMessage);
@@ -135,10 +144,14 @@ public class PlayerEventHandler {
     public void handleMuteQueryMessage(UUID playerUuid, IPlayer sourcePlayer) throws IOException {
         String serverName = sourcePlayer.getCurrentServer().orElse(null);
         boolean isMuted = isMuted(playerUuid, sourcePlayer.getInetAddress(), serverName);
-        String reason = isMuted ? punishmentsManager.getPunishmentInfo(PunishmentsManager.PunishmentType.MUTE, playerUuid, serverName) != null ?
-                punishmentsManager.getPunishmentInfo(PunishmentsManager.PunishmentType.MUTE, playerUuid, serverName).reason : "" : "";
-        long until = isMuted ? punishmentsManager.getPunishmentInfo(PunishmentsManager.PunishmentType.MUTE, playerUuid, serverName) != null ?
-                punishmentsManager.getPunishmentInfo(PunishmentsManager.PunishmentType.MUTE, playerUuid, serverName).getExpiresAt() : 0L : 0L;
+
+        PunishmentsManager.PunishmentInfo info =
+                punishmentsManager.getPunishmentInfo(
+                        PunishmentsManager.PunishmentType.MUTE, playerUuid, serverName
+                ).join();
+
+        String reason = isMuted && info != null ? info.reason : "";
+        long until = isMuted && info != null ? info.getExpiresAt() : 0L;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(baos);
@@ -150,22 +163,30 @@ public class PlayerEventHandler {
         out.writeUTF(serverName != null ? serverName : "Global");
 
         byte[] responseData = baos.toByteArray();
-        platformAdapter.sendPluginMessage(sourcePlayer, "muting:response", responseData);
+        platformAdapter.sendPluginMessage(sourcePlayer, Channel.MUTED_RESPONSE, responseData);
     }
 
     private boolean isMuted(UUID playerUUID, InetAddress playerIp, String serverName) {
-        return punishmentsManager.isPlayerPunished(PunishmentsManager.PunishmentType.MUTE, playerUUID, null)
-                || (serverName != null && punishmentsManager.isPlayerPunished(PunishmentsManager.PunishmentType.MUTE, playerUUID, serverName))
-                || punishmentsManager.isIpPunished(PunishmentsManager.PunishmentType.MUTE, playerIp, null)
-                || (serverName != null && punishmentsManager.isIpPunished(PunishmentsManager.PunishmentType.MUTE, playerIp, serverName));
+        return punishmentsManager.isPlayerPunished(
+                PunishmentsManager.PunishmentType.MUTE, playerUUID, null
+        ).join()
+                || (serverName != null && punishmentsManager.isPlayerPunished(
+                PunishmentsManager.PunishmentType.MUTE, playerUUID, serverName
+        ).join())
+                || punishmentsManager.isIpPunished(
+                PunishmentsManager.PunishmentType.MUTE, playerIp, null
+        ).join()
+                || (serverName != null && punishmentsManager.isIpPunished(
+                PunishmentsManager.PunishmentType.MUTE, playerIp, serverName
+        ).join());
     }
 
     private Component formatBanMessage(String rawMessage, UUID playerUUID, String serverName) {
         PunishmentsManager.PunishmentInfo info = punishmentsManager.getPunishmentInfo(
-                PunishmentsManager.PunishmentType.BAN, playerUUID, serverName);
+                PunishmentsManager.PunishmentType.BAN, playerUUID, serverName
+        ).join();
 
         String reason = info != null ? info.reason : null;
-        // Placeholder: get issuer/more info from actorsManager if needed.
         String moderator = "Console";
         String executionDate = info != null ? DateCalculator.formatTimestamp(info.createdAt) : null;
         String duration = info != null ? DateCalculator.formatDuration(info.duration) : null;
@@ -186,13 +207,17 @@ public class PlayerEventHandler {
     }
 
     private Component formatLockMessage(String rawMessage, String serverName) {
-        // Using the legacy ServerLocksManager until unified
+        var serverLocksManager = bootstrap.getDatabaseUtils().getServerLocksManager();
+
+        String reason = serverLocksManager.getReason(serverName).join();
+        String moderator = serverLocksManager.getIssuer(serverName).join();
+        long time = serverLocksManager.getTime(serverName).join();
+
         String formattedMessage = rawMessage
                 .replace("%server%", serverName)
-                .replace("%reason%", bootstrap.getDatabaseUtils().getServerLocksManager().getReason(serverName))
-                .replace("%moderator%", bootstrap.getDatabaseUtils().getServerLocksManager().getIssuer(serverName))
-                .replace("%date%", DateCalculator.formatTimestamp(
-                        bootstrap.getDatabaseUtils().getServerLocksManager().getTime(serverName)));
+                .replace("%reason%", reason != null ? reason : "Unknown")
+                .replace("%moderator%", moderator != null ? moderator : "Unknown")
+                .replace("%date%", DateCalculator.formatTimestamp(time));
 
         String cleanedMessage = formattedMessage.replaceFirst("(?s)\\n\\s*\\z", "");
         return miniMessage.deserialize(cleanedMessage);
@@ -200,7 +225,8 @@ public class PlayerEventHandler {
 
     private Component formatMuteMessage(UUID playerUUID, String serverName) {
         PunishmentsManager.PunishmentInfo info = punishmentsManager.getPunishmentInfo(
-                PunishmentsManager.PunishmentType.MUTE, playerUUID, serverName);
+                PunishmentsManager.PunishmentType.MUTE, playerUUID, serverName
+        ).join();
 
         String reason = info != null ? info.reason : null;
         String issuer = "Console";
@@ -232,7 +258,7 @@ public class PlayerEventHandler {
             out.writeUTF(player.getUniqueId().toString());
             out.writeBoolean(isMuted);
             out.writeUTF(serverName);
-            platformAdapter.sendPluginMessage(player, "muting:channel", byteStream.toByteArray());
+            platformAdapter.sendPluginMessage(player, Channel.MUTED, byteStream.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();
         }

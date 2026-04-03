@@ -7,7 +7,8 @@ import fr.neocle.flexbans.database.dashboard.RateLimiter;
 import fr.neocle.flexbans.database.dashboard.SessionManager;
 import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.util.FlexBansPermissionLookup;
+import fr.neocle.flexbans.util.permissions.FlexBansPermissionLookup;
+import fr.neocle.flexbans.util.scheduler.TaskScheduler;
 import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import fr.neocle.flexbans.web.auth.TokenManager;
 import fr.neocle.flexbans.web.response.ApiResponse;
@@ -18,47 +19,40 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Improved authentication handler with proper security implementations:
- * - Database-backed session management
- * - Database-backed rate limiting
- * - CSRF token management
- * - Comprehensive security logging
- */
 public class AuthHandler {
     private final DatabaseUtils databaseUtils;
     private final UuidUsernameResolver resolver;
     private final RateLimiter rateLimiter;
     private final SessionManager sessionManager;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(AuthHandler.class);
+
     public AuthHandler(DatabaseUtils databaseUtils) {
         this.databaseUtils = databaseUtils;
         this.rateLimiter = databaseUtils.getRateLimiter();
         this.sessionManager = databaseUtils.getSessionManager();
-
         this.resolver = UuidUsernameResolver.get();
 
         startPeriodicCleanup();
     }
 
-    /**
-     * Start periodic cleanup of expired sessions and rate limits.
-     */
     private void startPeriodicCleanup() {
-        Thread cleanupThread = new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(3600000); // 1 hour
-                    sessionManager.cleanupExpiredSessions();
-                    rateLimiter.cleanupOldEntries();
-                    TokenManager.cleanupExpiredTokens();
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        });
-        cleanupThread.setDaemon(true);
-        cleanupThread.start();
+        TaskScheduler.get().runRepeating(
+                () -> sessionManager.cleanupExpiredSessions()
+                        .exceptionally(e -> {
+                            LOGGER.error("Failed to cleanup expired sessions", e);
+                            return 0;
+                        }),
+                3600000
+        );
+        TaskScheduler.get().runRepeating(
+                () -> rateLimiter.cleanupOldEntries()
+                        .exceptionally(e -> {
+                            LOGGER.error("Failed to cleanup old rate limit entries", e);
+                            return 0;
+                        }),
+                3600000
+        );
     }
 
     private CompletableFuture<JsonArray> getUserPermissions(String username) {
@@ -103,14 +97,9 @@ public class AuthHandler {
         return "production".equals(System.getenv("APP_ENV"));
     }
 
-    /**
-     * Get client identifier for rate limiting (IP + User-Agent hash).
-     */
     private String getClientIdentifier(HttpServletRequest req, String username) {
         String ip = req.getRemoteAddr();
         String userAgent = req.getHeader("User-Agent");
-
-        // Combine IP and username for more specific rate limiting
         return username + ":" + ip + ":" + (userAgent != null ? userAgent.hashCode() : "");
     }
 
@@ -129,82 +118,101 @@ public class AuthHandler {
 
             String clientId = getClientIdentifier(req, username);
 
-            // Check if locked out
-            if (rateLimiter.isLockedOut(clientId, "login")) {
-                long remainingTime = rateLimiter.getRemainingLockoutTime(clientId, "login");
-                int minutes = (int) (remainingTime / 60000);
-                FlexLogger.warn("Login attempt while locked out: " + username + " from " + req.getRemoteAddr());
-                return CompletableFuture.completedFuture(
-                        ApiResponse.tooManyRequests("Too many failed attempts. Try again in " + minutes + " minutes.")
-                );
-            }
+            return rateLimiter.isLockedOut(clientId, "login").thenCompose(lockedOut -> {
+                if (lockedOut) {
+                    return rateLimiter.getRemainingLockoutTime(clientId, "login").thenApply(remainingTime -> {
+                        int minutes = (int) (remainingTime / 60000);
 
-            // Check if user exists
-            if (!databaseUtils.getUserManager().isUserRegistered(username)) {
-                rateLimiter.recordFailedAttempt(clientId, "login");
-                FlexLogger.warn("Login attempt for non-existent user: " + username);
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid credentials"));
-            }
+                        LOGGER.debug("Login attempt while rate limited {} from {}", username, req.getRemoteAddr());
 
-            // Validate credentials
-            if (!databaseUtils.getUserManager().validateCredentials(username, password)) {
-                rateLimiter.recordFailedAttempt(clientId, "login");
-                FlexLogger.warn("Failed login attempt: " + username + " from " + req.getRemoteAddr());
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid credentials"));
-            }
-
-            // Clear failed attempts on successful login
-            rateLimiter.clearFailedAttempts(clientId, "login");
-
-            boolean isVerified = databaseUtils.getUserManager().isUserVerified(username);
-            UserManager.UserInfo userInfo = databaseUtils.getUserManager().getUserInfo(username);
-
-            // Create session for verified users
-            if (isVerified && userInfo != null) {
-                String sessionToken = sessionManager.createSession(userInfo.id);
-                if (sessionToken != null) {
-                    setSecureCookie(resp, "sessionToken", sessionToken, 86400, true);
+                        return ApiResponse.tooManyRequests("Too many failed attempts. Try again in " + minutes + " minutes.");
+                    });
                 }
 
-                // Also set JWT tokens for compatibility
-                String accessToken = TokenManager.createAccessToken(username);
-                String refreshToken = TokenManager.createRefreshToken(username);
-                setSecureCookie(resp, "accessToken", accessToken, 900, true);
-                setSecureCookie(resp, "refreshToken", refreshToken, 604800, true);
+                UserManager userManager = databaseUtils.getUserManager();
 
-                FlexLogger.info("Successful login: " + username + " from " + req.getRemoteAddr());
-            } else {
-                String tempToken = TokenManager.createTempToken(username);
-                setSecureCookie(resp, "tempToken", tempToken, 300, true);
-                FlexLogger.info("2FA required for: " + username);
-            }
+                return userManager.isUserRegistered(username).thenCompose(isRegistered -> {
+                    if (!isRegistered) {
+                        rateLimiter.recordFailedAttempt(clientId, "login")
+                                .exceptionally(e -> {
+                                    LOGGER.error("Failed to record failed login attempt", e);
+                                    return null;
+                                });
 
-            final boolean verified = isVerified;
+                        LOGGER.debug("Login attempt for non-existent user {}", username);
+                        return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid credentials"));
+                    }
 
-            return getUserPermissions(username)
-                    .thenApply(permissions -> {
-                        JsonObject userData = new JsonObject();
-                        userData.addProperty("username", username);
-                        userData.add("permissions", permissions);
+                    return userManager.validateCredentials(username, password).thenCompose(valid -> {
+                        if (!valid) {
+                            rateLimiter.recordFailedAttempt(clientId, "login")
+                                    .exceptionally(e -> {
+                                        LOGGER.error("Failed to record failed login attempt", e);
+                                        return null;
+                                    });
 
-                        JsonObject response = new JsonObject();
-                        response.addProperty("is_verified", verified);
-                        response.addProperty("requires_2fa", !verified);
-                        response.add("user", userData);
+                            LOGGER.debug("Failed login attempt {} from {}", username, req.getRemoteAddr());
+                            return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid credentials"));
+                        }
 
-                        return ApiResponse.success(response, verified ? "Login successful" : "2FA required");
-                    })
-                    .exceptionally(e -> {
-                        FlexLogger.error("Login error during permission fetch: " + e.getMessage());
-                        return ApiResponse.error(500, "Internal server error");
+                        rateLimiter.clearFailedAttempts(clientId, "login")
+                                .exceptionally(e -> {
+                                    LOGGER.error("Failed to clear failed attempts", e);
+                                    return null;
+                                });
+
+                        return userManager.isUserVerified(username).thenCompose(isVerified ->
+                                userManager.getUserInfo(username).thenCompose(userInfo -> {
+                                    if (isVerified && userInfo != null) {
+                                        return sessionManager.createSession(userInfo.id)
+                                                .thenApply(sessionToken -> {
+                                                    if (sessionToken != null) {
+                                                        setSecureCookie(resp, "sessionToken", sessionToken, 86400, true);
+                                                    }
+
+                                                    String accessToken = TokenManager.get().createAccessToken(username);
+                                                    String refreshToken = TokenManager.get().createRefreshToken(username);
+                                                    setSecureCookie(resp, "accessToken", accessToken, 900, true);
+                                                    setSecureCookie(resp, "refreshToken", refreshToken, 604800, true);
+
+                                                    LOGGER.debug("Successful login {} from {}", username, req.getRemoteAddr());
+                                                    return isVerified;
+                                                });
+                                    } else {
+                                        String tempToken = TokenManager.get().createTempToken(username);
+                                        setSecureCookie(resp, "tempToken", tempToken, 300, true);
+                                        LOGGER.debug("2FA required for {}", username);
+                                        return CompletableFuture.completedFuture(false);
+                                    }
+                                })
+                        ).thenCompose(verified ->
+                                getUserPermissions(username)
+                                        .thenApply(permissions -> {
+                                            JsonObject userData = new JsonObject();
+                                            userData.addProperty("username", username);
+                                            userData.add("permissions", permissions);
+
+                                            JsonObject response = new JsonObject();
+                                            response.addProperty("is_verified", verified);
+                                            response.addProperty("requires_2fa", !verified);
+                                            response.add("user", userData);
+
+                                            return ApiResponse.success(response, verified ? "Login successful" : "2FA required");
+                                        })
+                        );
                     });
-
+                });
+            });
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(ApiResponse.badRequest(e.getMessage()));
         } catch (Exception e) {
-            FlexLogger.error("Login error: " + e.getMessage());
+            LOGGER.error("Login error", e);
             return CompletableFuture.completedFuture(ApiResponse.error(500, "Internal server error"));
         }
+    }
+
+    private static ApiResponse<JsonObject> internalError() {
+        return ApiResponse.error(500, "Internal server error", null);
     }
 
     public CompletableFuture<ApiResponse<JsonObject>> handleRegister(JsonObject body, HttpServletRequest req, HttpServletResponse resp) {
@@ -227,71 +235,78 @@ public class AuthHandler {
             }
 
             String clientId = getClientIdentifier(req, username);
+            UserManager userManager = databaseUtils.getUserManager();
 
-            // Rate limit registration attempts
-            if (rateLimiter.isLockedOut(clientId, "register")) {
-                return CompletableFuture.completedFuture(
-                        ApiResponse.tooManyRequests("Too many registration attempts. Try again later.")
-                );
-            }
+            return rateLimiter.isLockedOut(clientId, "register").thenCompose(lockedOut -> {
+                if (lockedOut) {
+                    return CompletableFuture.completedFuture(
+                            ApiResponse.tooManyRequests("Too many registration attempts. Try again later.")
+                    );
+                }
 
-            if (databaseUtils.getUserManager().isUserRegistered(username)) {
-                rateLimiter.recordFailedAttempt(clientId, "register");
-                return CompletableFuture.completedFuture(ApiResponse.conflict("User already exists"));
-            }
+                return userManager.isUserRegistered(username).thenCompose(isRegistered -> {
+                    if (isRegistered) {
+                        rateLimiter.recordFailedAttempt(clientId, "register")
+                                .exceptionally(e -> {
+                                    LOGGER.error("Failed to record failed register attempt", e);
+                                    return null;
+                                });
+                        return CompletableFuture.completedFuture(ApiResponse.conflict("User already exists"));
+                    }
 
-            UUID uuid = resolver.usernameToUuid(username);
-            boolean registered = databaseUtils.getUserManager().registerUser(username, password, uuid);
+                    UUID uuid = resolver.usernameToUuid(username);
+                    return userManager.registerUser(username, password, uuid).thenCompose(registered -> {
+                        if (!registered) {
+                            return CompletableFuture.completedFuture(ApiResponse.error(500, "Registration failed"));
+                        }
 
-            if (!registered) {
-                return CompletableFuture.completedFuture(ApiResponse.error(500, "Registration failed"));
-            }
+                        rateLimiter.clearFailedAttempts(clientId, "register")
+                                .exceptionally(e -> {
+                                    LOGGER.error("Failed to clear register attempts", e);
+                                    return null;
+                                });
 
-            rateLimiter.clearFailedAttempts(clientId, "register");
+                        String tempToken = TokenManager.get().createTempToken(username);
+                        setSecureCookie(resp, "tempToken", tempToken, 300, true);
 
-            String tempToken = TokenManager.createTempToken(username);
-            setSecureCookie(resp, "tempToken", tempToken, 300, true);
+                        LOGGER.debug("New user registered {}", username);
 
-            FlexLogger.info("New user registered: " + username);
+                        return getUserPermissions(username)
+                                .thenApply(permissions -> {
+                                    JsonObject userData = new JsonObject();
+                                    userData.addProperty("username", username);
+                                    userData.add("permissions", permissions);
 
-            return getUserPermissions(username)
-                    .thenApply(permissions -> {
-                        JsonObject userData = new JsonObject();
-                        userData.addProperty("username", username);
-                        userData.add("permissions", permissions);
+                                    JsonObject response = new JsonObject();
+                                    response.addProperty("is_verified", false);
+                                    response.addProperty("requires_2fa", true);
+                                    response.add("user", userData);
 
-                        JsonObject response = new JsonObject();
-                        response.addProperty("is_verified", false);
-                        response.addProperty("requires_2fa", true);
-                        response.add("user", userData);
-
-                        return new ApiResponse<>(201, "Registration successful", response);
-                    })
-                    .exceptionally(e -> {
-                        FlexLogger.error("Register error during permission fetch: " + e.getMessage());
-                        return ApiResponse.error(500, "Internal server error");
+                                    return new ApiResponse<>(201, "Registration successful", response);
+                                });
                     });
-
+                });
+            });
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(ApiResponse.badRequest(e.getMessage()));
         } catch (Exception e) {
-            FlexLogger.error("Register error: " + e.getMessage());
+            LOGGER.error("Register error {}", e);
             return CompletableFuture.completedFuture(ApiResponse.error(500, "Internal server error"));
         }
     }
 
     public ApiResponse<?> handleRequest2FA(String token, HttpServletResponse resp) {
         try {
-            if (!TokenManager.isValidToken(token, "temp") && !TokenManager.isValidToken(token, "access")) {
+            if (!TokenManager.get().isValidToken(token, "temp") && !TokenManager.get().isValidToken(token, "access")) {
                 return ApiResponse.unauthorized("Invalid or expired token");
             }
 
-            String username = TokenManager.getUsernameFromToken(token);
+            String username = TokenManager.get().getUsernameFromToken(token);
             if (username == null) {
                 return ApiResponse.unauthorized("Invalid or expired token");
             }
 
-            boolean isAlreadyVerified = databaseUtils.getUserManager().isUserVerified(username);
+            boolean isAlreadyVerified = databaseUtils.getUserManager().isUserVerified(username).join();
 
             if (isAlreadyVerified) {
                 JsonObject response = new JsonObject();
@@ -300,132 +315,113 @@ public class AuthHandler {
                 return ApiResponse.success(response);
             }
 
+            String existingCode = databaseUtils.getUserManager().getVerificationCode(username).join();
+            if (existingCode != null) {
+                LOGGER.debug("Returning existing 2FA code for {}", username);
+                JsonObject response = new JsonObject();
+                response.addProperty("code", existingCode);
+                response.addProperty("username", username);
+                response.addProperty("already_verified", false);
+                return ApiResponse.success(response, "Existing 2FA code returned");
+            }
+
             if (!TokenManager.canAttemptVerification(username)) {
-                FlexLogger.warn("Too many 2FA attempts for: " + username);
+                LOGGER.debug("Too many 2FA attempts for {}", username);
                 return ApiResponse.tooManyRequests("Too many verification attempts. Try again later.");
             }
 
             String code = generateSecure2FACode();
-            databaseUtils.getUserManager().setVerificationCode(username, code);
+            databaseUtils.getUserManager().setVerificationCode(username, code).join();
 
-            // In production, send this code via email/SMS
-            // For now, return it (NOT SECURE FOR PRODUCTION)
             JsonObject response = new JsonObject();
             response.addProperty("code", code);
+            response.addProperty("username", username);
             response.addProperty("already_verified", false);
 
-            FlexLogger.info("2FA code generated for: " + username);
+            LOGGER.debug("2FA code generated for {}", username);
             return ApiResponse.success(response, "2FA code generated");
         } catch (Exception e) {
-            FlexLogger.error("2FA request error: " + e.getMessage());
+            LOGGER.error("2FA request error", e);
             return ApiResponse.error(500, "Internal server error");
         }
     }
 
-    public CompletableFuture<ApiResponse<JsonObject>> handleVerify2FA(JsonObject body, HttpServletRequest req, HttpServletResponse resp) {
+    public ApiResponse<?> handleCompleteVerification(String tempToken, HttpServletResponse resp) {
         try {
-            String tempToken = RequestValidator.getRequiredString(body, "token");
-            String code = RequestValidator.getRequiredString(body, "code");
-
-            if (!TokenManager.isValidToken(tempToken, "temp")) {
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
+            if (!TokenManager.get().isValidToken(tempToken, "temp")) {
+                return ApiResponse.unauthorized("Invalid or expired temp token");
             }
 
-            String username = TokenManager.getUsernameFromToken(tempToken);
+            String username = TokenManager.get().getUsernameFromToken(tempToken);
             if (username == null) {
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
+                return ApiResponse.unauthorized("Invalid or expired temp token");
             }
 
-            if (!isValid2FACode(code)) {
-                return CompletableFuture.completedFuture(ApiResponse.badRequest("Invalid verification code format"));
+            boolean isVerified = databaseUtils.getUserManager().isUserVerified(username).join();
+            if (!isVerified) {
+                return ApiResponse.unauthorized("User is not verified yet");
             }
 
-            String storedCode = databaseUtils.getUserManager().getVerificationCode(username);
-            if (storedCode == null || !storedCode.equals(code)) {
-                FlexLogger.warn("Invalid 2FA code attempt for: " + username);
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid verification code"));
-            }
-
-            UUID playerUuid = resolver.usernameToUuid(username);
-            databaseUtils.getUserManager().verifyUser(username, playerUuid);
-
-            UserManager.UserInfo userInfo = databaseUtils.getUserManager().getUserInfo(username);
+            UserManager.UserInfo userInfo = databaseUtils.getUserManager().getUserInfo(username).join();
             if (userInfo != null) {
-                String sessionToken = sessionManager.createSession(userInfo.id);
+                String sessionToken = sessionManager.createSession(userInfo.id).join();
                 if (sessionToken != null) {
                     setSecureCookie(resp, "sessionToken", sessionToken, 86400, true);
                 }
             }
 
-            String accessToken = TokenManager.createAccessToken(username);
-            String refreshToken = TokenManager.createRefreshToken(username);
+            String accessToken = TokenManager.get().createAccessToken(username);
+            String refreshToken = TokenManager.get().createRefreshToken(username);
             setSecureCookie(resp, "accessToken", accessToken, 900, true);
             setSecureCookie(resp, "refreshToken", refreshToken, 604800, true);
+
             clearCookie(resp, "tempToken");
 
-            TokenManager.blacklistToken(tempToken);
-            TokenManager.resetVerificationAttempts(username);
+            LOGGER.debug("Verification complete and automatic login successful for {}", username);
 
-            FlexLogger.info("User verified: " + username + " from " + req.getRemoteAddr());
+            return ApiResponse.success(new JsonObject(), "Verification complete");
 
-            return getUserPermissions(username)
-                    .thenApply(permissions -> {
-                        JsonObject userData = new JsonObject();
-                        userData.addProperty("id", username);
-                        userData.addProperty("username", username);
-                        userData.addProperty("isVerified", true);
-                        userData.add("permissions", permissions);
-
-                        JsonObject response = new JsonObject();
-                        response.addProperty("is_verified", true);
-                        response.add("user", userData);
-
-                        return ApiResponse.success(response, "Verification successful");
-                    })
-                    .exceptionally(e -> {
-                        FlexLogger.error("2FA verification error: " + e.getMessage());
-                        return ApiResponse.error(500, "Internal server error");
-                    });
-
-        } catch (IllegalArgumentException e) {
-            return CompletableFuture.completedFuture(ApiResponse.badRequest(e.getMessage()));
         } catch (Exception e) {
-            FlexLogger.error("2FA verification error: " + e.getMessage());
-            return CompletableFuture.completedFuture(ApiResponse.error(500, "Internal server error"));
+            LOGGER.error("Verification completion error", e);
+            return ApiResponse.error(500, "Internal server error");
         }
     }
 
     public CompletableFuture<ApiResponse<JsonObject>> handleGetMe(String token, HttpServletRequest req) {
         try {
-            if (!TokenManager.isValidToken(token, "access")) {
+            String type = TokenManager.get().getTokenType(token);
+            if (!"access".equals(type) && !"temp".equals(type)) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
 
-            String username = TokenManager.getUsernameFromToken(token);
+            String username = TokenManager.get().getUsernameFromToken(token);
             if (username == null) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
 
             UUID uuid = resolver.usernameToUuid(username);
-            boolean isVerified = databaseUtils.getUserManager().isUserVerified(username);
+            // uuid is only used to resolve permissions; getUserPermissions already does username->uuid internally,
+            // but we'll keep this line if you use uuid elsewhere later.
 
-            CompletableFuture<JsonArray> permissionsFuture = getUserPermissions(username);
+            return databaseUtils.getUserManager().isUserVerified(username)
+                    .thenCompose(isVerified ->
+                            getUserPermissions(username).thenApply(permissions -> {
+                                JsonObject response = new JsonObject();
+                                response.addProperty("id", username);
+                                response.addProperty("username", username);
+                                response.addProperty("is_verified", isVerified);
+                                response.add("permissions", permissions);
 
-            return permissionsFuture.thenApply(permissions -> {
-                JsonObject response = new JsonObject();
-                response.addProperty("id", username);
-                response.addProperty("username", username);
-                response.addProperty("is_verified", isVerified);
-                response.add("permissions", permissions);
-
-                return ApiResponse.success(response);
-            }).exceptionally(e -> {
-                FlexLogger.error("Get me error: " + e.getMessage());
-                return ApiResponse.error(500, "Internal server error");
-            });
+                                return ApiResponse.success(response);
+                            })
+                    )
+                    .exceptionally(e -> {
+                        LOGGER.error("Get me error", e);
+                        return ApiResponse.error(500, "Internal server error");
+                    });
 
         } catch (Exception e) {
-            FlexLogger.error("Get me error: " + e.getMessage());
+            LOGGER.error("Get me error", e);
             return CompletableFuture.completedFuture(ApiResponse.error(500, "Internal server error"));
         }
     }
@@ -435,14 +431,13 @@ public class AuthHandler {
             String username = null;
 
             if (token != null) {
-                username = TokenManager.getUsernameFromToken(token);
-                TokenManager.blacklistToken(token);
+                username = TokenManager.get().getUsernameFromToken(token);
+                TokenManager.get().blacklistToken(token);
             }
 
-            // Delete session
             String sessionToken = getSessionTokenFromRequest(req);
             if (sessionToken != null) {
-                sessionManager.deleteSession(sessionToken);
+                sessionManager.deleteSession(sessionToken).join();
             }
 
             clearCookie(resp, "accessToken");
@@ -451,40 +446,41 @@ public class AuthHandler {
             clearCookie(resp, "sessionToken");
 
             if (username != null) {
-                FlexLogger.info("User logged out: " + username + " from " + req.getRemoteAddr());
+                //TokenManager.clearVerificationAttempts(username);
+                LOGGER.debug("User logged out {} from {}", username, req.getRemoteAddr());
             }
 
             return ApiResponse.success(null, "Logged out successfully");
         } catch (Exception e) {
-            FlexLogger.error("Logout error: " + e.getMessage());
+            LOGGER.error("Logout error", e);
             return ApiResponse.error(500, "Internal server error");
         }
     }
 
     public ApiResponse<?> handleRefresh(String refreshToken, HttpServletResponse resp) {
         try {
-            if (!TokenManager.isValidToken(refreshToken, "refresh")) {
+            if (!TokenManager.get().isValidToken(refreshToken, "refresh")) {
                 return ApiResponse.unauthorized("Invalid or expired refresh token");
             }
 
-            String username = TokenManager.getUsernameFromToken(refreshToken);
+            String username = TokenManager.get().getUsernameFromToken(refreshToken);
             if (username == null) {
                 return ApiResponse.unauthorized("Invalid or expired refresh token");
             }
 
-            // Rotate refresh token for better security
-            String newAccessToken = TokenManager.createAccessToken(username);
-            String newRefreshToken = TokenManager.createRefreshToken(username);
+            TokenManager.get().blacklistToken(refreshToken);
+
+            String newAccessToken = TokenManager.get().createAccessToken(username);
+            String newRefreshToken = TokenManager.get().createRefreshToken(username);
 
             setSecureCookie(resp, "accessToken", newAccessToken, 900, true);
             setSecureCookie(resp, "refreshToken", newRefreshToken, 604800, true);
 
-            // Blacklist old refresh token
-            TokenManager.blacklistToken(refreshToken);
-
-            return ApiResponse.success(null, "Token refreshed");
+            JsonObject data = new JsonObject();
+            data.addProperty("expiresIn", 900);
+            return ApiResponse.success(data, "Token refreshed");
         } catch (Exception e) {
-            FlexLogger.error("Token refresh error: " + e.getMessage());
+            LOGGER.error("Token refresh error", e);
             return ApiResponse.error(500, "Internal server error");
         }
     }
@@ -501,10 +497,10 @@ public class AuthHandler {
     }
 
     private boolean isStrongPassword(String password) {
-        return password.matches(".*[A-Z].*") &&       // Uppercase
-                password.matches(".*[a-z].*") &&       // Lowercase
-                password.matches(".*[0-9].*") &&       // Number
-                password.matches(".*[!@#$%^&*(),.?\":{}|<>].*"); // Special char
+        return password.matches(".*[A-Z].*") &&
+                password.matches(".*[a-z].*") &&
+                password.matches(".*[0-9].*") &&
+                password.matches(".*[!@#$%^&*(),.?\":{}|<>].*");
     }
 
     private String generateSecure2FACode() {

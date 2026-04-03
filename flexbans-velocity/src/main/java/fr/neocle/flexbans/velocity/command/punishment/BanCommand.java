@@ -25,7 +25,7 @@ public final class BanCommand {
 
     public LiteralArgumentBuilder<CommandSource> createNode() {
         return BrigadierCommand.literalArgumentBuilder("ban")
-                .requires(source -> source.hasPermission("flexbans.ban"))
+                .requires(source -> source.hasPermission("flexbans.proxy.ban"))
                 .executes(ctx -> {
                     commandExecutor.execute(new VelocityCommandInvocation(ctx));
                     return Command.SINGLE_SUCCESS;
@@ -50,7 +50,7 @@ public final class BanCommand {
 
         BrigadierCommand brigadier = new BrigadierCommand(command.createNode().build());
         CommandMeta meta = commandManager.metaBuilder(brigadier)
-                .aliases("ban")
+                .aliases("flexbansv:ban", "ban")
                 .build();
 
         commandManager.register(meta, brigadier);

@@ -6,19 +6,17 @@ import com.google.gson.JsonObject;
 import fr.neocle.flexbans.database.dashboard.UserManager;
 import fr.neocle.flexbans.database.dashboard.UserManager.UserInfo;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.util.FlexBansPermissionLookup;
+import fr.neocle.flexbans.util.permissions.FlexBansPermissionLookup;
 import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import fr.neocle.flexbans.web.response.ApiResponse;
 import fr.neocle.flexbans.web.auth.TokenManager;
 import fr.neocle.flexbans.web.util.RequestUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class UsersHandler {
     private final UserManager userManager;
@@ -29,6 +27,8 @@ public class UsersHandler {
             "flexbans.web.admin",
             "flexbans.*"
     );
+
+    private static final FlexLogger LOGGER = FlexLogger.get(UsersHandler.class);
 
     public UsersHandler(UserManager userManager) {
         this.userManager = userManager;
@@ -41,55 +41,54 @@ public class UsersHandler {
             if (token == null) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Missing authorization token"));
             }
-            if (!TokenManager.isValidToken(token, "access")) {
+            if (!TokenManager.get().isValidToken(token, "access")) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
 
-            String executor = TokenManager.getUsernameFromToken(token);
+            String executor = TokenManager.get().getUsernameFromToken(token);
             if (executor == null || executor.isEmpty()) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
 
-            // -----------------------
-            // Permission check
-            // -----------------------
             UUID executorUuid = resolver.usernameToUuid(executor) == null
                     ? null
                     : resolver.usernameToUuid(executor);
 
             if (executorUuid == null) {
-                return CompletableFuture.completedFuture(ApiResponse.unauthorized("User not linked to Minecraft account"));
+                return CompletableFuture.completedFuture(
+                        ApiResponse.unauthorized("User not linked to Minecraft account")
+                );
             }
 
-            CompletableFuture<Set<String>> permsFuture = FlexBansPermissionLookup.getFlexBansPermissions(executorUuid)
+            return FlexBansPermissionLookup.getFlexBansPermissions(executorUuid)
                     .exceptionally(e -> {
-                        FlexLogger.error("Error fetching permissions for executor " + executor + ": " + e.getMessage());
+                        LOGGER.error("Error fetching permissions for executor {}: ", executor, e);
                         return Set.of();
+                    })
+                    .thenCompose(perms -> {
+                        if (!perms.contains("flexbans.web.admin")) {
+                            return CompletableFuture.completedFuture(
+                                    ApiResponse.unauthorized("You don't have permission")
+                            );
+                        }
+
+                        return userManager.getAllUsers()
+                                .thenCompose(users -> {
+                                    List<CompletableFuture<JsonObject>> futures = users.stream()
+                                            .map(this::buildUserJsonAsync)
+                                            .toList();
+
+                                    return CompletableFuture
+                                            .allOf(futures.toArray(new CompletableFuture[0]))
+                                            .thenApply(v -> {
+                                                JsonArray array = new JsonArray();
+                                                futures.forEach(f -> array.add(f.join()));
+                                                return ApiResponse.success(array);
+                                            });
+                                });
                     });
-
-            return permsFuture.thenCompose(perms -> {
-                if (!perms.contains("flexbans.web.admin")) {
-                    return CompletableFuture.completedFuture(ApiResponse.unauthorized("You don't have permission"));
-                }
-
-                // -----------------------
-                // Actual users list
-                // -----------------------
-                List<UserInfo> users = userManager.getAllUsers();
-
-                List<CompletableFuture<JsonObject>> futures = users.stream()
-                        .map(this::buildUserJsonAsync)
-                        .collect(Collectors.toList());
-
-                return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                        .thenApply(v -> {
-                            JsonArray array = new JsonArray();
-                            futures.forEach(f -> array.add(f.join()));
-                            return ApiResponse.success(array);
-                        });
-            });
         } catch (Exception e) {
-            FlexLogger.error("Unexpected error in handleAllUsersAsync: " + e.getMessage());
+            LOGGER.error("Unexpected error in handleAllUsersAsync: ", e);
             return CompletableFuture.completedFuture(
                     ApiResponse.error(500, "Internal server error")
             );
@@ -106,11 +105,11 @@ public class UsersHandler {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Missing authorization token"));
             }
 
-            if (!TokenManager.isValidToken(token, "access")) {
+            if (!TokenManager.get().isValidToken(token, "access")) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
 
-            String executor = TokenManager.getUsernameFromToken(token);
+            String executor = TokenManager.get().getUsernameFromToken(token);
             if (executor == null || executor.isEmpty()) {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("Invalid or expired token"));
             }
@@ -120,39 +119,45 @@ public class UsersHandler {
                 return CompletableFuture.completedFuture(ApiResponse.unauthorized("User not linked to Minecraft account"));
             }
 
-            // Parse request body BEFORE async operations
             JsonObject body;
             try {
                 body = RequestUtils.parseJsonBody(req);
                 if (body == null) {
-                    FlexLogger.error("Failed to parse request body - body is null");
+                    LOGGER.error("Failed to parse request body - body is null");
                     return CompletableFuture.completedFuture(ApiResponse.badRequest("Invalid or empty request body"));
                 }
             } catch (Exception e) {
-                FlexLogger.error("Failed to parse request body: " + e.getMessage());
+                LOGGER.error("Failed to parse request body: ", e);
                 return CompletableFuture.completedFuture(ApiResponse.badRequest("Invalid JSON in request body"));
             }
 
             return FlexBansPermissionLookup.getFlexBansPermissions(executorUuid)
                     .exceptionally(e -> {
-                        FlexLogger.error("Error fetching permissions for executor " + executor + ": " + e.getMessage());
+                        LOGGER.error("Error fetching permissions for executor {}: ", executor, e);
                         return Set.of();
                     })
                     .thenCompose(perms -> {
                         if (!perms.contains("flexbans.web.admin")) {
-                            return CompletableFuture.completedFuture(ApiResponse.unauthorized("You don't have permission"));
+                            return CompletableFuture.completedFuture(
+                                    ApiResponse.unauthorized("You don't have permission")
+                            );
                         }
 
-                        UserInfo targetUser = userManager.getUserInfo(username);
-                        if (targetUser == null) {
-                            return CompletableFuture.completedFuture(ApiResponse.notFound("User not found"));
-                        }
+                        // getUserInfo is async now
+                        return userManager.getUserInfo(username)
+                                .thenCompose(targetUser -> {
+                                    if (targetUser == null) {
+                                        return CompletableFuture.completedFuture(
+                                                ApiResponse.notFound("User not found")
+                                        );
+                                    }
 
-                        return updatePermissionsUsingLookupAsync(targetUser, body);
+                                    return updatePermissionsUsingLookupAsync(targetUser, body);
+                                });
                     });
 
         } catch (Exception e) {
-            FlexLogger.error("Unexpected error in handleUpdatePermissionsAsync: " + e.getMessage());
+            LOGGER.error("Unexpected error in handleUpdatePermissionsAsync: ", e);
             return CompletableFuture.completedFuture(ApiResponse.error(500, "Internal server error"));
         }
     }
@@ -192,16 +197,12 @@ public class UsersHandler {
                         }
 
                         FlexBansPermissionLookup.givePermission(mcUuid, perm);
-                        FlexLogger.info("Added permission '" + perm + "' to user " + targetUser.username);
-
+                        LOGGER.debug("Added permission '{}' to user {}", perm, targetUser.username);
                     } catch (Exception e) {
-                        FlexLogger.error("Failed to add permission: " + e.getMessage());
+                        LOGGER.error("Failed to add permission: ", e);
                     }
                 });
 
-                // -----------------
-                // REMOVE permissions
-                // -----------------
                 remove.forEach(el -> {
                     try {
                         String perm = el.getAsString();
@@ -212,16 +213,13 @@ public class UsersHandler {
                         }
 
                         FlexBansPermissionLookup.removePermission(mcUuid, perm);
-                        FlexLogger.info("Removed permission '" + perm + "' from user " + targetUser.username);
+                        LOGGER.info("Removed permission '{}' from user ", perm, targetUser.username);
 
                     } catch (Exception e) {
-                        FlexLogger.error("Failed to remove permission: " + e.getMessage());
+                        LOGGER.error("Failed to remove permission: ", e);
                     }
                 });
 
-                // -----------------
-                // If anything was blocked → return error
-                // -----------------
                 if (!blockedAdd.isEmpty() || !blockedRemove.isEmpty()) {
                     JsonObject errorData = new JsonObject();
                     errorData.add("blockedAdd", permissionsToJsonArray(blockedAdd));
@@ -234,13 +232,10 @@ public class UsersHandler {
                     );
                 }
 
-                // -----------------
-                // Fetch updated permissions
-                // -----------------
                 Set<String> finalPerms = FlexBansPermissionLookup.getFlexBansPermissions(mcUuid)
                         .exceptionally(e -> {
-                            FlexLogger.error("Error fetching permissions for user " +
-                                    targetUser.username + ": " + e.getMessage());
+                            LOGGER.error("Error fetching permissions for user {}: ",
+                                    targetUser.username, e);
                             return Set.of();
                         })
                         .join();
@@ -248,7 +243,7 @@ public class UsersHandler {
                 return ApiResponse.success(permissionsToJsonArray(finalPerms));
 
             } catch (Exception e) {
-                FlexLogger.error("Failed to update permissions: " + e.getMessage());
+                LOGGER.error("Failed to update permissions: ", e);
                 return ApiResponse.error(500, "Failed to update permissions");
             }
         });
@@ -276,7 +271,7 @@ public class UsersHandler {
         CompletableFuture<Set<String>> permissionsFuture =
                 FlexBansPermissionLookup.getFlexBansPermissions(mcUuid)
                         .exceptionally(e -> {
-                            FlexLogger.error("Permission fetch failed for " + user.username + ": " + e.getMessage());
+                            LOGGER.error("Permission fetch failed for {}: ", user.username, e);
                             return Set.of();
                         });
 

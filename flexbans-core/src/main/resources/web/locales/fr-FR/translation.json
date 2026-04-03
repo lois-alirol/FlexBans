@@ -1,0 +1,497 @@
+{
+  "loading": "Chargement...",
+  "yes": "Oui",
+  "no": "Non",
+  "home": {
+    "title": "Sanctions de {{server_name}}",
+    "description": "Affichage des <0>{{type}}</0>. Selectionnez un autre type depuis le menu.",
+    "search-placeholder": "Chercher un joueur...",
+    "table-header": {
+      "id": "ID",
+      "player": "Joueur",
+      "moderator": "Modérateur",
+      "reason": "Raison",
+      "date": "Date",
+      "duration": "Durée",
+      "status": "Statut"
+    },
+    "context-menu": {
+      "details": "Voir détails",
+      "edit": "Modifier",
+      "revoke": "Retirer"
+    }
+  },
+
+  "details": {
+    "title": "{{type}} sur {{player}}",
+    "core": {
+      "title": "Informations de base",
+      "items-titles": {
+        "player": "Joueur",
+        "executor": "Modérateur",
+        "type": "Type",
+        "database-id": "ID interne"
+      }
+    },
+    "time": {
+      "title": "Temps et durée",
+      "items-titles": {
+        "execution": "Date d'exécution",
+        "duration": "Durée",
+        "expiration": "Date d'expiration"
+      }
+    },
+    "server": {
+      "title": "Serveur et contexte",
+      "items-titles": {
+        "origin": "Serveur d'origine",
+        "scope": "Serveur de portée",
+        "ip": "Portée IP"
+      }
+    },
+    "reason": "Motif de la sanction",
+    "removal": {
+      "title": "Détails du retrait",
+      "remover": "Retiré par",
+      "reason": "Raison"
+    }
+  },
+
+  "history": {
+    "title": "Aperçu de l’historique",
+    "badges": {
+      "console": "Profil système",
+      "staff": "Profil staff",
+      "player": "Profil joueur",
+      "short": {
+        "console": "Système",
+        "staff": "Staff",
+        "player": "Joueur"
+      }
+    },
+    "skin-preview": {
+      "controls": "Glisser : pivoter • Scroll : zoom",
+      "error": "Contexte WebGL perdu — rechargement..."
+    },
+    "breakdown": {
+      "title": "Répartition des sanctions",
+      "count": "{{count}} au total"
+    },
+    "stats": {
+      "player": {
+        "total": "Total reçu",
+        "active": "Actives",
+        "removed": "Supprimées",
+        "expired": "Expirées"
+      },
+      "staff": {
+        "total": "Total appliqué",
+        "bans": "Bannissements",
+        "active": "Cas actifs",
+        "revoked": "Révoquées"
+      }
+    },
+    "search-placeholder": "Rechercher un joueur...",
+    "table": {
+      "title": "Historique détaillé",
+      "results-amount": "{{count}} sur {{count_max}} résultats",
+      "no-results": {
+        "title": "Aucun enregistrement trouvé",
+        "description": "Aucune sanction enregistrée n'a été trouvée pour cet utilisateur."
+      },
+      "headers": {
+        "id": "ID",
+        "type": "Type",
+        "player": "Joueur",
+        "moderator": "Modérateur",
+        "reason": "Raison",
+        "date": "Date",
+        "duration": "Durée",
+        "status": "Statut"
+      }
+    }
+  },
+
+  "admin": {
+    "title": "Panneau d'administration",
+    "description": "Gérez les utilisateurs, l'identité visuelle, les sanctions et les paramètres détaillés.",
+    "sections": {
+      "metrics": {
+        "total": "Utilisateurs totaux",
+        "admins": "Administrateurs",
+        "sessions": "Sessions actives",
+        "actions": "Actions en attente"
+      },
+      "user-management": {
+        "title": "Gestion des utilisateurs",
+        "description": "Gérez les utilisateurs du panneau, leurs permissions et leur accès.",
+        "error-loading": "Erreur lors du chargement des utilisateurs",
+        "search": {
+          "placeholder": "Rechercher un utilisateur...",
+          "no-results-title": "Aucun utilisateur trouvé",
+          "no-results-description": "Essayez de modifier vos termes de recherche"
+        },
+        "user": {
+          "you": "Vous",
+          "verified": "Vérifié",
+          "unverified": "Non vérifié",
+          "buttons": {
+            "edit": "Modifier",
+            "confirm-edit": "Enregistrer",
+            "revoke": "Révoquer l'accès",
+            "confirm-revoke": "Confirmer ?"
+          },
+          "permissions-count": "Permissions ({{count}})",
+          "no-permissions": "Aucune permission attribuée",
+          "add-permission": "Ajouter une permission..."
+        },
+        "permissions": {
+          "update-error": "Impossible de mettre à jour les permissions de l'utilisateur ! {{details}}",
+          "blocked-add": "Impossible d'ajouter : {{permissions}}",
+          "blocked-remove": "Impossible de retirer : {{permissions}}",
+          "fallback-error": "Échec de la mise à jour des permissions"
+        },
+        "buttons": {
+          "invite": "Inviter un utilisateur",
+          "refresh": "Actualiser",
+          "add": "Ajouter"
+        }
+      },
+      "branding-meta": {
+        "title": "Identité visuelle et métadonnées",
+        "description": "Contrôlez le nom du serveur, les couleurs, le logo, le favicon et la description.",
+        "fields": {
+          "server-name": "Nom du serveur",
+          "server-name-placeholder": "Mon serveur",
+          "primary-color": "Couleur principale",
+          "secondary-color": "Couleur secondaire",
+          "logo-url": "URL du logo",
+          "favicon-url": "URL du favicon",
+          "description": "Description",
+          "description-placeholder": "Courte description du panneau..."
+        }
+      },
+      "punishment-settings": {
+        "title": "Paramètres des sanctions",
+        "description": "Activez ou désactivez des catégories et contrôlez les limites de pagination.",
+        "types": {
+          "bans": "Bannissements",
+          "mutes": "Mutings",
+          "warnings": "Avertissements",
+          "kicks": "Expulsions"
+        },
+        "enabled": "{{type}} activé",
+        "toggle-helper": "Activer ou désactiver la visibilité et les actions pour {{type}}",
+        "max-per-page": "Maximum par page",
+        "execution": {
+          "title": "Exécuter de nouvelles sanctions",
+          "description": "Permettre aux modérateurs d'appliquer de nouvelles sanctions directement depuis le tableau de bord."
+        },
+        "revocation": {
+          "title": "Révoquer les sanctions actives",
+          "description": "Permettre la révocation des sanctions en cours depuis le tableau de bord."
+        }
+      },
+      "detail-history-settings": {
+        "title": "Paramètres des détails et de l'historique",
+        "description": "Contrôlez la visibilité et la pagination des pages de détails des modérateurs et des joueurs.",
+        "max-per-page": "Maximum par page",
+        "moderator": {
+          "title": "Historique des modérateurs"
+        },
+        "player": {
+          "title": "Historique des joueurs"
+        },
+        "punishment": {
+          "title": "Détails des sanctions",
+          "revoke-button": "Bouton de révocation",
+          "revoke-helper": "Afficher le bouton de révocation dans la vue détaillée"
+        }
+      }
+    },
+    "logs": {
+      "title": "Consulter les journaux",
+      "description": "Voir les événements récents du système",
+      "modal": {
+        "title": "Journaux du système",
+        "buttons": {
+          "close": "Fermer",
+          "export": "Exporter les journaux"
+        }
+      }
+    },
+    "buttons": {
+      "save": "Enregistrer les modifications",
+      "cancel": "Annuler"
+    }
+  },
+
+  "account-menu": {
+    "title": "Connecté(e) en tant que",
+    "badges": {
+      "user": "Utilisateur",
+      "admin": "Administrateur"
+    },
+    "buttons": {
+      "profile": "Profil",
+      "settings": "Paramètres",
+      "log-out": "Se déconnecter"
+    }
+  },
+
+  "sidebar": {
+    "navigation-title": "Navigation",
+    "player-search": {
+      "label": "Trouver un joueur",
+      "placeholder": "Pseudo..."
+    },
+    "moderator-search": {
+      "label": "Trouver un modérateur",
+      "placeholder": "Pseudo..."
+    },
+    "punishment-search": {
+      "label": "ID de sanction",
+      "placeholder": "B582B9"
+    },
+    "buttons": {
+      "admin-panel": "Panneau Admin",
+      "new-punishment": "Nouvelle Sanction"
+    }
+  },
+
+  "filter-modal": {
+    "title": "Filtrer les sanctions",
+    "active-count": "{{count}} filtre(s) actif(s)",
+    "filters": {
+      "moderator": {
+        "label": "Effectué Par",
+        "placeholder": "Pseudo du modérateur..."
+      },
+      "statuses": {
+        "title": "Statut",
+        "all": "Tous les statuts",
+        "active": "Actif",
+        "removed": "Retiré",
+        "expired": "Expiré"
+      },
+      "date": {
+        "title": "Filtre de date",
+        "none": "Aucun filtre de date",
+        "exact": "Date exacte",
+        "before": "Avant la date",
+        "after": "Après la date"
+      }
+    },
+    "buttons": {
+      "reset": "Réinitialiser",
+      "apply": "Appliquer"
+    }
+  },
+
+  "create-modal": {
+    "title": "Nouvelle sanction",
+    "badge": "SÉLECTIONNER LE TYPE",
+    "error": "Erreur :",
+    "target": "Joueur à sanctionner",
+    "executor": "Nom du modérateur",
+    "reason": "Raison",
+    "type": "Type de sanction",
+    "silent": {
+      "title": "Mode silencieux",
+      "description": "Ne pas notifier tout le monde lors de l'exécution"
+    },
+    "duration": {
+      "label": "Durée",
+      "placeholder": "ex. : 1h, 1j"
+    },
+    "permanent": {
+      "title": "Permanent",
+      "description": "Action indéfinie ; désactive la durée"
+    },
+    "success": {
+      "message": "Sanction appliquée avec succès!"
+    },
+    "buttons": {
+      "submit": "Appliquer la sanction",
+      "submitting": "Application..."
+    }
+  },
+  "punishments": {
+    "ban": "Ban",
+    "mute": "Mute",
+    "kick": "Kick",
+    "warning": "Warning"
+  },
+
+  "edit-modal": {
+    "title": "Modifier la sanction",
+    "new-date": {
+      "label": "Nouvelle date d'expiration",
+      "placeholder": "Cette sanction n'expirera pas."
+    },
+    "permanent": "Permanent",
+    "new-reason": {
+      "title": "Raison",
+      "placeholder": "Quel est le nouveau motif de cette sanction ?"
+    },
+    "buttons": {
+      "cancel": "Annuler",
+      "confirm": {
+        "saving": "Enregistrement...",
+        "save": "Enregistrer les modifications"
+      }
+    }
+  },
+
+  "revoke-modal": {
+    "title": "Retirer la sanction",
+    "badge": "RETIRER",
+    "identity": {
+      "label": "Qui êtes-vous ?"
+    },
+    "reason": {
+      "label": "Raison du retrait",
+      "placeholder": "Indiquez une raison concise…"
+    },
+    "silent": {
+      "title": "Mode silencieux",
+      "description": "Ne pas notifier tout le monde du retrait"
+    },
+    "buttons": {
+      "cancel": "Annuler",
+      "submit": {
+        "submit": "Valider",
+        "submitting": "Envoi..."
+      }
+    }
+  },
+
+  "preferences-modal": {
+    "title": "Préférences",
+    "description": "Configurez l’environnement de votre tableau de bord",
+    "themes": {
+      "title": "Apparence",
+      "light": "Clair",
+      "dark": "Sombre",
+      "quartz": "Quartz",
+      "midnight": "Minuit"
+    },
+    "languages": {
+      "title": "Langue et Région"
+    },
+    "button": {
+      "save": "Enregistrer les préférences",
+      "saving": "Enregistrement des préférences"
+    }
+  },
+
+  "pagination": {
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+
+  "empty-state": {
+    "checking-access": {
+      "title": "Protocole de sécurité",
+      "description": "Détermination des exigences de sécurité et des permissions du serveur."
+    },
+    "loading": {
+      "title": "Synchronisation des données",
+      "description": "Récupération des dernières entrées depuis la base de données."
+    },
+    "error": {
+      "title": "Échec de la connexion",
+      "description": "Impossible de charger les données depuis l'API."
+    },
+    "config-error": {
+      "title": "Problème de configuration",
+      "description": "Aucun type de sanction n'est activé dans les paramètres actuels du serveur."
+    },
+    "no-punishments": {
+      "title": "Aucun résultat",
+      "description": "Aucun {{type}} ne correspond à vos critères."
+    }
+  },
+
+  "back-button": {
+    "label": "Retour"
+  },
+
+  "statuses": {
+    "active": "Actif",
+    "removed": "Retiré",
+    "expired": "Expiré"
+  },
+
+  "login": {
+    "title": "Connexion",
+    "page-title": "Connexion",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "stay-logged-in": "Rester connecté",
+    "button": "Se connecter",
+    "no-account": "Vous n'avez pas de compte ?",
+    "register-link": "S'inscrire",
+    "oauth": {
+      "redirect": "Redirection vers {{service}} pour l'authentification..."
+    },
+    "status": {
+      "logging-in": "Connexion en cours...",
+      "success": "Connexion réussie ! Redirection...",
+      "2fa-required": "Connexion réussie ! Authentification à deux facteurs requise. Redirection...",
+      "unknown-error": "Une erreur inconnue est survenue."
+    }
+  },
+
+  "register": {
+    "title": "Inscription",
+    "page-title": "Inscription",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "confirm-password": "Confirmer le mot de passe",
+    "button": "S'inscrire",
+    "already-have-account": "Vous avez déjà un compte ?",
+    "login-link": "Connectez-vous ici",
+    "oauth-redirect": "Redirection vers {{service}} pour l'inscription...",
+    "fix-errors": "Veuillez corriger les erreurs du formulaire.",
+    "registering": "Inscription en cours...",
+    "success": "Inscription réussie ! Redirection...",
+    "unknown-error": "Une erreur inconnue est survenue lors de l'inscription.",
+    "passwords-no-match": "Les mots de passe ne correspondent pas.",
+    "password-criteria": {
+      "length": "Au moins 8 caractères.",
+      "uppercase": "Au moins une lettre majuscule.",
+      "lowercase": "Au moins une lettre minuscule.",
+      "special": "Au moins un caractère spécial."
+    }
+  },
+
+  "verify": {
+    "title": "Vérification",
+    "page-title": "Vérification",
+    "initializing": "Initialisation de la vérification…",
+    "failed-fetch": "Impossible de récupérer le code de vérification. Veuillez réessayer.",
+    "try-again": "Réessayer",
+    "no-code": "Impossible d'obtenir le code de vérification",
+    "success": "Vérification réussie !",
+    "validate-on-server": "Validez votre compte sur {{server}}.",
+    "waiting": "En attente de la vérification en jeu…",
+    "wrong-account": "Mauvais compte ?",
+    "logout-link": "Déconnectez-vous ici"
+  },
+
+  "errors": {
+    "403": {
+      "title": "Accès interdit",
+      "description": "Vous n’avez pas l’autorisation d’accéder à cette page."
+    },
+    "404": {
+      "title": "Page introuvable",
+      "description": "Oups ! La page que vous recherchez n’existe pas."
+    },
+    "500": {
+      "title": "Erreur interne",
+      "description": "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+    }
+  }
+}

@@ -17,6 +17,8 @@ public class VelocityAltCommandHelper implements IAltCommandHelper {
     private final ProxyServer proxyServer;
     private final ProfilesManager profilesManager;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(VelocityAltCommandHelper.class);
+
     public VelocityAltCommandHelper(ProxyServer proxyServer, DatabaseUtils databaseUtils) {
         this.proxyServer = proxyServer;
         this.profilesManager = databaseUtils.getProfilesManager();
@@ -28,12 +30,17 @@ public class VelocityAltCommandHelper implements IAltCommandHelper {
 
         if (optPlayer.isPresent()) {
             InetAddress address = optPlayer.get().getRemoteAddress().getAddress();
-            FlexLogger.info("[Profiles] Player '" + playerName + "' is online, IP resolved from Proxy: " + address);
+            LOGGER.debug("Player '{}' is online, IP resolved from Proxy: {}", playerName, address);
             return address;
         }
 
-        FlexLogger.info("[Profiles] Player '" + playerName + "' is offline, looking up IP in database...");
-        return profilesManager.getIp(playerName);
+        LOGGER.debug("Player '{}' is offline, looking up IP in database...", playerName);
+        try {
+            return profilesManager.getIp(playerName).join();
+        } catch (Exception e) {
+            LOGGER.error("Failed to resolve IP from database for '{}'", playerName, e);
+            return null;
+        }
     }
 
     @Override

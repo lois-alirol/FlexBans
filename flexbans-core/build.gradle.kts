@@ -18,11 +18,14 @@ dependencies {
     implementation(project(":flexbans-api"))
 
     implementation("org.eclipse.jetty:jetty-server:9.4.56.v20240826")
+    implementation("org.eclipse.jetty.websocket:websocket-server:9.4.56.v20240826")
+    implementation("org.eclipse.jetty.websocket:websocket-servlet:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-util:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-http:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-io:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-servlet:9.4.56.v20240826")
     implementation("org.eclipse.jetty:jetty-rewrite:9.4.56.v20240826")
+
     implementation("commons-codec:commons-codec:1.16.1")
 
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
@@ -33,10 +36,12 @@ dependencies {
     implementation("javax.servlet:javax.servlet-api:4.0.1")
 
     implementation("org.mindrot:jbcrypt:0.4")
-    implementation("com.h2database:h2:2.2.224")
 
     implementation("org.yaml:snakeyaml:2.0")
     implementation("org.snakeyaml:snakeyaml-engine:2.2")
+    implementation("com.zaxxer:HikariCP:7.0.2")
+
+    implementation("org.jclarion:image4j:0.7")
 
     implementation("net.kyori:adventure-api:4.19.0")
     implementation("net.kyori:adventure-text-minimessage:4.19.0")

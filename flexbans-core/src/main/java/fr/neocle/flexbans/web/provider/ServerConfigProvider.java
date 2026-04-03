@@ -9,6 +9,8 @@ public class ServerConfigProvider {
     private static ServerConfigProvider instance;
     private final ServerConfigCache cache;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(ServerConfigProvider.class);
+
     private ServerConfigProvider() {
         this.cache = ServerConfigCache.getInstance();
     }
@@ -27,7 +29,7 @@ public class ServerConfigProvider {
     public Map<String, Object> getServerConfig() {
         Map<String, Object> config = cache.getConfig();
         if (config == null) {
-            FlexLogger.warn("Configuration not initialized, initializing now...");
+            LOGGER.debug("Configuration not initialized, initializing now...");
             initialize();
             config = cache.getConfig();
         }

@@ -4,10 +4,6 @@ import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common. adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr.neocle.flexbans.database.player.ProfilesManager;
-import fr.neocle.flexbans.database.punishment.BansManager;
-import fr.neocle.flexbans.database. punishment.KicksManager;
-import fr. neocle.flexbans. database.punishment.MutesManager;
-import fr. neocle.flexbans. database.punishment.WarningsManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format. NamedTextColor;
 import net.kyori.adventure.text. format.TextDecoration;
@@ -103,14 +99,12 @@ public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
 
     private void displayPaginatedModeratorHistory(ICommandSource source, UUID moderatorUuid, String moderatorName,
                                                   int page, String typeFilter, String actionFilter) {
-        List<ModeratorHistoryEntry> allEntries = helper.getModeratorHistory(moderatorUuid);
+        List<ProfilesManager.ModeratorHistoryEntry> allEntries = helper.getModeratorHistory(moderatorUuid);
 
-        // Filter by action if specified
         if (actionFilter != null) {
             allEntries = filterByAction(allEntries, actionFilter);
         }
 
-        // Filter by type if specified
         if (typeFilter != null) {
             allEntries = filterByType(allEntries, typeFilter);
         }
@@ -163,17 +157,14 @@ public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
                         .color(NamedTextColor.GRAY)
         );
 
-        // Calculate pagination indices
         int startIndex = (page - 1) * ENTRIES_PER_PAGE;
         int endIndex = Math.min(startIndex + ENTRIES_PER_PAGE, allEntries.size());
 
-        // Display entries for current page
         for (int i = startIndex; i < endIndex; i++) {
-            ModeratorHistoryEntry entry = allEntries.get(i);
+            ProfilesManager.ModeratorHistoryEntry entry = allEntries.get(i);
             displayModeratorHistoryEntry(source, entry, i + 1);
         }
 
-        // Display footer with navigation
         source.sendMessage(
                 Component.text("═══════════════════════════════════════")
                         .color(NamedTextColor.GRAY)
@@ -226,10 +217,10 @@ public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
         }
     }
 
-    private List<ModeratorHistoryEntry> filterByAction(List<ModeratorHistoryEntry> entries, String actionFilter) {
-        List<ModeratorHistoryEntry> filtered = new ArrayList<>();
+    private List<ProfilesManager.ModeratorHistoryEntry> filterByAction(List<ProfilesManager.ModeratorHistoryEntry> entries, String actionFilter) {
+        List<ProfilesManager.ModeratorHistoryEntry> filtered = new ArrayList<>();
 
-        for (ModeratorHistoryEntry entry : entries) {
+        for (ProfilesManager.ModeratorHistoryEntry entry : entries) {
             if (entry.action(). toLowerCase().equals(actionFilter)) {
                 filtered.add(entry);
             }
@@ -238,10 +229,10 @@ public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
         return filtered;
     }
 
-    private List<ModeratorHistoryEntry> filterByType(List<ModeratorHistoryEntry> entries, String typeFilter) {
-        List<ModeratorHistoryEntry> filtered = new ArrayList<>();
+    private List<ProfilesManager.ModeratorHistoryEntry> filterByType(List<ProfilesManager.ModeratorHistoryEntry> entries, String typeFilter) {
+        List<ProfilesManager.ModeratorHistoryEntry> filtered = new ArrayList<>();
 
-        for (ModeratorHistoryEntry entry : entries) {
+        for (ProfilesManager.ModeratorHistoryEntry entry : entries) {
             String entryType = entry.type(). toLowerCase();
 
             if (typeFilter.equals("ban") && (entryType.equals("ban") || entryType.equals("ip-ban"))) {
@@ -264,7 +255,7 @@ public class ModeratorHistoryCommandExecutor implements ICommandExecutor {
         return filtered;
     }
 
-    private void displayModeratorHistoryEntry(ICommandSource source, ModeratorHistoryEntry entry, int index) {
+    private void displayModeratorHistoryEntry(ICommandSource source, ProfilesManager.ModeratorHistoryEntry entry, int index) {
         NamedTextColor actionColor = getColorForAction(entry.action());
         NamedTextColor typeColor = getColorForType(entry. type());
         String typePrefix = getPrefixForType(entry.type());

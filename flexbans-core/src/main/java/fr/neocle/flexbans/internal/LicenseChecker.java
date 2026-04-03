@@ -1,92 +1,60 @@
 package fr.neocle.flexbans.internal;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Scanner;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import fr.neocle.flexbans.util.network.HttpClientProvider;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 public class LicenseChecker {
-
-    private static final String API_URL = "https://license-checker.license-verif.workers.dev/";
+    private static final String API_URL = "https://license.loisalirol.com/";
+    private static final HttpClient CLIENT = HttpClientProvider.CLIENT;
 
     public static boolean isLicenseValid(String key, String ip) {
+        if (ip == null || key == null) return false;
+
+        String fullUrl = String.format("%s?key=%s&ip=%s", API_URL, key, ip);
+
         try {
-            if (ip == null) {
-                return false;
-            }
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(fullUrl))
+                    .GET()
+                    .build();
 
-            String fullUrl = API_URL + "?key=" + key + "&ip=" + ip;
-            URL url = new URL(fullUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+            HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
-            int responseCode = conn.getResponseCode();
-            InputStream inputStream = (responseCode >= 400)
-                    ? conn.getErrorStream()
-                    : conn.getInputStream();
+            if (response.statusCode() != 200) return false;
 
-            if (inputStream == null) {
-                System.err.println("No response stream from license server.");
-                return false;
-            }
+            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            return json.has("valid") && json.get("valid").getAsBoolean();
 
-            Scanner scanner = new Scanner(inputStream);
-            StringBuilder jsonResponse = new StringBuilder();
-            while (scanner.hasNext()) {
-                jsonResponse.append(scanner.nextLine());
-            }
-            scanner.close();
-
-            return jsonResponse.toString().contains("\"valid\":true");
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             return false;
         }
     }
 
     public static String getDiscordId(String licenseKey) {
+        if (licenseKey == null) return null;
+
+        String fullUrl = API_URL + "get-discord?key=" + licenseKey;
+
         try {
-            String fullUrl = API_URL + "get-discord-id?key=" + licenseKey;
-            URL url = new URL(fullUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(fullUrl))
+                    .GET()
+                    .build();
 
-            int responseCode = conn.getResponseCode();
-            InputStream inputStream = (responseCode >= 400)
-                    ? conn.getErrorStream()
-                    : conn.getInputStream();
+            HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (inputStream == null) {
-                System.err.println("No response stream from license server.");
-                return null;
-            }
+            if (response.statusCode() != 200) return null;
 
-            Scanner scanner = new Scanner(inputStream);
-            StringBuilder jsonResponse = new StringBuilder();
-            while (scanner.hasNext()) {
-                jsonResponse.append(scanner.nextLine());
-            }
-            scanner.close();
+            JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+            return json.has("discord_id") ? json.get("discord_id").getAsString() : null;
 
-            String response = jsonResponse.toString();
-            int index = response.indexOf("\"discord_id\"");
-            if (index == -1) {
-                System.err.println("discord_id not found in response: " + response);
-                return null;
-            }
-
-            int start = response.indexOf(":", index) + 2;
-            int end = response.indexOf("\"", start);
-            if (start == -1 || end == -1) {
-                System.err.println("Malformed discord_id in response: " + response);
-                return null;
-            }
-            return response.substring(start, end);
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             return null;
         }
     }

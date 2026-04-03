@@ -15,6 +15,7 @@ import java.util.UUID;
 
 public class Verify extends Command {
     private final UserManager userManager;
+    private static final FlexLogger LOGGER = FlexLogger.get(Verify.class);
 
     public Verify(DatabaseUtils databaseUtils) {
         super("verify", "flexbans.verify");
@@ -43,12 +44,12 @@ public class Verify extends Command {
         UUID playerUuid = player.getUniqueId();
 
         try {
-            boolean isRegistered = userManager.isUserRegistered(username);
-            boolean isVerified = userManager.isUserVerified(username);
+            boolean isRegistered = userManager.isUserRegistered(username).join();
+            boolean isVerified  = userManager.isUserVerified(username).join();
 
             if (isRegistered && isVerified) {
                 // Already registered & verified → just link Discord
-                boolean success = userManager.setDiscordId(username, code);
+                boolean success = userManager.setDiscordId(username, code).join();
                 if (success) {
                     player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
                 } else {
@@ -59,20 +60,23 @@ public class Verify extends Command {
 
             if (!isRegistered) {
                 // Create user for verification
-                if (!userManager.createUserForVerification(username, playerUuid)) {
+                boolean created = userManager.createUserForVerification(username, playerUuid).join();
+                if (!created) {
                     player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
                     return;
                 }
             }
 
             // Verify the user
-            if (!userManager.verifyUser(username, playerUuid)) {
+            boolean verified = userManager.verifyUser(username, playerUuid).join();
+            if (!verified) {
                 player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
                 return;
             }
 
             // Link Discord ID
-            if (!userManager.setDiscordId(username, code)) {
+            boolean discordLinked = userManager.setDiscordId(username, code).join();
+            if (!discordLinked) {
                 player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.fail"));
                 return;
             }
@@ -80,7 +84,6 @@ public class Verify extends Command {
             player.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.verify.success"));
 
         } catch (Exception e) {
-            // Handle unknown code or SQL issues
             String messageKey = e.getMessage() != null && e.getMessage().contains("does not exist")
                     ? "commands.verify.unknown-code"
                     : "commands.verify.error";
@@ -88,7 +91,6 @@ public class Verify extends Command {
             BaseComponent[] components = LanguageManager.getBungeeMessageComponent(sender, messageKey);
 
             if ("commands.verify.unknown-code".equals(messageKey)) {
-                // Replace %code% placeholder
                 components = Arrays.stream(components)
                         .map(c -> c instanceof TextComponent tc
                                 ? new TextComponent(tc.getText().replace("%code%", code))
@@ -97,8 +99,11 @@ public class Verify extends Command {
             }
 
             player.sendMessage(components);
-            FlexLogger.warn(LanguageManager.getMessageString("commands.logging.verify.exception")
-                    .replace("%error%", e.getMessage() != null ? e.getMessage() : "Unknown error"));
+            LOGGER.warn(
+                    LanguageManager.getMessageString("commands.logging.verify.exception")
+                            .replace("%error%", e.getMessage() != null ? e.getMessage() : "Unknown error"),
+                    e
+            );
         }
     }
 }

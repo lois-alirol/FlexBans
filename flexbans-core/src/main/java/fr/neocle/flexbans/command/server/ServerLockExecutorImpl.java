@@ -55,9 +55,13 @@ public class ServerLockExecutorImpl implements ServerLockExecutor {
     }
 
     private void handleExistingLock(String serverName, Consumer<String> messageSender) {
-        if (databaseUtils.getServerLocksManager().isServerLocked(serverName)) {
-            messageSender.accept("This server is already locked. Overriding");
-        }
+        databaseUtils.getServerLocksManager()
+                .isServerLocked(serverName)
+                .thenAccept(isLocked -> {
+                    if (isLocked) {
+                        messageSender.accept("This server is already locked. Overriding");
+                    }
+                });
     }
 
     private void processServerLock(String serverName,

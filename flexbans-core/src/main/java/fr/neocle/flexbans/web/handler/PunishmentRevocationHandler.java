@@ -10,6 +10,8 @@ import fr.neocle.flexbans.web.util.RequestUtils;
 import javax.servlet.http.HttpServletRequest;
 
 public class PunishmentRevocationHandler {
+    private static final FlexLogger LOGGER = FlexLogger.get(PunishmentRevocationHandler.class);
+
     public ApiResponse<?> revokePunishment(HttpServletRequest req, JsonObject jsonBody) {
         if (jsonBody == null) {
             return ApiResponse.badRequest("Request body is required");
@@ -19,11 +21,11 @@ public class PunishmentRevocationHandler {
         if (token == null) {
             return ApiResponse.unauthorized("Missing authorization token");
         }
-        if (!TokenManager.isValidToken(token, "access")) {
+        if (!TokenManager.get().isValidToken(token, "access")) {
             return ApiResponse.unauthorized("Invalid or expired token");
         }
 
-        String executor = TokenManager.getUsernameFromToken(token);
+        String executor = TokenManager.get().getUsernameFromToken(token);
         if (executor == null || executor.isEmpty()) {
             return ApiResponse.unauthorized("Invalid or expired token");
         }
@@ -88,7 +90,7 @@ public class PunishmentRevocationHandler {
         } catch (IllegalArgumentException e) {
             return ApiResponse.badRequest(e.getMessage());
         } catch (Exception e) {
-            FlexLogger.error("Error revoking punishment: " + e.getMessage());
+            LOGGER.error("Error revoking punishment: ", e);
             return ApiResponse.error(500, "Unable to process the request");
         }
     }

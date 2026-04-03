@@ -1,14 +1,10 @@
-package fr.neocle.flexbans.common. command. lookup. history;
+package fr.neocle.flexbans.common.command.lookup.history;
 
 import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
-import fr.neocle.flexbans.common. adapter.command.ICommandInvocation;
-import fr.neocle.flexbans.common. adapter.command.ICommandSource;
-import fr.neocle. flexbans.database.player.ProfilesManager;
-import fr.neocle.flexbans.database.punishment.BansManager;
-import fr.neocle.flexbans.database. punishment.KicksManager;
-import fr.neocle.flexbans.database.punishment.MutesManager;
-import fr.neocle. flexbans.database.punishment. WarningsManager;
-import net.kyori.adventure.text. Component;
+import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
+import fr.neocle.flexbans.common.adapter.command.ICommandSource;
+import fr.neocle.flexbans.database.player.ProfilesManager;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format. NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 
@@ -19,10 +15,13 @@ import java.util.UUID;
 
 public class HistoryCommandExecutor implements ICommandExecutor {
     private final IHistoryCommandHelper helper;
+    private final ProfilesManager profilesManager;
+
     private static final int ENTRIES_PER_PAGE = 5;
 
-    public HistoryCommandExecutor(IHistoryCommandHelper helper) {
+    public HistoryCommandExecutor(IHistoryCommandHelper helper, ProfilesManager profilesManager) {
         this.helper = helper;
+        this.profilesManager = profilesManager;
     }
 
     @Override
@@ -90,9 +89,15 @@ public class HistoryCommandExecutor implements ICommandExecutor {
     }
 
     private void displayPaginatedHistory(ICommandSource source, UUID playerUuid, String playerName, int page, String typeFilter) {
-        List<HistoryEntry> allEntries = helper.getPlayerHistory(playerUuid);
+        List<ProfilesManager.HistoryEntry> allEntries;
+        try {
+            allEntries = profilesManager.getPlayerHistory(playerUuid).join();
+        } catch (Exception e) {
+            source.sendMessage(Component.text("Failed to load history. Please try again later.")
+                    .color(NamedTextColor.RED));
+            return;
+        }
 
-        // Filter by type if specified
         if (typeFilter != null) {
             allEntries = filterByType(allEntries, typeFilter);
         }
@@ -143,7 +148,7 @@ public class HistoryCommandExecutor implements ICommandExecutor {
 
         // Display entries for current page
         for (int i = startIndex; i < endIndex; i++) {
-            HistoryEntry entry = allEntries. get(i);
+            ProfilesManager.HistoryEntry entry = allEntries. get(i);
             displayHistoryEntry(source, entry, i + 1);
         }
 
@@ -194,10 +199,10 @@ public class HistoryCommandExecutor implements ICommandExecutor {
         }
     }
 
-    private List<HistoryEntry> filterByType(List<HistoryEntry> entries, String typeFilter) {
-        List<HistoryEntry> filtered = new ArrayList<>();
+    private List<ProfilesManager.HistoryEntry> filterByType(List<ProfilesManager.HistoryEntry> entries, String typeFilter) {
+        List<ProfilesManager.HistoryEntry> filtered = new ArrayList<>();
 
-        for (HistoryEntry entry : entries) {
+        for (ProfilesManager.HistoryEntry entry : entries) {
             String entryType = entry.type(). toLowerCase();
 
             if (typeFilter. equals("ban") && (entryType.equals("ban") || entryType.equals("ip-ban"))) {
@@ -220,7 +225,7 @@ public class HistoryCommandExecutor implements ICommandExecutor {
         return filtered;
     }
 
-    private void displayHistoryEntry(ICommandSource source, HistoryEntry entry, int index) {
+    private void displayHistoryEntry(ICommandSource source, ProfilesManager.HistoryEntry entry, int index) {
         NamedTextColor typeColor = getColorForType(entry.type());
         String typePrefix = getPrefixForType(entry.type());
 

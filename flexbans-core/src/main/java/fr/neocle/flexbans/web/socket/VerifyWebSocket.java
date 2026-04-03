@@ -2,18 +2,17 @@ package fr.neocle.flexbans.web.socket;
 
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.*;
+
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @WebSocket
 public class VerifyWebSocket {
-
-    // username → WS session (one socket per user waiting to verify)
     private static final Map<String, Session> waitingSessions = new ConcurrentHashMap<>();
 
     private String username;
 
-    // Called from AuthHandler once 2FA passes — static so AuthHandler can reach it
     public static void notifyVerified(String username) {
         Session session = waitingSessions.remove(username);
         if (session != null && session.isOpen()) {
@@ -24,13 +23,12 @@ public class VerifyWebSocket {
         }
     }
 
-    @OnWebSocketOpen
+    @OnWebSocketConnect
     public void onOpen(Session session) {
-        // Pull the username from the query string: /api/ws/verify?username=alice
         String query = session.getUpgradeRequest().getQueryString();
         if (query != null && query.startsWith("username=")) {
             this.username = query.substring("username=".length());
-            session.setIdleTimeout(java.time.Duration.ofMinutes(10));
+            session.setIdleTimeout(Duration.ofMinutes(10).toMillis());
             waitingSessions.put(this.username, session);
         } else {
             try { session.close(1008, "missing username"); } catch (Exception ignored) {}

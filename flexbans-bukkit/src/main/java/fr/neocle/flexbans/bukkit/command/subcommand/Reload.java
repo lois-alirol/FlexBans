@@ -6,19 +6,19 @@ import fr.neocle.flexbans.logger.FlexLogger;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.jspecify.annotations.NonNull;
 
 import java.nio.file.Path;
 import java.util.Map;
 
 public class Reload implements CommandExecutor {
-    private final Path dataFolder;
+    private static final FlexLogger LOGGER = FlexLogger.get(Reload.class);
 
     public Reload(Path dataFolder) {
-        this.dataFolder = dataFolder;
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(CommandSender sender, @NonNull Command command, @NonNull String label, String @NonNull [] args) {
         if (!sender.hasPermission("flexbans.reload")) {
             sender.sendMessage(LanguageManager.getMessageComponent("commands.no-permission"));
             return true;
@@ -31,10 +31,10 @@ public class Reload implements CommandExecutor {
             Map<String, Object> oauthConfig = (Map<String, Object>) newConfig.get("discord-oauth");
 
             sender.sendMessage(LanguageManager.getMessageComponent("commands.reload.success"));
-            FlexLogger.info(LanguageManager.getMessageString("commands.logging.reload.success"));
+            LOGGER.info(LanguageManager.getMessageString("commands.logging.reload.success"));
         } else {
             sender.sendMessage(LanguageManager.getMessageComponent("commands.reload.fail"));
-            FlexLogger.error(LanguageManager.getMessageString("commands.logging.reload.fail"));
+            LOGGER.error(LanguageManager.getMessageString("commands.logging.reload.fail"));
         }
 
         return true;

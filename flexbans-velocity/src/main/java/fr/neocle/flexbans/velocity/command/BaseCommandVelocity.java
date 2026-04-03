@@ -11,11 +11,14 @@ import fr.neocle.flexbans.common.command.subcommand.HelpCommand;
 import fr.neocle.flexbans.common.command.subcommand.ReloadCommand;
 import fr.neocle.flexbans.common.command.subcommand.VerifyCommand;
 import fr.neocle.flexbans.database.DatabaseUtils;
-import fr.neocle.flexbans.util.JettyReloader;
+import fr.neocle.flexbans.util.loader.JettyReloader;
 import fr.neocle.flexbans.velocity.command.adapter.command.VelocityCommandInvocation;
 import fr.neocle.flexbans.velocity.command.subcommand.*;
 
 import java.nio.file.Path;
+
+import static com.mojang.brigadier.arguments.StringArgumentType.getString;
+import static com.mojang.brigadier.arguments.StringArgumentType.word;
 
 public final class BaseCommandVelocity {
 
@@ -29,7 +32,10 @@ public final class BaseCommandVelocity {
 
         LiteralArgumentBuilder<CommandSource> root = BrigadierCommand
                 .literalArgumentBuilder("flexbans")
-                .requires(src -> src.hasPermission("flexbans.use"));
+                .executes(ctx -> {
+                    new HelpCommand().execute(new VelocityCommandInvocation(ctx));
+                    return Command.SINGLE_SUCCESS;
+                });
 
         root.then(BrigadierCommand
                 .literalArgumentBuilder("help")
@@ -51,12 +57,17 @@ public final class BaseCommandVelocity {
 
         root.then(BrigadierCommand
                 .literalArgumentBuilder("verify")
-                .executes(ctx -> {
-                    new VerifyCommand(databaseUtils.getUserManager()).execute(
-                            new VelocityCommandInvocation(ctx)
-                    );
-                    return Command.SINGLE_SUCCESS;
-                })
+                .then(com.mojang.brigadier.builder.RequiredArgumentBuilder
+                        .<CommandSource, String>argument("code", word())
+                        .executes(ctx -> {
+                            String code = getString(ctx, "code");
+
+                            new VerifyCommand(databaseUtils.getUserManager())
+                                    .execute(new VelocityCommandInvocation(ctx, code));
+
+                            return Command.SINGLE_SUCCESS;
+                        })
+                )
         );
 
         root.then(PlayersWhitelist.createNode());
@@ -80,7 +91,10 @@ public final class BaseCommandVelocity {
         );
 
         CommandMeta meta = manager.metaBuilder(cmd)
-                .aliases("flexbans", "fb")
+                .aliases("fb")
+                .plugin(proxyServer.getPluginManager()
+                        .getPlugin("flexbans")
+                        .orElseThrow())
                 .build();
 
         manager.register(meta, cmd);

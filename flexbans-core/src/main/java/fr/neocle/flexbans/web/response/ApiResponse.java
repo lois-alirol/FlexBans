@@ -1,5 +1,7 @@
 package fr.neocle.flexbans.web.response;
 
+import com.google.gson.JsonObject;
+
 public class ApiResponse<T> {
 
     private final int code;

@@ -18,7 +18,7 @@ public class VelocityBanCommandHelper implements IBanCommandHelper {
     @Override
     public void sendDialogMessage(String playerName, String dialogType) {
         proxyServer.getPlayer(playerName).ifPresent(player ->
-                PluginMessageUtil. sendDialogMessage(player, dialogType)
+                PluginMessageUtil.sendDialogMessage(player, dialogType)
         );
     }
 

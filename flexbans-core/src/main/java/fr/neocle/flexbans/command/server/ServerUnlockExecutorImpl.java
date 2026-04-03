@@ -49,9 +49,13 @@ public class ServerUnlockExecutorImpl implements ServerUnlockExecutor {
     }
 
     private void handleNoLock(String serverName, Consumer<String> messageSender) {
-        if (!databaseUtils.getServerLocksManager().isServerLocked(serverName)) {
-            messageSender.accept("§cError: This server is not locked.");
-        }
+        databaseUtils.getServerLocksManager()
+                .isServerLocked(serverName)
+                .thenAccept(isLocked -> {
+                    if (!isLocked) {
+                        messageSender.accept("§cError: This server is not locked.");
+                    }
+                });
     }
 
     private void processServerUnlock(String serverName,

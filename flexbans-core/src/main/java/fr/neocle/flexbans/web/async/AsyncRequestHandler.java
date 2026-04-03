@@ -18,6 +18,8 @@ public class AsyncRequestHandler {
     private final SecurityHeadersManager securityManager;
     private final Gson gson;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(AsyncRequestHandler.class);
+
     public AsyncRequestHandler(SecurityHeadersManager securityManager, Gson gson) {
         this.securityManager = securityManager;
         this.gson = gson;
@@ -38,13 +40,13 @@ public class AsyncRequestHandler {
                 securityManager.setHeaders(asyncResp, (HttpServletRequest) asyncContext.getRequest());
 
                 if (throwable != null) {
-                    FlexLogger.error("Async " + operationName + " error: " + throwable.getMessage());
+                    LOGGER.error("Async {} error: ", operationName, throwable);
                     ResponseUtils.sendJson(asyncResp, ApiResponse.error(500, "Internal server error"), gson);
                 } else {
                     ResponseUtils.sendJson(asyncResp, response, gson);
                 }
             } catch (IOException e) {
-                FlexLogger.error("Error sending async " + operationName + " response: " + e.getMessage());
+                LOGGER.error("Error sending async {} response: ", operationName, e);
             } finally {
                 asyncContext.complete();
             }

@@ -9,6 +9,8 @@ public class ServerConfigCache {
     private Map<String, Object> cachedConfig;
     private boolean initialized = false;
 
+    private static final FlexLogger LOGGER = FlexLogger.get(ServerConfigCache.class);
+
     private ServerConfigCache() {
     }
 
@@ -21,7 +23,7 @@ public class ServerConfigCache {
 
     public Map<String, Object> getConfig() {
         if (!initialized || cachedConfig == null) {
-            FlexLogger.warn("Server configuration cache not initialized. Call initialize() first.");
+            LOGGER.debug("Server configuration cache not initialized. Call initialize() first.");
             return null;
         }
         return new HashMap<>(cachedConfig);
@@ -29,37 +31,34 @@ public class ServerConfigCache {
 
     public synchronized void initialize() {
         if (initialized) {
-            FlexLogger.warn("Server configuration cache already initialized");
+            LOGGER.debug("Server configuration cache already initialized");
             return;
         }
 
         try {
             buildConfiguration();
             initialized = true;
-            FlexLogger.info("Server configuration cache initialized successfully");
+            LOGGER.debug("Server configuration cache initialized successfully");
         } catch (Exception e) {
-            FlexLogger.error("Error initializing server configuration cache:  " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Error initializing server configuration cache: ", e);
         }
     }
 
     public synchronized void refresh() {
         try {
             buildConfiguration();
-            FlexLogger.info("Server configuration cache refreshed manually");
+            LOGGER.info("Server configuration cache refreshed manually");
         } catch (Exception e) {
-            FlexLogger.error("Error refreshing server configuration cache: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Error refreshing server configuration cache: ", e);
         }
     }
 
     public synchronized void forceRefresh() {
         try {
             buildConfiguration();
-            FlexLogger.info("Server configuration cache force-refreshed");
+            LOGGER.info("Server configuration cache force-refreshed");
         } catch (Exception e) {
-            FlexLogger.error("Error force-refreshing server configuration cache: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.error("Error force-refreshing server configuration cache: ", e);
         }
     }
 
@@ -70,7 +69,7 @@ public class ServerConfigCache {
                 (
                         ConfigManager.getBoolean("discord-oauth.enabled") ||
                         ConfigManager.getBoolean("password-auth.enabled"))
-                ) || true;
+                );
 
         boolean isRevocationEnabled = isSecured && ConfigManager.getBoolean("webserver.pages.punishments.allow-revocation");
         boolean isExecutionEnabled = isSecured && ConfigManager.getBoolean("webserver.pages.punishments.allow-execution");
@@ -135,6 +134,6 @@ public class ServerConfigCache {
     public synchronized void clear() {
         cachedConfig = null;
         initialized = false;
-        FlexLogger.info("Server configuration cache cleared");
+        LOGGER.info("Server configuration cache cleared");
     }
 }

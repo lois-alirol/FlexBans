@@ -4,6 +4,7 @@ import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr.neocle.flexbans.locale.LanguageManager;
+import fr.neocle.flexbans.util.ColorUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
@@ -33,7 +34,12 @@ public class HelpCommand implements ICommandExecutor {
         String[] lines = helpMessage.split("\\n");
         MiniMessage miniMessage = MiniMessage.miniMessage();
         for (String line : lines) {
-            source.sendMessage(miniMessage.deserialize(line));
+            if (source.isPlayer()) {
+                source.sendMessage(miniMessage.deserialize(line));
+                continue;
+            }
+
+            source.sendPlainMessage(ColorUtils.toAnsi(miniMessage.deserialize(line)));
         }
     }
 

@@ -4,12 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.neocle.flexbans.logger.FlexLogger;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
 public class RequestUtils {
     private static final Gson gson = new Gson();
+    private static final FlexLogger LOGGER = FlexLogger.get(RequestUtils.class);
 
     public static String extractBearerToken(HttpServletRequest req) {
         String authHeader = req.getHeader("Authorization");
@@ -18,30 +20,21 @@ public class RequestUtils {
         }
 
         if (req.getCookies() != null) {
-            for (javax.servlet.http.Cookie cookie : req.getCookies()) {
-                if ("accessToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-                if ("tempToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-                if ("refreshToken".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
+            String temp = null;
+            String access = null;
 
+            for (Cookie cookie : req.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) access = cookie.getValue();
+                if ("tempToken".equals(cookie.getName())) temp = cookie.getValue();
+            }
+
+            return (access != null) ? access : temp;
+        }
         return null;
     }
 
     public static JsonObject parseJsonBody(HttpServletRequest req) throws IOException {
-        FlexLogger.info("---- PARSING BODY ----");
-        FlexLogger.info("Method: " + req.getMethod());
-        FlexLogger.info("Content-Type: " + req.getContentType());
-        FlexLogger.info("Content-Length: " + req.getContentLength());
-
         String body = req.getReader().lines().collect(Collectors.joining());
-        FlexLogger.info("Raw body: [" + body + "]");
 
         if (body.isEmpty()) {
             return null;
@@ -50,7 +43,7 @@ public class RequestUtils {
         try {
             return gson.fromJson(body, JsonObject.class);
         } catch (Exception e) {
-            FlexLogger.error("Invalid JSON body: " + e.getMessage());
+            LOGGER.error("Invalid JSON body: ", e);
             throw new IllegalArgumentException("Invalid JSON format");
         }
     }

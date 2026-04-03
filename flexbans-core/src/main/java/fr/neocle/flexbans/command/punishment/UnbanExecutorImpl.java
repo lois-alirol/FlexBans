@@ -12,6 +12,7 @@ import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class UnbanExecutorImpl implements UnbanExecutor {
@@ -54,11 +55,16 @@ public class UnbanExecutorImpl implements UnbanExecutor {
         PlayerInfo targetPlayer = targetInfo.get();
         PlayerInfo senderPlayer = senderInfo.get();
 
-        if (!databaseUtils.getPunishmentsManager().isPlayerPunished(PunishmentsManager.PunishmentType.BAN,targetPlayer.uuid(), serverScope)) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unban.not-banned")
-                    .replace("%target%", targetPlayer.name()));
-            return;
-        }
+        databaseUtils.getPunishmentsManager()
+                .isPlayerPunished(PunishmentsManager.PunishmentType.BAN, targetPlayer.uuid(), serverScope)
+                .thenAccept(isPunished -> {
+                    if (!isPunished) {
+                        messageSender.accept(
+                                LanguageManager.getMessageString("punishments.unban.not-banned")
+                                        .replace("%target%", targetPlayer.name())
+                        );
+                    }
+                });
 
         processUnban(targetPlayer, senderPlayer, reason, serverScope, silent);
     }
@@ -73,52 +79,45 @@ public class UnbanExecutorImpl implements UnbanExecutor {
         Optional<PlayerInfo> senderInfo =
                 Common.resolveSender(sender, messageSender, floodgateApi);
 
-        if (senderInfo.isEmpty()) {
-            return;
-        }
+        if (senderInfo.isEmpty()) return;
 
         PlayerInfo senderPlayer = senderInfo.get();
 
-        Optional<PunishmentsManager.PunishmentInfo> punishmentOpt =
-                databaseUtils.getPunishmentsManager().getActivePunishmentById(punishmentId);
+        databaseUtils.getPunishmentsManager()
+                .getActivePunishmentById(punishmentId)
+                .thenCompose(punishmentOpt -> {
+                    if (punishmentOpt.isEmpty()) {
+                        messageSender.accept(LanguageManager.getMessageString("punishments.unban.invalid-id"));
+                        return CompletableFuture.completedFuture(false);
+                    }
 
-        if (punishmentOpt.isEmpty()) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unban.invalid-id"));
-            return;
-        }
+                    PunishmentsManager.PunishmentInfo punishment = punishmentOpt.get();
+                    String unbanReason = resolveReason(reason);
 
-        PunishmentsManager.PunishmentInfo punishment = punishmentOpt.get();
+                    return databaseUtils.getPunishmentsManager()
+                            .removePunishmentById(
+                                    punishmentId,
+                                    senderPlayer.uuid(),
+                                    senderPlayer.name(),
+                                    unbanReason
+                            )
+                            .thenApply(success -> {
+                                if (!success) {
+                                    messageSender.accept(LanguageManager.getMessageString("punishments.unban.failed"));
+                                    return false;
+                                }
 
-        String unbanReason = resolveReason(reason);
+                                // Event ou broadcast
+                                broadcastUnban(
+                                        resolver.uuidToUsername(punishment.targetUuid),
+                                        senderPlayer.name(),
+                                        unbanReason,
+                                        silent
+                                );
 
-        boolean success = databaseUtils.getPunishmentsManager().removePunishmentById(
-                punishmentId,
-                senderPlayer.uuid(),
-                senderPlayer.name(),
-                unbanReason
-        );
-
-        if (!success) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unban.failed"));
-            return;
-        }
-
-    /*eventDispatcher.unbanAddedEvent(
-            punishment.targetUuid(),
-            punishment.targetName(),
-            senderPlayer.uuid(),
-            senderPlayer.name(),
-            unbanReason,
-            punishment.serverScope(),
-            silent
-    );*/
-
-        broadcastUnban(
-                resolver.uuidToUsername(punishment.targetUuid),
-                senderPlayer.name(),
-                unbanReason,
-                silent
-        );
+                                return true;
+                            });
+                });
     }
 
     private void processUnban(PlayerInfo target,

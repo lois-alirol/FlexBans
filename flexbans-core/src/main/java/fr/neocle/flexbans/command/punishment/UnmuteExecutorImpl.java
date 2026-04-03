@@ -12,6 +12,7 @@ import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class UnmuteExecutorImpl implements UnmuteExecutor {
@@ -54,11 +55,16 @@ public class UnmuteExecutorImpl implements UnmuteExecutor {
         PlayerInfo targetPlayer = targetInfo.get();
         PlayerInfo senderPlayer = senderInfo.get();
 
-        if (!databaseUtils.getPunishmentsManager().isPlayerPunished(PunishmentsManager.PunishmentType.MUTE, targetPlayer.uuid(), serverScope)) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unmute.not-muted")
-                    .replace("%target%", targetPlayer.name()));
-            return;
-        }
+        databaseUtils.getPunishmentsManager()
+                .isPlayerPunished(PunishmentsManager.PunishmentType.MUTE, targetPlayer.uuid(), serverScope)
+                .thenAccept(isMuted -> {
+                    if (!isMuted) {
+                        messageSender.accept(
+                                LanguageManager.getMessageString("punishments.unmute.not-muted")
+                                        .replace("%target%", targetPlayer.name())
+                        );
+                    }
+                });
 
         processUnmute(targetPlayer, senderPlayer, reason, serverScope, silent);
     }
@@ -70,47 +76,51 @@ public class UnmuteExecutorImpl implements UnmuteExecutor {
                               boolean silent,
                               Consumer<String> messageSender) {
 
-        Optional<PlayerInfo> senderInfo =
-                Common.resolveSender(sender, messageSender, floodgateApi);
+        Optional<PlayerInfo> senderInfo = Common.resolveSender(sender, messageSender, floodgateApi);
         if (senderInfo.isEmpty()) return;
 
         PlayerInfo senderPlayer = senderInfo.get();
 
-        Optional<PunishmentsManager.PunishmentInfo> punishmentOpt =
-                databaseUtils.getPunishmentsManager().getActivePunishmentById(punishmentId);
+        databaseUtils.getPunishmentsManager()
+                .getActivePunishmentById(punishmentId)
+                .thenCompose(punishmentOpt -> {
+                    if (punishmentOpt.isEmpty()) {
+                        messageSender.accept(LanguageManager.getMessageString("punishments.unmute.invalid-id"));
+                        return CompletableFuture.completedFuture(false);
+                    }
 
-        if (punishmentOpt.isEmpty()) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unmute.invalid-id"));
-            return;
-        }
+                    PunishmentsManager.PunishmentInfo punishment = punishmentOpt.get();
 
-        PunishmentsManager.PunishmentInfo punishment = punishmentOpt.get();
+                    if (punishment.type != PunishmentsManager.PunishmentType.MUTE) {
+                        messageSender.accept(LanguageManager.getMessageString("punishments.unmute.invalid-id"));
+                        return CompletableFuture.completedFuture(false);
+                    }
 
-        if (punishment.type != PunishmentsManager.PunishmentType.MUTE) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unmute.invalid-id"));
-            return;
-        }
+                    String unmuteReason = resolveReason(reason);
 
-        String unmuteReason = resolveReason(reason);
+                    return databaseUtils.getPunishmentsManager()
+                            .removePunishmentById(
+                                    punishmentId,
+                                    senderPlayer.uuid(),
+                                    senderPlayer.name(),
+                                    unmuteReason
+                            )
+                            .thenApply(success -> {
+                                if (!success) {
+                                    messageSender.accept(LanguageManager.getMessageString("punishments.unmute.failed"));
+                                    return false;
+                                }
 
-        boolean success = databaseUtils.getPunishmentsManager().removePunishmentById(
-                punishmentId,
-                senderPlayer.uuid(),
-                senderPlayer.name(),
-                unmuteReason
-        );
+                                broadcastUnmute(
+                                        resolver.uuidToUsername(punishment.targetUuid),
+                                        senderPlayer.name(),
+                                        unmuteReason,
+                                        silent
+                                );
 
-        if (!success) {
-            messageSender.accept(LanguageManager.getMessageString("punishments.unmute.failed"));
-            return;
-        }
-
-        broadcastUnmute(
-                resolver.uuidToUsername(punishment.targetUuid),
-                senderPlayer.name(),
-                unmuteReason,
-                silent
-        );
+                                return true;
+                            });
+                });
     }
 
     private void processUnmute(PlayerInfo target,

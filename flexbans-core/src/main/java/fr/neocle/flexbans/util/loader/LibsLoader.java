@@ -1,6 +1,7 @@
-package fr.neocle.flexbans.util;
+package fr.neocle.flexbans.util.loader;
 
 import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.util.DriverShim;
 
 import java.io.*;
 import java.net.URL;

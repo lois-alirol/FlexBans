@@ -6,9 +6,9 @@ import java.awt.Color;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 
 public class WebhookService {
+    private static final FlexLogger LOGGER = FlexLogger.get(WebhookService.class);
 
     public WebhookService() {
     }
@@ -19,7 +19,7 @@ public class WebhookService {
                             String footerIcon, boolean timestamp) {
 
         if (url == null || url.isEmpty()) {
-            FlexLogger.warn("Webhook URL is not set.");
+            LOGGER.warn("Webhook URL is not set.");
             return;
         }
 
@@ -39,7 +39,7 @@ public class WebhookService {
                 try {
                     embed.setColor(Color.decode(color.startsWith("#") ? color : "#" + color));
                 } catch (NumberFormatException e) {
-                    FlexLogger.warn("Invalid color format: " + color);
+                    LOGGER.warn("Invalid color format: {}", color);
                 }
             }
 
@@ -78,7 +78,7 @@ public class WebhookService {
         try {
             webhook.execute();
         } catch (IOException e) {
-            FlexLogger.warn("Failed to send webhook: " + e.getMessage());
+            LOGGER.warn("Failed to send webhook: ", e);
         }
     }
 }

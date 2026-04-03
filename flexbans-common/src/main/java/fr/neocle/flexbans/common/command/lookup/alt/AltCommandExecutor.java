@@ -4,7 +4,6 @@ import fr.neocle.flexbans.common.adapter.command.ICommandExecutor;
 import fr.neocle.flexbans.common.adapter.command.ICommandInvocation;
 import fr.neocle.flexbans.common.adapter.command.ICommandSource;
 import fr.neocle.flexbans.database.player.ProfilesManager;
-import fr. neocle.flexbans.database.punishment.BansManager;
 import fr.neocle.flexbans.database.punishment.PunishmentsManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -69,16 +68,33 @@ public class AltCommandExecutor implements ICommandExecutor {
         String origin = source.getOrigin();
 
         for (UUID playerUuid : playersWithSameIP) {
-            String playerName = profilesManager.getCurrentUsername(playerUuid);
+            String playerName;
+            try {
+                playerName = profilesManager.getCurrentUsername(playerUuid).join();
+            } catch (Exception e) {
+                playerName = null;
+            }
             if (playerName == null) playerName = "(Unknown)";
 
             NamedTextColor color;
             String status;
 
-            if (punishmentsManager.isIpPunished(PunishmentsManager.PunishmentType.BAN,ip, origin)) {
+            boolean ipBanned = false;
+            boolean playerBanned = false;
+            try {
+                ipBanned = punishmentsManager
+                        .isIpPunished(PunishmentsManager.PunishmentType.BAN, ip, origin)
+                        .join();
+                playerBanned = punishmentsManager
+                        .isPlayerPunished(PunishmentsManager.PunishmentType.BAN, playerUuid, origin)
+                        .join();
+            } catch (Exception ignored) {
+            }
+
+            if (ipBanned) {
                 color = NamedTextColor.RED;
                 status = "[IP BANNED]";
-            } else if (punishmentsManager.isPlayerPunished(PunishmentsManager.PunishmentType.BAN, playerUuid, origin)) {
+            } else if (playerBanned) {
                 color = NamedTextColor.GOLD;
                 status = "[BANNED]";
             } else if (helper.isPlayerOnline(playerUuid)) {

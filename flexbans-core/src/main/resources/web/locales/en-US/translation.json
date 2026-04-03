@@ -1,0 +1,506 @@
+{
+  "loading": "Loading...",
+  "yes": "Yes",
+  "no": "No",
+  "home": {
+    "title": "{{server_name}}'s Punishments",
+    "description": "Viewing <0>{{type}}</0>. Select a different type from the menu.",
+    "search-placeholder": "Search player...",
+    "table-header": {
+      "id": "ID",
+      "player": "Player",
+      "moderator": "Moderator",
+      "reason": "Reason",
+      "date": "Date",
+      "duration": "Duration",
+      "status": "Status"
+    },
+    "context-menu": {
+      "details": "View details",
+      "edit": "Edit Punishment",
+      "revoke": "Revoke"
+    }
+  },
+
+  "details": {
+    "title": "{{type}} of {{player}}",
+    "core": {
+      "title": "Core Information",
+      "items-titles": {
+        "player": "Player",
+        "executor": "Executor",
+        "type": "Type",
+        "database-id": "Database ID"
+      }
+    },
+    "time": {
+      "title": "Time & Duration",
+      "items-titles": {
+        "execution": "Execution Date",
+        "duration": "Duration",
+        "expiration": "Expiration Date"
+      }
+    },
+    "server": {
+      "title": "Server & Context",
+      "items-titles": {
+        "origin": "Origin Server",
+        "scope": "Scope Server",
+        "ip": "IP Scope"
+      }
+    },
+    "reason": "Reason for Punishment",
+    "removal": {
+      "title": "Removal Details",
+      "remover": "Removed by",
+      "reason": "Reason"
+    }
+  },
+
+  "history": {
+    "title": "History Overview",
+    "badges": {
+      "console": "System Profile",
+      "staff": "Staff Profile",
+      "player": "Player Profile",
+      "short": {
+        "console": "System",
+        "staff": "Staff",
+        "player": "Player"
+      }
+    },
+    "skin-preview": {
+      "controls": "Drag to rotate • Scroll to zoom",
+      "error": "WebGL context lost - refreshing..."
+    },
+    "breakdown": {
+      "title": "Punishment Breakdown",
+      "count": "{{count}} Total"
+    },
+    "stats": {
+      "player": {
+        "total": "Total Received",
+        "active": "Active",
+        "removed": "Removed",
+        "expired": "Expired"
+      },
+      "staff": {
+        "total": "Total Sent",
+        "bans": "Bans Issued",
+        "active": "Active cases",
+        "revoked": "Revoked"
+      }
+    },
+    "search-placeholder": "Search player...",
+    "table": {
+      "title": "Detailed History",
+      "results-amount": "{{count}} of {{count_max}} results",
+      "no-results": {
+        "title": "No Records Found",
+        "description": "No recorded punishments were found for this user."
+      },
+      "headers": {
+        "id": "ID",
+        "type": "Type",
+        "player": "Player",
+        "moderator": "Moderator",
+        "reason": "Reason",
+        "date": "Date",
+        "duration": "Duration",
+        "status": "Status"
+      }
+    }
+  },
+
+  "admin": {
+    "title": "Admin Panel",
+    "description": "Manage users, branding, punishments, and detail settings.",
+    "sections": {
+      "metrics": {
+        "total": "Total Users",
+        "admins": "Admins",
+        "sessions": "Active Sessions",
+        "actions": "Pending Actions"
+      },
+      "user-management": {
+        "title": "User Management",
+        "description": "Manage panel users, their permissions, and access.",
+        "error-loading": "Error loading users",
+        "search": {
+          "placeholder": "Search user...",
+          "no-results-title": "No users found",
+          "no-results-description": "Try adjusting your search terms"
+        },
+        "user": {
+          "you": "You",
+          "verified": "Verified",
+          "unverified": "Unverified",
+          "buttons": {
+            "edit": "Edit",
+            "confirm-edit": "Save",
+            "revoke": "Revoke Access",
+            "confirm-revoke": "Confirm?"
+          },
+          "permissions-count": "Permissions ({{count}})",
+          "no-permissions": "No permissions assigned",
+          "add-permission": "Add Permission..."
+        },
+        "permissions": {
+          "update-error": "Unable to update user's permissions! {{details}}",
+          "blocked-add": "Could not add: {{permissions}}",
+          "blocked-remove": "Could not remove: {{permissions}}",
+          "fallback-error": "Failed to update permissions"
+        },
+        "buttons": {
+          "invite": "Invite User",
+          "refresh": "Refresh",
+          "add": "Add"
+        }
+      },
+      "branding-meta": {
+        "title": "Branding & Meta",
+        "description": "Control server name, colors, logo, favicon, and description.",
+        "fields": {
+          "server-name": "Server Name",
+          "server-name-placeholder": "My Server",
+          "primary-color": "Primary Color",
+          "secondary-color": "Secondary Color",
+          "logo-url": "Logo URL",
+          "favicon-url": "Favicon URL",
+          "description": "Description",
+          "description-placeholder": "Short description for the panel..."
+        }
+      },
+      "punishment-settings": {
+        "title": "Punishment Settings",
+        "description": "Enable or disable categories and control pagination limits.",
+
+        "types": {
+          "bans": "Bans",
+          "mutes": "Mutes",
+          "warnings": "Warnings",
+          "kicks": "Kicks"
+        },
+
+        "enabled": "{{type}} Enabled",
+        "toggle-helper": "Toggle {{type}} visibility and actions",
+
+        "max-per-page": "Max per page",
+
+        "execution": {
+          "title": "Execute new punishments",
+          "description": "Allow moderators to apply new punishments directly from the dashboard."
+        },
+
+        "revocation": {
+          "title": "Revoke active punishments",
+          "description": "Allow revocation of ongoing punishments from the dashboard."
+        }
+      },
+      "detail-history-settings": {
+        "title": "Detail & History Settings",
+        "description": "Control visibility and pagination for moderator/player detail pages.",
+        "max-per-page": "Max per page",
+
+        "moderator": {
+          "title": "Moderator History"
+        },
+
+        "player": {
+          "title": "Player History"
+        },
+
+        "punishment": {
+          "title": "Punishment details",
+          "revoke-button": "Revoke button",
+          "revoke-helper": "Show revoke button in detail view"
+        }
+      }
+    },
+    "logs": {
+      "title": "Check logs",
+      "description": "View recent system events",
+      "modal": {
+        "title": "System Logs",
+        "buttons": {
+          "close": "Close",
+          "export": "Export Logs"
+        }
+      }
+    },
+    "buttons": {
+      "save": "Save changes",
+      "cancel": "Cancel"
+    }
+  },
+
+  "account-menu": {
+    "title": "Signed in as",
+    "badges": {
+      "user": "User",
+      "admin": "Administrator"
+    },
+    "buttons": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "log-out": "Log out"
+    }
+  },
+
+  "sidebar": {
+    "navigation-title": "Navigation",
+    "player-search": {
+      "label": "Find player",
+      "placeholder": "Name..."
+    },
+    "moderator-search": {
+      "label": "Find staff",
+      "placeholder": "Name..."
+    },
+    "punishment-search": {
+      "label": "Punishment ID",
+      "placeholder": "B582B9"
+    },
+    "buttons": {
+      "admin-panel": "Admin Panel",
+      "new-punishment": "New Punishment"
+    }
+  },
+
+  "filter-modal": {
+    "title": "Filter Punishments",
+    "active-count": "{{count}} filter(s) active",
+    "filters": {
+      "moderator": {
+        "label": "Executed by",
+        "placeholder": "Moderator name..."
+      },
+      "statuses": {
+        "title": "Status",
+        "all": "All statuses",
+        "active": "Active",
+        "removed": "Removed",
+        "expired": "Expired"
+      },
+      "date": {
+        "title": "Date Filter",
+        "none": "No date filter",
+        "exact": "Exact date",
+        "before": "Before date",
+        "after": "After date"
+      }
+    },
+    "buttons": {
+      "reset": "Reset",
+      "apply": "Apply"
+    },
+    "apply-notification": "Successfully applied filters"
+  },
+
+  "create-modal": {
+    "title": "New Punishment",
+    "badge": "SELECT TYPE",
+    "error": "Error:",
+    "target": "Player to Punish",
+    "executor": "Executor Name",
+    "reason": "Reason",
+    "type": "Punishment Type",
+    "silent": {
+      "title": "Silent Mode",
+      "description": "Don't notify everyone when executed"
+    },
+    "duration": {
+      "label": "Duration",
+      "placeholder": "e.g., 1h, 1d"
+    },
+    "permanent": {
+      "title": "Permanent",
+      "description": "Indefinite action; disables duration"
+    },
+    "success": {
+      "message": "Punishment successfully executed."
+    },
+    "buttons": {
+      "submit": "Submit Punishment",
+      "submitting": "Submitting..."
+    }
+  },
+  "punishments": {
+    "ban": "Ban",
+    "mute": "Mute",
+    "kick": "Kick",
+    "warning": "Warning"
+  },
+
+  "edit-modal": {
+    "title": "Edit Punishment",
+    "new-date": {
+      "label": "New expiry date",
+      "placeholder": "This punishment will not expire."
+    },
+    "permanent": "Permanent",
+    "new-reason": {
+      "title": "Reason",
+      "placeholder": "What is the new reason to that punishment?"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "confirm": {
+        "saving": "Saving...",
+        "save": "Save changes"
+      }
+    }
+  },
+
+  "revoke-modal": {
+    "title": "Revoke Punishment",
+    "badge": "REVOKE",
+    "identity": {
+      "label": "Who are you?"
+    },
+    "reason": {
+      "label": "Reason for Removal",
+      "placeholder": "Provide a concise reason…"
+    },
+    "silent": {
+      "title": "Silent Mode",
+      "description": "Don't notify everyone of revocation"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "submit": {
+        "submit": "Submit",
+        "submitting": "Submitting..."
+      }
+    }
+  },
+
+  "preferences-modal": {
+    "title": "Preferences",
+    "description": "Configure your dashboard environment",
+    "themes": {
+      "title": "Appearance",
+      "light": "Light",
+      "dark": "Dark",
+      "quartz": "Quartz",
+      "midnight": "Midnight"
+    },
+    "languages": {
+      "title": "Language & Region"
+    },
+    "button": {
+      "save": "Save preferences",
+      "saving": "Saving preferences"
+    }
+  },
+
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
+  },
+
+  "empty-state": {
+    "checking-access": {
+      "title": "Security Protocol",
+      "description": "Determining server security requirements and permissions."
+    },
+    "loading": {
+      "title": "Data Sync",
+      "description": "Fetching the latest entries from the database."
+    },
+    "error": {
+      "title": "Connection Failed",
+      "description": "Could not load data from the API."
+    },
+    "config-error": {
+      "title": "Configuration Issue",
+      "description": "No punishment types are enabled in the current server settings."
+    },
+    "no-punishments": {
+      "title": "No result",
+      "description": "No {{type}} were found matching your criteria."
+    }
+  },
+
+  "back-button": {
+    "label": "Back"
+  },
+
+  "statuses": {
+    "active": "Active",
+    "removed": "Removed",
+    "expired": "Expired"
+  },
+
+  "login": {
+    "title": "Log In",
+    "page-title": "Login",
+    "username": "Username",
+    "password": "Password",
+    "stay-logged-in": "Stay logged in",
+    "button": "Log In",
+    "no-account": "Don't have an account?",
+    "register-link": "Register here",
+    "oauth": {
+      "redirect": "Redirecting to {{service}} for authentication..."
+    },
+    "status": {
+      "logging-in": "Logging in...",
+      "success": "Login successful! Redirecting...",
+      "2fa-required": "Login successful! Two-Factor Authentication required. Redirecting...",
+      "unknown-error": "An unknown error occurred."
+    }
+  },
+
+  "register": {
+    "title": "Register",
+    "page-title": "Register",
+    "username": "Username",
+    "password": "Password",
+    "confirm-password": "Confirm Password",
+    "button": "Register",
+    "already-have-account": "Already have an account?",
+    "login-link": "Log in here",
+    "oauth-redirect": "Redirecting to {{service}} for registration...",
+    "fix-errors": "Please fix the errors in the form.",
+    "registering": "Registering...",
+    "success": "Registration successful! Redirecting...",
+    "unknown-error": "Unknown error occurred during registration.",
+    "passwords-no-match": "Passwords do not match.",
+    "password-criteria": {
+      "length": "At least 8 characters long.",
+      "uppercase": "At least one uppercase letter.",
+      "lowercase": "At least one lowercase letter.",
+      "special": "At least one special character."
+    }
+  },
+
+  "verify": {
+    "title": "Verify",
+    "page-title": "Verify",
+    "initializing": "Initializing verification…",
+    "failed-fetch": "Failed to get verification code. Please try again.",
+    "try-again": "Try Again",
+    "no-code": "Unable to get verification code",
+    "success": "Verification Successful!",
+    "validate-on-server": "Validate your account on {{server}}.",
+    "waiting": "Waiting for in-game verification…",
+    "wrong-account": "Wrong account?",
+    "logout-link": "Log out here"
+  },
+
+  "errors": {
+    "403": {
+      "title": "Forbidden",
+      "description": "You don’t have permission to access this page."
+    },
+    "404": {
+      "title": "Not Found",
+      "description": "Oops! The page you’re looking for doesn’t exist."
+    },
+    "500": {
+      "title": "Internal Error",
+      "description": "Something went wrong on our end. Please try again later."
+    }
+  }
+}

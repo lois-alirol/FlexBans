@@ -4,7 +4,10 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 
 import javax.crypto.SecretKey;
+import java.nio.file.Path;
 import java.security.Key;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,14 +16,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 public class TokenManager {
-    private static final Key SECRET_KEY = loadOrGenerateSecret();
+    private static TokenManager instance;
+
     private static final long ACCESS_TOKEN_EXPIRY = 900000;
     private static final long REFRESH_TOKEN_EXPIRY = 604800000;
     private static final long TEMP_TOKEN_EXPIRY = 300000;
     private static final Map<String, TokenData> TOKEN_BLACKLIST = new ConcurrentHashMap<>();
     private static final Map<String, Integer> VERIFICATION_ATTEMPTS = new ConcurrentHashMap<>();
     private static final int MAX_VERIFICATION_ATTEMPTS = 5;
-    private static final String SECRET_FILE = "plugins/FlexBans/jwt-secret.key";
+
+    private final Key secretKey;
+    private final Path secretPath;
 
     private static class TokenData {
         long expiryTime;
@@ -32,9 +38,23 @@ public class TokenManager {
         }
     }
 
-    private static Key loadOrGenerateSecret() {
+    public TokenManager(Path dataFolder) {
+        this.secretPath = dataFolder.resolve("jwt-secret.key");
+        this.secretKey = loadOrGenerateSecret();
+
+        instance = this;
+    }
+
+    public static TokenManager get() {
+        if (instance == null) {
+            throw new IllegalStateException("TokenManager wasn't initialized yet!");
+        }
+        return instance;
+    }
+
+    private Key loadOrGenerateSecret() {
         try {
-            File secretFile = new File(SECRET_FILE);
+            File secretFile = secretPath.toFile();
             if (secretFile.exists()) {
                 String secret = Files.readString(secretFile.toPath()).trim();
                 if (secret.length() >= 32) {
@@ -60,45 +80,45 @@ public class TokenManager {
         return Base64.getEncoder().encodeToString(randomBytes);
     }
 
-    public static String createAccessToken(String username) {
+    public String createAccessToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRY))
                 .claim("type", "access")
-                .signWith(SECRET_KEY)
+                .signWith(secretKey)
                 .compact();
     }
 
-    public static String createRefreshToken(String username) {
+    public String createRefreshToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRY))
                 .claim("type", "refresh")
                 .id(UUID.randomUUID().toString())
-                .signWith(SECRET_KEY)
+                .signWith(secretKey)
                 .compact();
     }
 
-    public static String createTempToken(String username) {
+    public String createTempToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + TEMP_TOKEN_EXPIRY))
                 .claim("type", "temp")
                 .id(UUID.randomUUID().toString())
-                .signWith(SECRET_KEY)
+                .signWith(secretKey)
                 .compact();
     }
 
-    public static String getUsernameFromToken(String token) {
+    public String getUsernameFromToken(String token) {
         try {
             if (isTokenBlacklisted(token)) {
                 return null;
             }
             Claims claims = Jwts.parser()
-                    .verifyWith((SecretKey) SECRET_KEY)
+                    .verifyWith((SecretKey) secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -108,10 +128,10 @@ public class TokenManager {
         }
     }
 
-    public static String getTokenType(String token) {
+    public String getTokenType(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .verifyWith((SecretKey) SECRET_KEY)
+                    .verifyWith((SecretKey) secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -121,10 +141,10 @@ public class TokenManager {
         }
     }
 
-    public static String getTokenId(String token) {
+    public String getTokenId(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .verifyWith((SecretKey) SECRET_KEY)
+                    .verifyWith((SecretKey) secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -134,7 +154,7 @@ public class TokenManager {
         }
     }
 
-    public static boolean isValidToken(String token, String expectedType) {
+    public boolean isValidToken(String token, String expectedType) {
         if (token == null || token.isEmpty()) {
             return false;
         }
@@ -146,10 +166,10 @@ public class TokenManager {
         return expectedType.equals(tokenType);
     }
 
-    public static void blacklistToken(String token) {
+    public void blacklistToken(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .verifyWith((SecretKey) SECRET_KEY)
+                    .verifyWith((SecretKey) secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -181,14 +201,14 @@ public class TokenManager {
         VERIFICATION_ATTEMPTS.remove(username);
     }
 
-    public static String getCurrentSecretHash() {
+    public String getCurrentSecretHash() {
         try {
             return Base64.getEncoder().encodeToString(
-                    java.security.MessageDigest.getInstance("SHA-256").digest(
-                            SECRET_KEY.getEncoded()
+                    MessageDigest.getInstance("SHA-256").digest(
+                            secretKey.getEncoded()
                     )
             );
-        } catch (java.security.NoSuchAlgorithmException e) {
+        } catch (NoSuchAlgorithmException e) {
             return "unknown";
         }
     }

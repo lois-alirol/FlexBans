@@ -14,6 +14,7 @@ import fr.neocle.flexbans.command.Common.PlayerInfo;
 
 import java.net.InetAddress;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class BanExecutorImpl implements BanExecutor {
@@ -62,11 +63,24 @@ public class BanExecutorImpl implements BanExecutor {
         PlayerInfo targetPlayer = targetInfo.get();
         PlayerInfo senderPlayer = senderInfo.get();
 
-        if (databaseUtils.getPunishmentsManager().isPlayerPunished(PunishmentType.BAN, targetPlayer.uuid(), serverScope)) {
-            databaseUtils.getPunishmentsManager().removePunishment(PunishmentType.BAN, targetPlayer.uuid(), senderPlayer.uuid(),
-                                                                senderPlayer.name(), "Overridden", serverScope);
-            messageSender.accept("Previous active ban for this player was removed.");
-        }
+        databaseUtils.getPunishmentsManager()
+                .isPlayerPunished(PunishmentType.BAN, targetPlayer.uuid(), serverScope)
+                .thenCompose(isPunished -> {
+                    if (!isPunished) return CompletableFuture.completedFuture(false);
+                    return databaseUtils.getPunishmentsManager().removePunishment(
+                            PunishmentType.BAN,
+                            targetPlayer.uuid(),
+                            senderPlayer.uuid(),
+                            senderPlayer.name(),
+                            "Overridden",
+                            serverScope
+                    );
+                })
+                .thenAccept(removed -> {
+                    if (removed) {
+                        messageSender.accept("Previous active ban for this player was removed.");
+                    }
+                });
 
         processBan(targetPlayer, senderPlayer, duration, reason, serverScope, serverOrigin, silent, ipScope);
     }
@@ -113,16 +127,23 @@ public class BanExecutorImpl implements BanExecutor {
 
         platformHandler.applyBan(target.name(), target.uuid(), sender.name(), displayDuration, banReason, serverScope, ipScope);
 
-        InetAddress targetIp = databaseUtils.getProfilesManager().getIp(target.name());
-
-        databaseUtils.getPunishmentsManager().insertPunishment(
-                PunishmentType.BAN,
-                target.uuid(), targetIp,
-                sender.uuid(), sender.name(),
-                banReason, banDuration,
-                serverScope, serverOrigin,
-                silent, ipScope
-        );
+        databaseUtils.getProfilesManager()
+                .getIp(target.name())
+                .thenCompose(targetIp ->
+                        databaseUtils.getPunishmentsManager().insertPunishment(
+                                PunishmentType.BAN,
+                                target.uuid(),
+                                targetIp,
+                                sender.uuid(),
+                                sender.name(),
+                                banReason,
+                                banDuration,
+                                serverScope,
+                                serverOrigin,
+                                silent,
+                                ipScope
+                        )
+                );
 
         eventDispatcher.banAddedEvent(
                 target.uuid(), target.name(),

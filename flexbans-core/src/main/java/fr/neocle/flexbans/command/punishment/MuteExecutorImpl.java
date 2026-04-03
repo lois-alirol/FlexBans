@@ -14,6 +14,7 @@ import org.geysermc.floodgate.api.FloodgateApi;
 
 import java.net.InetAddress;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class MuteExecutorImpl implements MuteExecutor {
@@ -59,17 +60,24 @@ public class MuteExecutorImpl implements MuteExecutor {
         PlayerInfo targetPlayer = targetInfo.get();
         PlayerInfo senderPlayer = senderInfo.get();
 
-        if (databaseUtils.getPunishmentsManager().isPlayerPunished(PunishmentType.MUTE, targetPlayer.uuid(), serverScope)) {
-            databaseUtils.getPunishmentsManager().removePunishment(
-                    PunishmentType.MUTE,
-                    targetPlayer.uuid(),
-                    senderPlayer.uuid(),
-                    senderPlayer.name(),
-                    "Overridden",
-                    serverScope
-            );
-            messageSender.accept("Previous active mute for this player was removed.");
-        }
+        databaseUtils.getPunishmentsManager()
+                .isPlayerPunished(PunishmentType.MUTE, targetPlayer.uuid(), serverScope)
+                .thenCompose(isPunished -> {
+                    if (!isPunished) return CompletableFuture.completedFuture(false);
+                    return databaseUtils.getPunishmentsManager().removePunishment(
+                            PunishmentType.MUTE,
+                            targetPlayer.uuid(),
+                            senderPlayer.uuid(),
+                            senderPlayer.name(),
+                            "Overridden",
+                            serverScope
+                    );
+                })
+                .thenAccept(removed -> {
+                    if (removed) {
+                        messageSender.accept("Previous active mute for this player was removed.");
+                    }
+                });
 
         processMute(targetPlayer, senderPlayer, duration, reason, serverScope, serverOrigin, silent, ipScope);
     }
@@ -116,16 +124,23 @@ public class MuteExecutorImpl implements MuteExecutor {
 
         platformHandler.applyMute(target.name(), target.uuid(), sender.name(), displayDuration, muteReason, serverScope);
 
-        InetAddress targetIp = databaseUtils.getProfilesManager().getIp(target.name());
-
-        databaseUtils.getPunishmentsManager().insertPunishment(
-                PunishmentType.MUTE,
-                target.uuid(), targetIp,
-                sender.uuid(), sender.name(),
-                muteReason, muteDuration,
-                serverScope, serverOrigin,
-                silent, ipScope
-        );
+        databaseUtils.getProfilesManager()
+                .getIp(target.name())
+                .thenCompose(targetIp ->
+                        databaseUtils.getPunishmentsManager().insertPunishment(
+                                PunishmentType.MUTE,
+                                target.uuid(),
+                                targetIp,
+                                sender.uuid(),
+                                sender.name(),
+                                muteReason,
+                                muteDuration,
+                                serverScope,
+                                serverOrigin,
+                                silent,
+                                ipScope
+                        )
+                );
 
         eventDispatcher.muteAddedEvent(
                 target.uuid(), target.name(),

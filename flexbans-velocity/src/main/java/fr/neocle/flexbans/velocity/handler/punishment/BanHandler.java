@@ -44,15 +44,19 @@ public class BanHandler implements BanPlatformHandler {
 
             UUID resolvedUuid = uuid;
             if (resolvedUuid == null && target != null && !target.isEmpty()) {
-                proxy.getPlayer(target).ifPresent(p -> {
-                });
-
                 Player p = proxy.getPlayer(target).orElse(null);
                 if (p != null) resolvedUuid = p.getUniqueId();
             }
 
             if (resolvedUuid != null) {
-                List<String> bannedIps = profilesManager.getAllIps(resolvedUuid);
+                List<String> bannedIps = null;
+                try {
+                    // getAllIps is async now
+                    bannedIps = profilesManager.getAllIps(resolvedUuid).join();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
                 if (bannedIps != null && !bannedIps.isEmpty()) {
                     for (Player online : proxy.getAllPlayers()) {
                         try {

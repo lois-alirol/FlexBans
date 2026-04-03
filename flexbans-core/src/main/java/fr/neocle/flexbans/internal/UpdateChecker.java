@@ -3,62 +3,67 @@ package fr.neocle.flexbans.internal;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import fr.neocle.flexbans.logger.FlexLogger;
+import fr.neocle.flexbans.util.network.HttpClientProvider;
+import fr.neocle.flexbans.util.scheduler.TaskScheduler;
 
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 
 public class UpdateChecker {
-
     private static final String CHECK_URL =
-            "https://license-checker.license-verif.workers.dev/check-version?version=";
+            "https://license.loisalirol.com/check-version?version=";
+    private static final FlexLogger LOGGER = FlexLogger.get(UpdateChecker.class);
+    private static final HttpClient CLIENT = HttpClientProvider.CLIENT;
 
     private final String currentVersion;
     private final Gson gson = new Gson();
-
-    private final ScheduledExecutorService scheduler =
-            Executors.newSingleThreadScheduledExecutor();
 
     public UpdateChecker(String currentVersion) {
         this.currentVersion = currentVersion;
     }
 
     public void start() {
-        scheduler.schedule(this::checkNow, 0, TimeUnit.SECONDS);
-        scheduler.scheduleAtFixedRate(this::checkNow, 3, 3, TimeUnit.HOURS);
+        TaskScheduler.get().runRepeating(this::checkNow, 10800000);
     }
 
     private void checkNow() {
+        String url = CHECK_URL + currentVersion;
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(5))
+                .GET()
+                .build();
+
         try {
-            URL url = new URL(CHECK_URL + currentVersion);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
+            HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                LOGGER.warn("Failed to check updates, HTTP status: {}", response.statusCode());
+                return;
+            }
 
-            JsonObject json = gson.fromJson(
-                    new InputStreamReader(connection.getInputStream()),
-                    JsonObject.class
-            );
-
+            JsonObject json = gson.fromJson(response.body(), JsonObject.class);
             boolean upToDate = json.get("upToDate").getAsBoolean();
             String latest = json.get("latest").getAsString();
 
-            if (!upToDate) {
-                FlexLogger.warn("==================================================");
-                FlexLogger.warn("FlexBans is NOT up to date!");
-                FlexLogger.warn("Current version : " + currentVersion);
-                FlexLogger.warn("Latest version  : " + latest);
-                FlexLogger.warn("Find the latest version on SITE_NAME");
-                FlexLogger.warn("HTTPS://SITEDOMAIN/PLUGINURL.PLUGINID");
-                FlexLogger.warn("==================================================");
-            }
+            String yellow = "\u001B[38;5;214m";
+            String lightYellow = "\u001B[38;5;228m";
+            String reset = "\u001B[0m";
 
-        } catch (Exception ex) {
-            FlexLogger.warn("Failed to check updates: " + ex.getMessage());
+            if (!upToDate) {
+                LOGGER.info(yellow + "----------===============☰☰☰☰☰☰☰☰☰☰☰===============----------" + reset);
+                LOGGER.info(" ");
+                LOGGER.info(yellow + "FlexBans is NOT up to date!" + reset);
+                LOGGER.info(yellow + "Update at: " + lightYellow + "HTTPS://SITEDOMAIN/PLUGINURL.PLUGINID" + reset);
+                LOGGER.info(yellow + " > Current version: " + lightYellow + currentVersion + reset);
+                LOGGER.info(yellow + " > Latest version : " + lightYellow + latest + reset);
+                LOGGER.info(" ");
+                LOGGER.info(yellow + "----------===============☰☰☰☰☰☰☰☰☰☰☰===============----------" + reset);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check updates: ", e);
         }
     }
 }

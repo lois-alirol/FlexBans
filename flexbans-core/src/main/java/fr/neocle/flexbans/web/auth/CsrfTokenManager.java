@@ -9,7 +9,6 @@ public class CsrfTokenManager {
     private static final SecureRandom secureRandom = new SecureRandom();
     private static final int TOKEN_LENGTH = 32;
 
-    // Maps session/user identifier to their CSRF token
     private static final Map<String, CsrfTokenData> CSRF_TOKENS = new ConcurrentHashMap<>();
     private static final long TOKEN_EXPIRY = 3600000; // 1 hour
 

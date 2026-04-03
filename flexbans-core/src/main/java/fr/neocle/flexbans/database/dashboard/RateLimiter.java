@@ -7,283 +7,271 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
-/**
- * Database-backed rate limiter for login attempts and other actions.
- * Prevents brute force attacks by tracking failed attempts.
- */
 public class RateLimiter {
     private final DatabaseConnectionManager dbManager;
+    private final ExecutorService dbExecutor;
 
-    // Configuration
     private static final int MAX_LOGIN_ATTEMPTS = 5;
     private static final long LOCKOUT_DURATION = 900000; // 15 minutes
-    private static final long ATTEMPT_WINDOW = 300000; // 5 minutes
+    private static final long ATTEMPT_WINDOW = 300000;   // 5 minutes
 
-    public RateLimiter(DatabaseConnectionManager dbManager) {
+    private static final FlexLogger LOGGER = FlexLogger.get(RateLimiter.class);
+
+    public RateLimiter(DatabaseConnectionManager dbManager, ExecutorService dbExecutor) {
         this.dbManager = dbManager;
+        this.dbExecutor = dbExecutor;
     }
 
-    /**
-     * Check if an identifier is currently locked out.
-     */
-    public boolean isLockedOut(String identifier, String attemptType) {
-        String sql = """
-            SELECT locked_until 
-            FROM rate_limits 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
+    public CompletableFuture<Boolean> isLockedOut(String identifier, String attemptType) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                SELECT locked_until
+                FROM rate_limits
+                WHERE identifier = ? AND attempt_type = ?
+            """;
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setString(1, identifier);
-            ps.setString(2, attemptType);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    long lockedUntil = rs.getLong("locked_until");
-                    if (lockedUntil > 0 && System.currentTimeMillis() < lockedUntil) {
-                        return true;
-                    }
-                }
-            }
-
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to check lockout status: " + e.getMessage());
-        }
-
-        return false;
-    }
-
-    /**
-     * Record a failed attempt and potentially lock out the identifier.
-     */
-    public void recordFailedAttempt(String identifier, String attemptType) {
-        long now = System.currentTimeMillis();
-
-        String selectSql = """
-            SELECT attempt_count, first_attempt, last_attempt 
-            FROM rate_limits 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
-
-        String insertSql = """
-            INSERT INTO rate_limits (identifier, attempt_type, attempt_count, first_attempt, last_attempt)
-            VALUES (?, ?, 1, ?, ?)
-        """;
-
-        String updateSql = """
-            UPDATE rate_limits 
-            SET attempt_count = ?, last_attempt = ?, locked_until = ?
-            WHERE identifier = ? AND attempt_type = ?
-        """;
-
-        try (Connection conn = dbManager.getConnection()) {
-            // Check existing attempts
-            int currentAttempts = 0;
-            long firstAttempt = now;
-
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                 ps.setString(1, identifier);
                 ps.setString(2, attemptType);
 
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        currentAttempts = rs.getInt("attempt_count");
-                        firstAttempt = rs.getLong("first_attempt");
-                        long lastAttempt = rs.getLong("last_attempt");
-
-                        // Reset if outside attempt window
-                        if (now - firstAttempt > ATTEMPT_WINDOW) {
-                            currentAttempts = 0;
-                            firstAttempt = now;
+                        long lockedUntil = rs.getLong("locked_until");
+                        if (lockedUntil > 0 && System.currentTimeMillis() < lockedUntil) {
+                            return true;
                         }
                     }
                 }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to check lockout status: ", e);
             }
 
-            // Increment attempts
-            int newAttempts = currentAttempts + 1;
-            long lockedUntil = 0;
+            return false;
+        }, dbExecutor);
+    }
 
-            // Lock out if max attempts reached
-            if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-                lockedUntil = now + LOCKOUT_DURATION;
-                FlexLogger.warn("Locking out " + identifier + " for " + attemptType + " until " + lockedUntil);
-            }
+    public CompletableFuture<Void> recordFailedAttempt(String identifier, String attemptType) {
+        return CompletableFuture.runAsync(() -> {
+            long now = System.currentTimeMillis();
 
-            // Insert or update
-            if (currentAttempts == 0) {
-                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            String selectSql = """
+                SELECT attempt_count, first_attempt, last_attempt
+                FROM rate_limits
+                WHERE identifier = ? AND attempt_type = ?
+            """;
+
+            String insertSql = """
+                INSERT INTO rate_limits (identifier, attempt_type, attempt_count, first_attempt, last_attempt)
+                VALUES (?, ?, 1, ?, ?)
+            """;
+
+            String updateSql = """
+                UPDATE rate_limits
+                SET attempt_count = ?, last_attempt = ?, locked_until = ?
+                WHERE identifier = ? AND attempt_type = ?
+            """;
+
+            try (Connection conn = dbManager.getConnection()) {
+                int currentAttempts = 0;
+                long firstAttempt = now;
+
+                try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
                     ps.setString(1, identifier);
                     ps.setString(2, attemptType);
-                    ps.setLong(3, firstAttempt);
-                    ps.setLong(4, now);
-                    ps.executeUpdate();
-                }
-            } else {
-                try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                    ps.setInt(1, newAttempts);
-                    ps.setLong(2, now);
-                    ps.setLong(3, lockedUntil);
-                    ps.setString(4, identifier);
-                    ps.setString(5, attemptType);
-                    ps.executeUpdate();
-                }
-            }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to record failed attempt: " + e.getMessage());
-        }
-    }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            currentAttempts = rs.getInt("attempt_count");
+                            firstAttempt = rs.getLong("first_attempt");
+                            long lastAttempt = rs.getLong("last_attempt");
 
-    /**
-     * Clear failed attempts for an identifier (after successful login).
-     */
-    public void clearFailedAttempts(String identifier, String attemptType) {
-        String sql = """
-            DELETE FROM rate_limits 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
-
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, identifier);
-            ps.setString(2, attemptType);
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to clear failed attempts: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get remaining lockout time in milliseconds.
-     * Returns 0 if not locked out.
-     */
-    public long getRemainingLockoutTime(String identifier, String attemptType) {
-        String sql = """
-            SELECT locked_until 
-            FROM rate_limits 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
-
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, identifier);
-            ps.setString(2, attemptType);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    long lockedUntil = rs.getLong("locked_until");
-                    long now = System.currentTimeMillis();
-
-                    if (lockedUntil > now) {
-                        return lockedUntil - now;
+                            // Reset if outside attempt window
+                            if (now - firstAttempt > ATTEMPT_WINDOW) {
+                                currentAttempts = 0;
+                                firstAttempt = now;
+                            }
+                        }
                     }
                 }
-            }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to get lockout time: " + e.getMessage());
-        }
+                int newAttempts = currentAttempts + 1;
+                long lockedUntil = 0;
 
-        return 0;
-    }
+                if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
+                    lockedUntil = now + LOCKOUT_DURATION;
+                    LOGGER.debug("Locking out {} for {} until {}", identifier, attemptType, lockedUntil);
+                }
 
-    /**
-     * Get current attempt count for an identifier.
-     */
-    public int getAttemptCount(String identifier, String attemptType) {
-        String sql = """
-            SELECT attempt_count, first_attempt 
-            FROM rate_limits 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
-
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, identifier);
-            ps.setString(2, attemptType);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    long firstAttempt = rs.getLong("first_attempt");
-
-                    // Check if still within attempt window
-                    if (System.currentTimeMillis() - firstAttempt <= ATTEMPT_WINDOW) {
-                        return rs.getInt("attempt_count");
+                if (currentAttempts == 0) {
+                    try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                        ps.setString(1, identifier);
+                        ps.setString(2, attemptType);
+                        ps.setLong(3, firstAttempt);
+                        ps.setLong(4, now);
+                        ps.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                        ps.setInt(1, newAttempts);
+                        ps.setLong(2, now);
+                        ps.setLong(3, lockedUntil);
+                        ps.setString(4, identifier);
+                        ps.setString(5, attemptType);
+                        ps.executeUpdate();
                     }
                 }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to record failed attempt: ", e);
             }
-
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to get attempt count: " + e.getMessage());
-        }
-
-        return 0;
+        }, dbExecutor);
     }
 
-    /**
-     * Clean up old rate limit entries (should be run periodically).
-     */
-    public int cleanupOldEntries() {
-        long cutoff = System.currentTimeMillis() - (LOCKOUT_DURATION * 2);
+    public CompletableFuture<Void> clearFailedAttempts(String identifier, String attemptType) {
+        return CompletableFuture.runAsync(() -> {
+            String sql = """
+                DELETE FROM rate_limits
+                WHERE identifier = ? AND attempt_type = ?
+            """;
 
-        String sql = """
-            DELETE FROM rate_limits 
-            WHERE last_attempt < ? 
-              AND (locked_until IS NULL OR locked_until < ?)
-        """;
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, identifier);
+                ps.setString(2, attemptType);
+                ps.executeUpdate();
 
-            ps.setLong(1, cutoff);
-            ps.setLong(2, System.currentTimeMillis());
-
-            int deleted = ps.executeUpdate();
-            if (deleted > 0) {
-                FlexLogger.info("Cleaned up " + deleted + " old rate limit entries");
+            } catch (SQLException e) {
+                LOGGER.error("Failed to clear failed attempts: ", e);
             }
-            return deleted;
+        }, dbExecutor);
+    }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to cleanup rate limits: " + e.getMessage());
+    public CompletableFuture<Long> getRemainingLockoutTime(String identifier, String attemptType) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                SELECT locked_until
+                FROM rate_limits
+                WHERE identifier = ? AND attempt_type = ?
+            """;
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, identifier);
+                ps.setString(2, attemptType);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        long lockedUntil = rs.getLong("locked_until");
+                        long now = System.currentTimeMillis();
+
+                        if (lockedUntil > now) {
+                            return lockedUntil - now;
+                        }
+                    }
+                }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to get lockout time: ", e);
+            }
+
+            return 0L;
+        }, dbExecutor);
+    }
+
+    public CompletableFuture<Integer> getAttemptCount(String identifier, String attemptType) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                SELECT attempt_count, first_attempt
+                FROM rate_limits
+                WHERE identifier = ? AND attempt_type = ?
+            """;
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, identifier);
+                ps.setString(2, attemptType);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        long firstAttempt = rs.getLong("first_attempt");
+
+                        if (System.currentTimeMillis() - firstAttempt <= ATTEMPT_WINDOW) {
+                            return rs.getInt("attempt_count");
+                        }
+                    }
+                }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to get attempt count: ", e);
+            }
+
             return 0;
-        }
+        }, dbExecutor);
     }
 
-    /**
-     * Manually unlock an identifier (admin override).
-     */
-    public boolean unlock(String identifier, String attemptType) {
-        String sql = """
-            UPDATE rate_limits 
-            SET locked_until = NULL, attempt_count = 0 
-            WHERE identifier = ? AND attempt_type = ?
-        """;
+    public CompletableFuture<Integer> cleanupOldEntries() {
+        return CompletableFuture.supplyAsync(() -> {
+            long cutoff = System.currentTimeMillis() - (LOCKOUT_DURATION * 2);
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+            String sql = """
+                DELETE FROM rate_limits
+                WHERE last_attempt < ?
+                  AND (locked_until IS NULL OR locked_until < ?)
+            """;
 
-            ps.setString(1, identifier);
-            ps.setString(2, attemptType);
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            int updated = ps.executeUpdate();
-            if (updated > 0) {
-                FlexLogger.info("Manually unlocked " + identifier + " for " + attemptType);
-                return true;
+                ps.setLong(1, cutoff);
+                ps.setLong(2, System.currentTimeMillis());
+
+                int deleted = ps.executeUpdate();
+                if (deleted > 0) {
+                    LOGGER.debug("Cleaned up {} old rate limit entries", deleted);
+                }
+                return deleted;
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to cleanup rate limits: ", e);
+                return 0;
+            }
+        }, dbExecutor);
+    }
+
+    public CompletableFuture<Boolean> unlock(String identifier, String attemptType) {
+        return CompletableFuture.supplyAsync(() -> {
+            String sql = """
+                UPDATE rate_limits
+                SET locked_until = NULL, attempt_count = 0
+                WHERE identifier = ? AND attempt_type = ?
+            """;
+
+            try (Connection conn = dbManager.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, identifier);
+                ps.setString(2, attemptType);
+
+                int updated = ps.executeUpdate();
+                if (updated > 0) {
+                    LOGGER.debug("Manually unlocked {} for {}", identifier, attemptType);
+                    return true;
+                }
+
+            } catch (SQLException e) {
+                LOGGER.error("Failed to unlock: ", e);
             }
 
-        } catch (SQLException e) {
-            FlexLogger.error("Failed to unlock: " + e.getMessage());
-        }
-
-        return false;
+            return false;
+        }, dbExecutor);
     }
 }

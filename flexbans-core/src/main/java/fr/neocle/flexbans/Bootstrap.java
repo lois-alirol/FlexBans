@@ -23,32 +23,38 @@ import fr.neocle.flexbans.internal.LicenseChecker;
 import fr.neocle.flexbans.internal.UpdateChecker;
 import fr.neocle.flexbans.locale.LanguageManager;
 import fr.neocle.flexbans.logger.FlexLogger;
-import fr.neocle.flexbans.util.ImagesLoader;
-import fr.neocle.flexbans.util.JettyReloader;
+import fr.neocle.flexbans.logger.JettyLoggerBridge;
+import fr.neocle.flexbans.util.loader.FaviconConverter;
+import fr.neocle.flexbans.util.loader.JettyReloader;
+import fr.neocle.flexbans.util.loader.PublicFolderLoader;
+import fr.neocle.flexbans.util.scheduler.TaskScheduler;
 import fr.neocle.flexbans.util.broadcast.Broadcaster;
-import fr.neocle.flexbans.util.commandsexecution.CommandsExecution;
 import fr.neocle.flexbans.util.player.PlayerHeadImage;
 import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import fr.neocle.flexbans.web.ApiServlet;
+import fr.neocle.flexbans.web.auth.TokenManager;
+import fr.neocle.flexbans.web.socket.VerifyWebSocketServlet;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.rewrite.handler.RewriteRegexRule;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceCollection;
 
 import java.io.File;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Bootstrap {
     protected Path dataFolder;
     protected Logger logger;
     protected PlatformHandlerFactory platformHandlerFactory;
-    protected File pluginFolder;
     protected DatabaseUtils databaseUtils;
     protected EventDispatcher eventDispatcher;
     protected FlexBansAPI api;
@@ -68,7 +74,11 @@ public class Bootstrap {
     protected WarningPlatformHandler warningPlatformHandler;
     protected ServerLockPlatformHandler serverLockHandler;
     protected Broadcaster broadcaster;
-    protected CommandsExecution commandsExecution;
+
+    private Server webServer;
+    private ApiServlet apiServlet;
+
+    private static final FlexLogger LOGGER = FlexLogger.get(Bootstrap.class);
 
     public void initialize(Path dataFolder, Logger logger,
                            EventDispatcher eventDispatcher,
@@ -76,7 +86,6 @@ public class Bootstrap {
                            PlatformHandlerFactory platformHandlerFactory) {
         this.dataFolder = dataFolder;
         this.logger = logger;
-        this.pluginFolder = new File("plugins/FlexBans");
         this.databaseUtils = databaseUtils;
         this.eventDispatcher = eventDispatcher;
         this.platformHandlerFactory = platformHandlerFactory;
@@ -89,8 +98,10 @@ public class Bootstrap {
             initializeAPI();
             initializeLanguage();
 
-            ImagesLoader.extractImagesFromJar(new File(pluginFolder, "images"));
+            File publicFolder = dataFolder.resolve("public").toFile();
+            PublicFolderLoader.extractPublicFolder(publicFolder);
 
+            new TokenManager(dataFolder);
             new UpdateChecker(getVersion()).start();
         } catch (URISyntaxException e) {
             logger.severe("Error setting up FlexBans: " + e.getMessage());
@@ -100,14 +111,13 @@ public class Bootstrap {
     private void initializeHandlers() throws URISyntaxException {
         UuidUsernameResolver.initialize(databaseUtils.getProfilesManager());
 
-        playerHeadImage = new PlayerHeadImage(pluginFolder);
+        playerHeadImage = new PlayerHeadImage(dataFolder.toFile());
 
-        commandsExecution = platformHandlerFactory.createCommandsExecution();
         broadcaster = platformHandlerFactory.createBroadcaster();
         banPlatformHandler = platformHandlerFactory.createBanHandler();
         mutePlatformHandler = platformHandlerFactory.createMuteHandler();
         kickPlatformHandler = platformHandlerFactory.createKickHandler();
-        warningPlatformHandler = platformHandlerFactory. createWarningHandler();
+        warningPlatformHandler = platformHandlerFactory.createWarningHandler();
         serverLockHandler = platformHandlerFactory.createServerLockHandler();
     }
 
@@ -153,49 +163,73 @@ public class Bootstrap {
 
     }
 
+    private void createFavicon() throws Exception {
+        String faviconUrl = ConfigManager.getString("server-display.favicon");
+
+        boolean isValidUrl;
+        try {
+            URI uri = new URI(faviconUrl);
+            isValidUrl = uri.getScheme() != null && uri.getHost() != null;
+        } catch (Exception e) {
+            isValidUrl = false;
+        }
+
+        if (!isValidUrl) {
+            return;
+        }
+
+        FaviconConverter.convertUrlToFavicon(
+                faviconUrl, dataFolder.resolve("public").toFile()
+        );
+    }
+
     public void startWebServer(int port) {
-        Server server = new Server(port);
+        Log.setLog(new JettyLoggerBridge("Web"));
+        Thread.currentThread().setContextClassLoader(Bootstrap.class.getClassLoader());
+
+        webServer = new Server(port);
+
+        File publicFolder = dataFolder.resolve("public").toFile();
 
         ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
         context.setContextPath("/");
 
-        ApiServlet apiServlet = new ApiServlet(databaseUtils, playerHeadImage, commandsExecution);
+        apiServlet = new ApiServlet(databaseUtils, playerHeadImage, dataFolder);
         context.addServlet(new ServletHolder(apiServlet), "/api/*");
+        context.addServlet(new ServletHolder(new VerifyWebSocketServlet()), "/api/ws/verify");
 
-        context.setResourceBase(
-                Bootstrap.class.getClassLoader().getResource("web").toExternalForm()
-        );
+        Resource publicRes = Resource.newResource(publicFolder);
+        Resource webRes = Resource.newResource(Bootstrap.class.getClassLoader().getResource("web"));
+        context.setBaseResource(new ResourceCollection(publicRes, webRes));
 
-        ServletHolder staticServlet = new ServletHolder("static", DefaultServlet.class);
-        staticServlet.setInitParameter("dirAllowed", "false");
-        context.addServlet(staticServlet, "/");
+        ServletHolder staticFiles = new ServletHolder("default", DefaultServlet.class);
+        staticFiles.setInitParameter("dirAllowed", "false");
+        context.addServlet(staticFiles, "/");
 
         RewriteHandler rewrite = new RewriteHandler();
         rewrite.setRewriteRequestURI(true);
         rewrite.setRewritePathInfo(false);
 
         RewriteRegexRule spaRule = new RewriteRegexRule();
-        spaRule.setRegex("^/(?!api|static|.*\\..*).*$");
+        spaRule.setRegex("^/(?!api/|api$|.*\\..*).*$");
         spaRule.setReplacement("/index.html");
         rewrite.addRule(spaRule);
 
         rewrite.setHandler(context);
-
-        server.setHandler(rewrite);
+        webServer.setHandler(rewrite);
 
         try {
-            server.start();
+            createFavicon();
+            webServer.start();
             new Thread(() -> {
                 try {
-                    server.join();
+                    webServer.join();
                 } catch (InterruptedException e) {
-                    logger.severe("Error while joining server thread: " + e.getMessage());
-                    logger.log(Level.SEVERE, "Detailed exception information", e);
+                    logger.severe("Server thread interrupted: " + e.getMessage());
                 }
             }).start();
         } catch (Exception e) {
-            logger.severe("Failed to start web server on port " + port + ": " + e.getMessage());
-            logger.log(Level.SEVERE, "Detailed exception information", e);
+            LOGGER.error("Error starting web server: ", e);
         }
     }
 
@@ -207,19 +241,41 @@ public class Bootstrap {
         String buyerId = LicenseChecker.getDiscordId(ConfigManager.getString("license-key"));
         String buyerName = null;
 
-        logger.info(yellow + "    ________          ____                  " + reset);
-        logger.info(yellow + "   / ____/ /__  _  __/ __ )____ _____  _____" + reset);
-        logger.info(yellow + "  / /_  / / _ \\| |/_/ __  / __ `/ __ \\/ ___/" + reset);
-        logger.info(yellow + " / __/ / /  __/>  </ /_/ / /_/ / / / (__  ) " + reset);
-        logger.info(yellow + "/_/   /_/\\___/_/|_/_____/\\__,_/_/ /_/____/  " + reset);
-        logger.info(yellow + "=======================================================================" + reset);
+        logger.info(yellow + "----------===============☰☰☰☰☰☰☰☰☰☰☰===============----------" + reset);
+        logger.info(yellow + "            ___ _             ___                          " + reset);
+        logger.info(yellow + "           / __\\ | _____  __ / __\\ __ _ _ __  ___          " + reset);
+        logger.info(yellow + "          / _\\ | |/ _ \\ \\/ //__\\/// _` | '_ \\/ __|         " + reset);
+        logger.info(yellow + "         / /   | |  __/>  </ \\/  \\ (_| | | | \\__ \\         " + reset);
+        logger.info(yellow + "         \\/    |_|\\___/_/\\_\\_____/\\__,_|_| |_|___/         " + reset);
+        logger.info(" ");
+
         if (isWebServerEnabled) {
-            logger.info(yellow + "Webserver is running on " + lightYellow + address + ":" + port + reset);
+            logger.info(yellow + " > Dashboard listening to port: " + lightYellow + port + reset);
+            logger.info(yellow + " > Public dashboard address: " + lightYellow + address + reset);
         }
-        logger.info(yellow + "Platform: " + lightYellow + platform + " " + version + reset);
-        logger.info(yellow + "Developer: " + lightYellow + "Neocle" + reset);
-        logger.info(yellow + "Licensed to: " + lightYellow + "@" + buyerName + reset);
-        logger.info(yellow + "=======================================================================" + reset);
+
+        logger.info(yellow + " > Platform: " + lightYellow + platform + " " + version + reset);
+        logger.info(yellow + " > Developer: " + lightYellow + "Neocle" + reset);
+        logger.info(yellow + " > Licensed to: " + lightYellow + "@" + buyerName + reset);
+        logger.info(yellow + "----------===============☰☰☰☰☰☰☰☰☰☰☰===============----------" + reset);
+    }
+
+    public boolean shutdown() {
+        try {
+            if (webServer != null && webServer.isRunning()) {
+                webServer.stop();
+                webServer.join();
+                webServer = null;
+                LOGGER.info("Web server stopped successfully.");
+            }
+
+            TaskScheduler.get().shutdown();
+
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("Error while stopping web server or schedulers: ", e);
+            return false;
+        }
     }
 
     public Path getDataFolder() {

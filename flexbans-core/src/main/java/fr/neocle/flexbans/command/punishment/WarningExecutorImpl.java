@@ -12,7 +12,6 @@ import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import org.geysermc.floodgate.api.FloodgateApi;
 import fr.neocle.flexbans.command.Common.PlayerInfo;
 
-import java.net.InetAddress;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -76,12 +75,16 @@ public class WarningExecutorImpl implements WarningExecutor {
 
         String warningReason = resolveReason(reason);
 
-        int warningCount = databaseUtils.getPunishmentsManager().getActiveWarningCount(target.uuid(), serverScope) + 1;
+        databaseUtils.getPunishmentsManager()
+                .getActiveWarningCount(target.uuid(), serverScope)
+                .thenAccept(count -> {
+                    int warningCount = count + 1;
 
-        applyWarningToSystem(target, sender, warningReason, serverScope, serverOrigin, silent, ipScope, warningCount);
-        broadcastWarning(target.name(), sender.name(), warningReason, warningCount + 1, silent);
+                    applyWarningToSystem(target, sender, warningReason, serverScope, serverOrigin, silent, ipScope, warningCount);
+                    broadcastWarning(target.name(), sender.name(), warningReason, warningCount, silent);
 
-        messageSender.accept("§aWarning issued successfully. " + target.name() + " now has " + (warningCount + 1) + " active warning(s).");
+                    messageSender.accept("§aWarning issued successfully. " + target.name() + " now has " + warningCount + " active warning(s).");
+                });
     }
 
     private String resolveReason(String reason) {
@@ -105,24 +108,34 @@ public class WarningExecutorImpl implements WarningExecutor {
         int expiresAfterDays = ConfigManager.getInt("punishments-system.built-in.warnings.expires-after-days");
         long duration = TimeUnit.DAYS.toMillis(expiresAfterDays);
 
-        InetAddress targetIp = databaseUtils.getProfilesManager().getIp(target.name());
-
-        databaseUtils.getPunishmentsManager().insertPunishment(
-                PunishmentsManager.PunishmentType.WARNING,
-                target.uuid(), targetIp,
-                sender.uuid(), sender.name(),
-                warningReason, duration,
-                serverScope, serverOrigin,
-                silent, ipScope
-        );
-
-        /*eventDispatcher.warningAddedEvent(
-                target.uuid(), target.name(),
-                sender.uuid(), sender.name(),
-                warningReason,
-                serverScope, serverOrigin,
-                silent, ipScope
-        );*/
+        databaseUtils.getProfilesManager()
+                .getIp(target.name())
+                .thenCompose(targetIp ->
+                        databaseUtils.getPunishmentsManager().insertPunishment(
+                                PunishmentsManager.PunishmentType.WARNING,
+                                target.uuid(),
+                                targetIp,
+                                sender.uuid(),
+                                sender.name(),
+                                warningReason,
+                                duration,
+                                serverScope,
+                                serverOrigin,
+                                silent,
+                                ipScope
+                        )
+                )
+                .thenAccept(punishmentId -> {
+                    if (punishmentId > 0) {
+                        // eventDispatcher.warningAddedEvent(
+                        //     target.uuid(), target.name(),
+                        //     sender.uuid(), sender.name(),
+                        //     warningReason,
+                        //     serverScope, serverOrigin,
+                        //     silent, ipScope
+                        // );
+                    }
+                });
     }
 
     private void broadcastWarning(String targetName, String senderName, String reason, int warningCount, boolean silent) {

@@ -3,6 +3,7 @@ package fr.neocle.flexbans.velocity.command.helper.punishment;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import fr.neocle.flexbans.common.command.punishment.warning.IWarningCommandHelper;
+import fr.neocle.flexbans.velocity.command.util.PluginMessageUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,6 +13,13 @@ public class VelocityWarningCommandHelper implements IWarningCommandHelper {
 
     public VelocityWarningCommandHelper(ProxyServer proxyServer) {
         this.proxyServer = proxyServer;
+    }
+
+    @Override
+    public void sendDialogMessage(String playerName, String dialogType) {
+        proxyServer.getPlayer(playerName).ifPresent(player ->
+                PluginMessageUtil.sendDialogMessage(player, dialogType)
+        );
     }
 
     @Override

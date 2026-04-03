@@ -20,7 +20,8 @@ public final class HistoryCommand {
     public HistoryCommand(ProxyServer proxyServer, DatabaseUtils databaseUtils,
                           DatabaseConnectionManager dbManager) {
         this.commandExecutor = new HistoryCommandExecutor(
-                new VelocityHistoryCommandHelper(proxyServer, databaseUtils, dbManager)
+                new VelocityHistoryCommandHelper(proxyServer, databaseUtils, dbManager),
+                databaseUtils.getProfilesManager()
         );
     }
 

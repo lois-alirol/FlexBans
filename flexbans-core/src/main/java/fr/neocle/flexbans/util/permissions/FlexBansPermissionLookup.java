@@ -1,4 +1,4 @@
-package fr.neocle.flexbans.util;
+package fr.neocle.flexbans.util.permissions;
 
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;

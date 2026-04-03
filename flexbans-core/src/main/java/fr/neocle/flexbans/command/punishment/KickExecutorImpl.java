@@ -11,7 +11,6 @@ import fr.neocle.flexbans.util.broadcast.Broadcaster;
 import fr.neocle.flexbans.util.player.UuidUsernameResolver;
 import org.geysermc.floodgate.api.FloodgateApi;
 
-import java.net.InetAddress;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -96,16 +95,23 @@ public class KickExecutorImpl implements KickExecutor {
 
         platformHandler.applyKick(target.name(), target.uuid(), sender.name(), kickReason);
 
-        InetAddress targetIp = databaseUtils.getProfilesManager().getIp(target.name());
-
-        databaseUtils.getPunishmentsManager().insertPunishment(
-                PunishmentsManager.PunishmentType.KICK,
-                target.uuid(), targetIp,
-                sender.uuid(), sender.name(),
-                kickReason, -1,
-                "Global", serverOrigin,
-                silent, ipScope
-        );
+        databaseUtils.getProfilesManager()
+                .getIp(target.name())
+                .thenCompose(targetIp ->
+                        databaseUtils.getPunishmentsManager().insertPunishment(
+                                PunishmentsManager.PunishmentType.MUTE,
+                                target.uuid(),
+                                targetIp,
+                                sender.uuid(),
+                                sender.name(),
+                                kickReason,
+                                -1,
+                                "Global",
+                                serverOrigin,
+                                silent,
+                                ipScope
+                        )
+                );
 
         eventDispatcher.kickAddedEvent(
                 target.uuid(), target.name(),

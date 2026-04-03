@@ -3,6 +3,7 @@ package fr.neocle.flexbans.util.broadcast;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import fr.neocle.flexbans.util.ColorUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 
@@ -24,7 +25,7 @@ public class BroadcasterVelocity implements Broadcaster {
         }
 
         CommandSource console = server.getConsoleCommandSource();
-        console.sendMessage(formattedMessage);
+        console.sendPlainMessage(ColorUtils.toAnsi(formattedMessage));
     }
 
     @Override
@@ -38,6 +39,6 @@ public class BroadcasterVelocity implements Broadcaster {
         }
 
         CommandSource console = server.getConsoleCommandSource();
-        console.sendMessage(formattedMessage);
+        console.sendPlainMessage(ColorUtils.toAnsi(formattedMessage));
     }
 }

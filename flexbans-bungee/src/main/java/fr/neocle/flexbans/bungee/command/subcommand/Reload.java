@@ -10,11 +10,10 @@ import java.nio.file.Path;
 import java.util.Map;
 
 public class Reload extends Command {
-    private final Path dataFolder;
+    private static final FlexLogger LOGGER = FlexLogger.get(Reload.class);
 
     public Reload(Path dataFolder) {
         super("reload", "flexbans.reload");
-        this.dataFolder = dataFolder;
     }
 
     @Override
@@ -30,10 +29,10 @@ public class Reload extends Command {
         if (newConfig != null) {
 
             sender.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.reload.success"));
-            FlexLogger.info(LanguageManager.getMessageString("commands.logging.reload.success"));
+            LOGGER.info(LanguageManager.getMessageString("commands.logging.reload.success"));
         } else {
             sender.sendMessage(LanguageManager.getBungeeMessageComponent(sender, "commands.reload.fail"));
-            FlexLogger.error(LanguageManager.getMessageString("commands.logging.reload.fail"));
+            LOGGER.error(LanguageManager.getMessageString("commands.logging.reload.fail"));
         }
     }
 }
