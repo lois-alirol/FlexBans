@@ -1,25 +1,22 @@
-import React, { useEffect, useState } from "react";
-import { FaTimes } from "react-icons/fa";
-import { useServerConfig } from "../../../hooks/useServerConfig.ts";
-import { usePunishmentUpdate } from "../../../hooks/usePunishmentUpdate.ts";
+import React, { useEffect, useState } from 'react';
+import { FaTimes } from 'react-icons/fa';
 
-type Theme = "dark" | "light";
+import { usePunishmentUpdate } from '@hooks/usePunishmentUpdate';
+import {useTranslation} from "react-i18next";
 
 interface EditionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
-    currentTheme: Theme;
     punishmentId: number;
     punishmentType: string;
-    initialExpiry?: string; // 'YYYY-MM-DD' or 'Never'
+    initialExpiry?: string;
 }
 
 const EditionModal: React.FC<EditionModalProps> = ({
                                                        isOpen,
                                                        onClose,
                                                        onSuccess,
-                                                       currentTheme,
                                                        punishmentId,
                                                        initialExpiry,
                                                    }) => {
@@ -27,23 +24,20 @@ const EditionModal: React.FC<EditionModalProps> = ({
     const [newExpiry, setNewExpiry] = useState("");
     const [isPermanent, setIsPermanent] = useState(false);
 
-    const { serverConfig } = useServerConfig();
     const { updatePunishment, isUpdating, error } = usePunishmentUpdate();
+    const { t } = useTranslation();
 
-    // Helper to format the string for the HTML input (YYYY-MM-DDThh:mm)
     const formatDateForInput = (expiryStr?: string) => {
         if (!expiryStr || expiryStr === "Never") {
-            // Default to 1 hour from now if "Never" or undefined is passed
             const date = new Date(Date.now() + 3600000);
             return date.toISOString().slice(0, 16);
         }
 
-        // If it's YYYY-MM-DD, we append a default time so the input accepts it
         const date = new Date(expiryStr);
-        // Check if date is valid
         if (isNaN(date.getTime())) {
             return new Date(Date.now() + 3600000).toISOString().slice(0, 16);
         }
+
         return date.toISOString().slice(0, 16);
     };
 
@@ -64,7 +58,6 @@ const EditionModal: React.FC<EditionModalProps> = ({
         if (!newReason.trim() || isUpdating) return;
 
         try {
-            // If permanent, duration is usually -1 or 0 depending on your backend API
             let calculatedDuration = -1;
 
             if (!isPermanent) {
@@ -88,70 +81,64 @@ const EditionModal: React.FC<EditionModalProps> = ({
 
     if (!isOpen) return null;
 
-    const isDark = currentTheme === "dark";
-    const modalClasses = isDark
-        ? "bg-[#151515e6] text-white border border-white/10"
-        : "bg-white/90 text-gray-900 border border-black/5";
-
-    const inputClasses = isDark
-        ? "bg-white/5 border border-white/10 text-white placeholder-white/60 focus:ring-2 disabled:opacity-50"
-        : "bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-2 disabled:opacity-50";
-
-    const accentColor = serverConfig.serverColor || "#3b82f6";
+    const modalClasses = "bg-modal-background text-modal-text-primary border border-border-c";
+    const inputClasses = "bg-modal-surface border border-surface-border text-modal-text-primary placeholder-modal-text-disabled focus:outline-none focus:ring-2";
 
     return (
         <div
-            className="fixed inset-0 backdrop-filter backdrop-blur-sm bg-black/40 flex items-center justify-center z-[200] p-4"
+            className="fixed inset-0 backdrop-filter backdrop-blur-sm bg-modal-background/40 flex items-center justify-center z-200 p-4"
             onClick={onClose}
         >
             <div
-                className={`relative w-full max-w-md max-h-[90vh] rounded-2xl shadow-[0_18px_55px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col ${modalClasses}`}
+                className={`relative w-full max-w-md max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-[0_18px_55px_rgba(0,0,0,0.45)] ${modalClasses}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-white/6 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 transition duration-200"
+                    className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-modal-surface text-modal-text-secondary hover:text-red-400 hover:bg-red-400/10 transition duration-200 backdrop-blur"
                     disabled={isUpdating}
+                    aria-label="Close modal"
                 >
                     <FaTimes />
                 </button>
 
                 <div className="p-6 pb-3 flex items-center justify-between gap-4 pr-14">
-                    <h2 className="text-2xl font-bold">Edit Punishment</h2>
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300">
+                    <h2 className="text-2xl font-bold leading-tight">{t("edit-modal.title")}</h2>
+                    <span
+                        className="bg-server-color/20 border-server-color/50 text-server-color px-3 py-1 text-xs font-semibold rounded-full tracking-wide border"
+                    >
                         ID: #{punishmentId}
                     </span>
                 </div>
 
-                <div className="px-6 pb-6 flex-1 overflow-y-auto text-left">
+                <div className="px-6 pb-6 flex-1 overflow-y-auto">
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {error && (
-                            <div className="p-3 text-sm bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg">
+                            <div className="p-3 text-sm bg-modal-error border border-modal-error-border text-modal-text-error rounded-lg">
                                 {error}
                             </div>
                         )}
 
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <label className="block text-sm font-semibold uppercase tracking-wide text-gray-400">
-                                    New Expiry Date
+                                <label className="block text-sm font-semibold uppercase tracking-wide text-modal-text-secondary">
+                                    {t("edit-modal.new-date.label")}
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer text-sm">
+                                <label className="flex items-center gap-2 cursor-pointer text-sm text-modal-text-primary">
                                     <input
                                         type="checkbox"
                                         checked={isPermanent}
                                         onChange={(e) => setIsPermanent(e.target.checked)}
-                                        className="rounded border-gray-400"
+                                        className="accent-server-color rounded border-surface-border"
                                     />
-                                    Permanent
+                                    {t("edit-modal.permanent")}
                                 </label>
                             </div>
 
                             {!isPermanent && (
                                 <input
                                     type="datetime-local"
-                                    className={`w-full rounded-lg px-3 py-2 text-base transition ${inputClasses}`}
-                                    style={{ '--tw-ring-color': `${accentColor}66` } as any}
+                                    className={`w-full rounded-lg px-3 py-2 text-base transition ${inputClasses} ring-2 ring-server-color/40`}
                                     value={newExpiry}
                                     onChange={(e) => setNewExpiry(e.target.value)}
                                     disabled={isUpdating}
@@ -159,25 +146,24 @@ const EditionModal: React.FC<EditionModalProps> = ({
                                 />
                             )}
                             {isPermanent && (
-                                <div className={`w-full rounded-lg px-3 py-2 text-base italic opacity-70 ${inputClasses}`}>
-                                    This punishment will not expire.
+                                <div className={`w-full rounded-lg px-3 py-2 text-base italic text-modal-text-disabled border border-surface-border bg-modal-surface/50`}>
+                                    {t("edit-modal.new-date.placeholder")}
                                 </div>
                             )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-sm font-semibold uppercase tracking-wide text-gray-400">
-                                Reason for Change
+                            <label className="block text-sm font-semibold uppercase tracking-wide text-modal-text-secondary">
+                                {t("edit-modal.new-reason.title")}
                             </label>
                             <textarea
-                                className={`w-full rounded-lg px-3 py-2 text-base transition ${inputClasses}`}
-                                style={{ '--tw-ring-color': `${accentColor}66` } as any}
+                                className={`w-full rounded-lg px-3 py-2 text-base transition ${inputClasses} ring-2 ring-server-color/40`}
                                 rows={4}
                                 value={newReason}
                                 onChange={(e) => setNewReason(e.target.value)}
                                 required
                                 disabled={isUpdating}
-                                placeholder="Why are you modifying this punishment?"
+                                placeholder={t("edit-modal.new-reason.placeholder")}
                             />
                         </div>
 
@@ -185,21 +171,17 @@ const EditionModal: React.FC<EditionModalProps> = ({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 rounded-xl bg-white/10 text-gray-200 hover:bg-white/15 transition duration-200"
+                                className="px-4 py-2 rounded-xl bg-modal-surface text-modal-text-primary hover:bg-modal-surface-elevated transition duration-200 disabled:opacity-60"
                                 disabled={isUpdating}
                             >
-                                Cancel
+                                {t("edit-modal.buttons.cancel")}
                             </button>
                             <button
                                 type="submit"
-                                className="px-6 py-2 rounded-xl text-white font-semibold transition duration-200 disabled:opacity-60"
-                                style={{
-                                    backgroundColor: accentColor,
-                                    boxShadow: `0 10px 25px ${accentColor}55`,
-                                }}
+                                className="bg-server-color px-6 py-2 rounded-xl text-modal-text-primary font-semibold transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                                 disabled={isUpdating || !newReason.trim()}
                             >
-                                {isUpdating ? "Saving..." : "Save Changes"}
+                                {isUpdating ? t("edit-modal.buttons.confirm.saving") : t("edit-modal.buttons.confirm.save")}
                             </button>
                         </div>
                     </form>

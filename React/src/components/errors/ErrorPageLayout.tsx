@@ -1,75 +1,64 @@
 import React, { type ReactNode } from 'react';
-import { useServerConfig } from '../../hooks/useServerConfig';
-import { Link } from 'react-router-dom';
+import { BiSolidErrorAlt } from "react-icons/bi";
+
+import {useTitle} from "@hooks/useTitle.ts";
+
+import BackButton from '@components/common/BackButton';
 
 interface ErrorPageLayoutProps {
     statusCode: number;
     title: string;
     description: string;
-    actionText: string;
-    iconClass: string;
     details?: ReactNode;
 }
 
 const ErrorPageLayout: React.FC<ErrorPageLayoutProps> = ({
-    statusCode,
-    title,
-    description,
-    actionText,
-    iconClass,
-    details
-}) => {
-    const { serverConfig } = useServerConfig();
-
-    const serverName = serverConfig.serverName;
-    const serverColor = serverConfig.serverColor;
-    const serverColorHover = serverConfig.serverColorHover;
-
-    const buttonStyle = {
-        '--server-color': serverColor,
-        '--server-color-hover': serverColorHover,
-        backgroundColor: 'var(--server-color)',
-    } as React.CSSProperties;
+                                                             statusCode,
+                                                             title,
+                                                             description,
+                                                             details
+                                                         }) => {
+    useTitle(title);
 
     return (
-        <div className="bg-[#2e2e2e] text-[#e4e4e7] flex items-center justify-center min-h-screen font-sans relative overflow-hidden">
-            <title>{statusCode} - {serverName}</title>
+        <div className={`min-h-screen bg-background text-text-primary flex items-center justify-center p-6 relative overflow-hidden`}>
+            <div className="bg-surface p-12 rounded-3xl text-center border border-surface-border max-w-md w-full relative overflow-hidden">
+                <div
+                    className="bg-server-color absolute top-0 left-0 w-full h-1.5 opacity-50"
+                />
 
-            <div className="bg-[#1f1f1f] p-8 md:p-12 rounded-2xl shadow-2xl w-full max-w-xl text-center z-10 border border-[#3b3b3b]">
-                <p 
-                    className="text-8xl font-extrabold mt-2 mb-4"
-                    style={{color: serverColor}}
-                >
-                    {statusCode}
-                </p>
-                <h1 className="text-3xl md:text-4xl mb-6 font-bold tracking-tight text-white">
-                    {title}
-                </h1>
-                
-                <p className={`mb-6 text-base md:text-lg text-gray-400 ${details ? 'mb-4' : ''}`}>
+                <div className="flex justify-center mb-6">
+                    <div
+                        className="bg-server-color/30 text-server-color p-5 rounded-2xl flex items-center justify-center transition-transform hover:scale-110 duration-500"
+                    >
+                        <BiSolidErrorAlt size={42}/>
+                    </div>
+                </div>
+
+                <div className="mb-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] opacity-30">
+                        Error {statusCode}
+                    </span>
+                    <h2 className="text-2xl font-black text-text-primary mt-1">{title}</h2>
+                </div>
+
+                <p className="opacity-60 text-sm leading-relaxed mb-8">
                     {description}
                 </p>
-                
+
                 {details && (
-                    <div className="mt-4 mb-6 p-4 bg-[#2e2e2e] rounded-lg text-left text-sm border border-[#3b3b3b]">
+                    <div className="mb-8 p-4 bg-surface-elevated rounded-xl text-left text-[11px] font-mono border border-surface-border text-text-secondary break-all leading-normal">
+                        <span className="text-text-secondary/40 block mb-1 uppercase tracking-tighter">More Information:</span>
                         {details}
                     </div>
                 )}
 
-                <Link
-                    to="/"
-                    className={`
-                        text-white font-bold py-3 px-8 rounded-xl inline-flex items-center justify-center
-                        transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]
-                        shadow-lg
-                        ${details ? 'mt-4' : 'mt-0'}
-                    `}
-                    style={buttonStyle}
-                    >
-                    <i className={`${iconClass} mr-2`}></i>
-                    {actionText}
-                </Link>
+                <div className="flex justify-center pt-2">
+                    <BackButton />
+                </div>
             </div>
+
+            <div className="bg-server-color absolute w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.03] -z-10"/>
         </div>
     );
 };

@@ -1,16 +1,19 @@
 import React, { useEffect, useState, type FormEvent } from 'react';
-import type { StatusMessage } from '../../types/auth';
-import { AuthLayout } from '../../components/auth/AuthLayout';
-import { InputField } from '../../components/auth/InputField';
-import { StatusDisplay } from '../../components/auth/StatusDisplay';
-import { OAuthButtons } from '../../components/auth/OAuthButtons';
-import { useServerConfig } from '../../hooks/useServerConfig';
-import authService from '../../services/authService';
-import { useAuth } from '../../hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
 
-const getPasswordFeedback = (password: string) => {
+import type { StatusMessage } from '@/types/auth';
+
+import { useAuth } from '@hooks/useAuth';
+
+import authService from '@services/authService';
+
+import { AuthLayout } from '@components/auth/AuthLayout';
+import { InputField } from '@components/auth/InputField';
+import { StatusDisplay } from '@components/auth/StatusDisplay';
+import { OAuthButtons } from '@components/auth/OAuthButtons';
+import { useTranslation } from "react-i18next";
+
+const getPasswordFeedback = (password: string, t: any) => {
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -19,20 +22,19 @@ const getPasswordFeedback = (password: string) => {
   };
 
   let feedback = '';
-  if (password.length > 0 && !criteria.length) feedback += '• At least 8 characters long.\n';
-  if (password.length > 0 && !criteria.uppercase) feedback += '• At least one uppercase letter.\n';
-  if (password.length > 0 && !criteria.lowercase) feedback += '• At least one lowercase letter.\n';
-  if (password.length > 0 && !criteria.special) feedback += '• At least one special character.\n';
+  if (password.length > 0 && !criteria.length) feedback += `• ${t("register.password-criteria.length")}\n`;
+  if (password.length > 0 && !criteria.uppercase) feedback += `• ${t("register.password-criteria.uppercase")}\n`;
+  if (password.length > 0 && !criteria.lowercase) feedback += `• ${t("register.password-criteria.lowercase")}\n`;
+  if (password.length > 0 && !criteria.special) feedback += `• ${t("register.password-criteria.special")}\n`;
 
   const isValid = criteria.length && criteria.uppercase && criteria.lowercase && criteria.special;
   return { feedback: feedback.trim(), isValid };
 };
 
 const Register: React.FC = () => {
-  const { serverConfig } = useServerConfig();
-  const { isAuthenticated } = useAuth();
-  const { currentTheme } = useTheme();
-  
+  const { t } = useTranslation();
+  const { isAuthenticated, user, refreshUserVerification } = useAuth();
+
   const navigate = useNavigate();
 
   const [username, setUsername] = useState('');
@@ -40,117 +42,113 @@ const Register: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [status, setStatus] = useState<StatusMessage>({ text: '', type: 'hidden' });
 
-  const { feedback: passwordFeedback, isValid: isPasswordValid } = getPasswordFeedback(password);
+  const { feedback: passwordFeedback, isValid: isPasswordValid } = getPasswordFeedback(password, t);
   const passwordsMatch = password === confirmPassword;
-  const passwordsMatchError = confirmPassword.length > 0 && !passwordsMatch ? 'Passwords do not match.' : null;
+  const passwordsMatchError = confirmPassword.length > 0 && !passwordsMatch ? t("register.passwords-no-match") : null;
   const isFormValid = isPasswordValid && passwordsMatch && username.length > 0;
-  
-  const isDark = currentTheme === 'dark';
-
-  const buttonStyle = {
-    backgroundColor: serverConfig.serverColor,
-    '--server-color': serverConfig.serverColor,
-  } as React.CSSProperties;
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/'); 
-    }
+      if (isAuthenticated && user?.isVerified) {
+          navigate('/');
+      }
+      else if (isAuthenticated && !user?.isVerified) {
+          navigate('/verify');
+      }
   }, [isAuthenticated, navigate]);
 
   const handleRegisterSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!isFormValid) {
-      setStatus({ text: 'Please fix the errors in the form.', type: 'error' });
+      setStatus({ text: t("register.fix-errors"), type: 'error' });
       return;
     }
 
-    setStatus({ text: 'Registering...', type: 'hidden' });
+    setStatus({ text: t("register.registering"), type: 'hidden' });
 
     try {
-      await authService.register(username, password); 
-      
-      setStatus({ 
-          text: 'Registration successful! Redirecting...', 
-          type: 'success' 
+      await authService.register(username, password);
+      await authService.login(username, password, false);
+      await refreshUserVerification();
+
+      setStatus({
+        text: t("register.success"),
+        type: 'success'
       });
 
       setTimeout(() => {
-          navigate('/verify'); 
-      }, 1500);
-      
-    } catch (error) { 
+        navigate('/verify');
+      }, 1000);
+
+    } catch (error) {
       console.error('Registration Error:', error);
-      
-      const errorMessage = (error instanceof Error) 
-        ? error.message 
-        : 'Unknown error occurred during registration.';
-        
+
+      const errorMessage = (error instanceof Error)
+          ? error.message
+          : t("register.unknown-error");
+
       setStatus({ text: errorMessage, type: 'error' });
     }
   };
 
   const handleOAuthClick = (service: string) => {
-    alert(`Redirecting to ${service} for registration...`);
+    alert(t("register.oauth-redirect", { service }));
   };
 
   return (
-    <AuthLayout title="Register for" pageTitle="Register">
-      <form onSubmit={handleRegisterSubmit} className="space-y-6">
+      <AuthLayout title={t("register.title")} pageTitle={t("register.page-title")}>
+        <form onSubmit={handleRegisterSubmit} className="space-y-6">
 
-        <StatusDisplay status={status} />
+          <StatusDisplay status={status} />
 
-        <InputField
-          id="username"
-          label="Username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+          <InputField
+              id="username"
+              label={t("register.username")}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+          />
 
-        <InputField
-          id="password"
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={passwordFeedback}
-          showToggle
-        />
+          <InputField
+              id="password"
+              label={t("register.password")}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={passwordFeedback}
+              showToggle
+          />
 
-        <InputField
-          id="confirm-password"
-          label="Confirm Password"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          error={passwordsMatchError}
-          showToggle
-        />
+          <InputField
+              id="confirm-password"
+              label={t("register.confirm-password")}
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              error={passwordsMatchError}
+              showToggle
+          />
 
-        <button
-          type="submit"
-          disabled={!isFormValid}
-          className={`w-full text-white font-bold py-3 rounded-xl transition duration-300 transform hover:scale-[1.01] active:scale-[0.99] custom-button-glow ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
-          style={buttonStyle}
-        >
-          Register
-        </button>
+          <button
+              type="submit"
+              disabled={!isFormValid}
+              className={`bg-server-color w-full text-text-primary font-bold py-3 rounded-xl transition duration-300 transform hover:scale-[1.01] active:scale-[0.99] custom-button-glow ${!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {t("register.button")}
+          </button>
 
-        <OAuthButtons action="register" onOAuthClick={handleOAuthClick} />
-      </form>
+          <OAuthButtons action="register" onOAuthClick={handleOAuthClick} />
+        </form>
 
-      <p className={`mt-6 text-center text-sm ${isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]'}`}>
-        Already have an account?
-        <Link to="/login"
-          className="ml-1 font-semibold hover:underline transition-colors duration-300"
-          style={{color: serverConfig.serverColor}}
-        >
-          Log in here
-        </Link>.
-      </p>
-    </AuthLayout>
+        <p className={`mt-6 text-center text-sm text-modal-text-secondary`}>
+          {t("register.already-have-account")}
+          <Link to="/login"
+                className="text-server-color ml-1 font-semibold hover:underline transition-colors duration-300"
+          >
+            {t("register.login-link")}
+          </Link>.
+        </p>
+      </AuthLayout>
   );
 };
 

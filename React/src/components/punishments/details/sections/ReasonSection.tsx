@@ -1,22 +1,20 @@
 import React from 'react';
 import { FaInfoCircle } from 'react-icons/fa';
-
-type Theme = 'dark' | 'light';
+import {useTranslation} from "react-i18next";
 
 interface ReasonSectionProps {
     reason: string;
-    serverColor: string;
-    currentTheme: Theme;
-    cardBg: string;
 }
 
-const ReasonSection: React.FC<ReasonSectionProps> = ({ reason, serverColor, currentTheme, cardBg }) => {
+const ReasonSection: React.FC<ReasonSectionProps> = ({ reason }) => {
+    const { t } = useTranslation();
+
     return (
-        <div className={`mb-8 p-6 rounded-xl ${cardBg} border ${currentTheme === 'dark' ? 'border-gray-700' : 'border-gray-300'} shadow-md`}>
-            <h2 className={`text-lg font-bold mb-3 border-b pb-2 flex items-center ${currentTheme === 'dark' ? 'border-gray-700' : 'border-gray-300'}`} style={{ color: serverColor }}>
-                <FaInfoCircle className='mr-2' /> Reason for Punishment
+        <div className={`mb-8 p-6 rounded-2xl bg-surface-elevated border border-surface-border`}>
+            <h2 className={`text-lg font-bold mb-3 border-b pb-2 flex items-center border-surface-border text-server-color`}>
+                <FaInfoCircle className='mr-2' /> {t("details.reason")}
             </h2>
-            <p className="whitespace-pre-wrap text-base opacity-90">{reason}</p>
+            <p className="whitespace-pre-wrap text-text-primary">{reason}</p>
         </div>
     );
 };

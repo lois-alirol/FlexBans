@@ -1,41 +1,35 @@
 import React, { type ReactNode } from 'react';
-import { useServerConfig } from '../../hooks/useServerConfig';
-import { useTheme } from '../../hooks/useTheme';
+
+import { useTitle } from '@hooks/useTitle';
 
 interface AuthLayoutProps {
-  title: string;
-  children: ReactNode;
-  pageTitle: string;
+    title: string;
+    children: ReactNode;
+    pageTitle: string;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ title, children, pageTitle }) => {
-  const { serverConfig } = useServerConfig();
-  const { currentTheme } = useTheme();
-  
-  const isDark = currentTheme === 'dark';
+    useTitle(pageTitle);
 
-  const containerBgClass = isDark 
-    ? 'bg-[#1c1c1c] text-[#e0e0e0]' 
-    : 'bg-[#f4f4f5] text-[#18181b]';
+    const containerClasses = 'bg-background text-text-primary'
+    const cardClasses = 'bg-surface text-text-primary border border-surface-border'
 
-  const cardBgClass = isDark 
-    ? 'bg-[#242424] border border-[#333333]' 
-    : 'bg-white border border-[#e4e4e7] shadow-lg';
-  
-  const titleColorClass = isDark ? 'text-white' : 'text-gray-900';
+    return (
+        <div className={`grid place-items-center min-h-screen p-4 transition-colors duration-500 ${containerClasses}`}>
+            <div
+                className={`relative w-full max-w-md rounded-2xl overflow-hidden flex flex-col px-8 py-10 ${cardClasses}`}
+            >
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold tracking-tight text-center">
+                        {title}
+                    </h1>
+                    <div
+                        className="h-1 w-12 mx-auto mt-2 rounded-full bg-server-color"
+                    />
+                </div>
 
-  return (
-    <div className={`grid place-items-center min-h-screen font-montserrat p-4 sm:p-6 ${containerBgClass}`}>
-      <title>{serverConfig.serverName} {pageTitle}</title>
-      <div
-        className={`p-8 rounded-xl shadow-2xl w-full max-w-sm transition-all duration-500 ${cardBgClass}`}
-        style={{'--server-color': serverConfig.serverColor} as React.CSSProperties}
-      >
-        <h1 className={`text-3xl font-extrabold text-center mb-6 ${titleColorClass}`}>
-          {title} <span style={{color: serverConfig.serverColor}}>{serverConfig.serverName}</span>
-        </h1>
-        {children}
-      </div>
-    </div>
-  );
+                {children}
+            </div>
+        </div>
+    );
 };

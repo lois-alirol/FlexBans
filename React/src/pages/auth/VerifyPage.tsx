@@ -1,103 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaCircleNotch, FaCheckCircle } from 'react-icons/fa';
-import { AuthLayout } from '../../components/auth/AuthLayout';
-import { useServerConfig } from '../../hooks/useServerConfig';
-import authService from '../../services/authService';
-import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../../hooks/useTheme';
+
+import { useServerConfig } from '@hooks/useServerConfig';
+import { useAuth } from '@hooks/useAuth';
+
+import authService from '@services/authService';
+
+import { AuthLayout } from '@components/auth/AuthLayout';
+import { useTranslation } from 'react-i18next';
 
 const VerifyPage: React.FC = () => {
+  const { t } = useTranslation();
   const { serverConfig } = useServerConfig();
   const { isVerified: isVerifiedFromAuth, refreshUserVerification } = useAuth();
-  const { currentTheme } = useTheme();
-
   const navigate = useNavigate();
 
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
-  const [isPolling, setIsPolling] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const serverColor = serverConfig.serverColor;
-  const isDark = currentTheme === 'dark';
+  // Prevents double-invocation in React StrictMode (dev) and accidental re-mounts
+  const initCalledRef = useRef(false);
 
   useEffect(() => {
     if (isVerifiedFromAuth) {
       setIsVerified(true);
-      setIsPolling(false);
-      setTimeout(() => {
-        navigate('/', { replace: true });
-      }, 1000);
+      setTimeout(() => navigate('/', { replace: true }), 1000);
     }
   }, [isVerifiedFromAuth, navigate]);
 
   useEffect(() => {
-    const fetchCode = async () => {
+    if (isVerifiedFromAuth) return;
+    // Guard: only run once per mount cycle
+    if (initCalledRef.current) return;
+    initCalledRef.current = true;
+
+    let ws: WebSocket | null = null;
+
+    const init = async () => {
       setIsLoading(true);
       try {
         const response = await authService.request2FACode();
 
         if (response.already_verified) {
           setIsVerified(true);
-          setIsPolling(false);
           await refreshUserVerification();
           return;
         }
 
-        if (response.code) {
-          setVerificationCode(response.code);
-        }
-      } catch (err) {
+        if (!response.code) return;
+        setVerificationCode(response.code);
+
+        const wsBase = import.meta.env.DEV
+            ? (import.meta.env.VITE_APP_WEBSOCKET_URL as string)
+            : `${window.location.host}/api/ws`;
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${wsProtocol}//${wsBase}/verify?username=${response.username}`);
+
+        ws.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === 'verified') {
+            setIsVerified(true);
+
+            await authService.completeVerification();
+
+            await refreshUserVerification();
+
+            setTimeout(() => navigate('/', { replace: true }), 1000);
+          }
+        };
+
+        ws.onerror = () => setError(t('verify.failed-fetch'));
+
+      } catch (err: any) {
         console.error('Failed to request 2FA code', err);
-        setError('Failed to get verification code. Please try again.');
+        // Surface rate-limit errors distinctly
+        if (err?.message?.toLowerCase().includes('too many')) {
+          setError(err.message);
+        } else {
+          setError(t('verify.failed-fetch'));
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (!isVerifiedFromAuth) {
-      fetchCode();
-    }
-  }, [isVerifiedFromAuth, refreshUserVerification]);
+    void init();
 
-  useEffect(() => {
-    if (!verificationCode || isVerified || !isPolling) return;
-
-    const checkVerification = async () => {
-      try {
-        const response = await authService.request2FACode();
-
-        if (response.already_verified) {
-          setIsVerified(true);
-          setIsPolling(false);
-
-          await refreshUserVerification();
-        }
-      } catch (err) {}
+    return () => {
+      ws?.close();
+      // Reset the guard on unmount so a genuine re-mount (e.g. navigation away
+      // and back) works correctly, while still blocking StrictMode's
+      // immediate remount within the same render cycle.
+      // Note: StrictMode unmounts+remounts synchronously, so the ref stays true
+      // for that second call. A real navigation resets it properly.
+      initCalledRef.current = false;
     };
+  }, [isVerifiedFromAuth, refreshUserVerification, navigate, t]);
 
-    const id = setInterval(checkVerification, 5000);
-    checkVerification();
-
-    return () => clearInterval(id);
-  }, [verificationCode, isVerified, isPolling, refreshUserVerification]);
-
-  const codeDigitClass = isDark
-      ? "bg-[#1c1c1c] border"
-      : "bg-gray-100 border-gray-300 text-gray-800";
-
-  const verifiedBg = isDark ? 'bg-green-900/30' : 'bg-green-100';
-  const verifiedText = isDark ? 'text-green-500' : 'text-green-700';
-  const waitingText = isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]';
-  const errorText = isDark ? 'text-red-400' : 'text-red-600';
+  const codeDigitClass = "bg-surface border";
+  const verifiedBg = 'bg-green-900/30';
+  const verifiedText = 'text-green-500';
+  const waitingText = 'text-[#a1a1aa]';
+  const errorText = 'text-red-400';
 
   if (isLoading && !verificationCode) {
     return (
-        <AuthLayout title="Verify" pageTitle="Verify">
-          <p className={`text-center ${isDark ? '' : 'text-[#3f3f46]'}`}>
-            Initializing verification…
+        <AuthLayout title={t("verify.title")} pageTitle={t("verify.page-title")}>
+          <p className={`text-center text-text-secondary`}>
+            {t("verify.initializing")}
           </p>
         </AuthLayout>
     );
@@ -105,15 +119,17 @@ const VerifyPage: React.FC = () => {
 
   if (error) {
     return (
-        <AuthLayout title="Verify" pageTitle="Verify">
+        <AuthLayout title={t("verify.title")} pageTitle={t("verify.page-title")}>
           <div className={`text-center ${errorText}`}>
             <p>{error}</p>
             <button
-                onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 rounded-lg transition-colors text-white"
-                style={{ backgroundColor: serverColor }}
+                onClick={() => {
+                  initCalledRef.current = false;
+                  window.location.reload();
+                }}
+                className="bg-server-color mt-4 px-4 py-2 rounded-lg transition-colors text-text-primary"
             >
-              Try Again
+              {t("verify.try-again")}
             </button>
           </div>
         </AuthLayout>
@@ -122,8 +138,8 @@ const VerifyPage: React.FC = () => {
 
   if (!verificationCode) {
     return (
-        <AuthLayout title="Verify" pageTitle="Verify">
-          <p className={`text-center ${isDark ? '' : 'text-[#3f3f46]'}`}>Unable to get verification code</p>
+        <AuthLayout title={t("verify.title")} pageTitle={t("verify.page-title")}>
+          <p className={`text-center text-text-secondary`}>{t("verify.no-code")}</p>
         </AuthLayout>
     );
   }
@@ -131,25 +147,24 @@ const VerifyPage: React.FC = () => {
   const codeDigits = verificationCode.split('');
 
   return (
-      <AuthLayout title="Verify for" pageTitle="Verify">
+      <AuthLayout title={t("verify.title")} pageTitle={t("verify.page-title")}>
         <div className="text-center">
           {isVerified ? (
               <div className={`${verifiedText} py-30 rounded-lg ${verifiedBg} mb-6`}>
                 <FaCheckCircle className="mx-auto text-5xl mb-3" />
-                <p className="text-xl font-semibold">Verification Successful!</p>
+                <p className="text-xl font-semibold">{t("verify.success")}</p>
               </div>
           ) : (
               <>
                 <p className={`mb-6 ${waitingText}`}>
-                  Validate your account on <strong>{serverConfig.serverName}</strong>.
+                  {t("verify.validate-on-server", { server: serverConfig ? serverConfig.serverName : '' })}
                 </p>
 
                 <div className="flex justify-center gap-3 mb-6">
                   {codeDigits.map((d, i) => (
                       <div
                           key={i}
-                          className={`w-12 h-16 ${codeDigitClass} text-3xl font-bold flex items-center justify-center rounded-xl`}
-                          style={{ color: serverColor }}
+                          className={`text-server-color w-12 h-16 ${codeDigitClass} text-3xl font-bold flex items-center justify-center rounded-xl`}
                       >
                         {d}
                       </div>
@@ -157,32 +172,30 @@ const VerifyPage: React.FC = () => {
                 </div>
 
                 <code
-                    className="px-3 py-2 rounded-lg font-mono font-bold"
-                    style={{ backgroundColor: serverColor + '20', color: serverColor }}
+                    className="bg-server-color/10 text-server-color px-3 py-2 rounded-lg font-mono font-bold"
                 >
                   /fb verify {verificationCode}
                 </code>
 
                 <div className={`mt-6 flex items-center justify-center text-sm ${waitingText}`}>
                   <FaCircleNotch className="animate-spin mr-2 text-yellow-500" />
-                  Waiting for in-game verification…
+                  {t("verify.waiting")}
                 </div>
               </>
           )}
         </div>
 
-        <p className={`mt-6 text-center text-sm ${isDark ? 'text-[#a1a1aa]' : 'text-[#52525b]'}`}>
-          Wrong account?
+        <p className={`mt-6 text-center text-sm text-text-secondary`}>
+          {t("verify.wrong-account")}
           <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
                 navigate("/logout");
               }}
-              className="ml-1 font-semibold hover:underline transition-colors duration-300 cursor-pointer"
-              style={{ color: serverConfig.serverColor }}
+              className="text-server-color ml-1 font-semibold hover:underline transition-colors duration-300 cursor-pointer"
           >
-            Log out here
+            {t("verify.logout-link")}
           </a>.
         </p>
       </AuthLayout>

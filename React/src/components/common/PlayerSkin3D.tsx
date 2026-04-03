@@ -1,43 +1,78 @@
-import React, { useEffect, useRef } from 'react';
-import { usePlayerSkin } from "../../hooks/usePlayerSkin.ts";
+import React, { useEffect, useRef, useState } from 'react';
 import { SkinViewer } from 'skinview3d';
 
-type Theme = 'light' | 'dark';
+import { usePlayerSkin } from '@hooks/usePlayerSkin';
+import {useTranslation} from "react-i18next";
 
 interface PlayerSkin3DProps {
     username: string;
     width?: number;
     height?: number;
-    theme?: Theme;
 }
 
 const PlayerSkin3D: React.FC<PlayerSkin3DProps> = ({
                                                        username,
                                                        width = 360,
                                                        height = 220,
-                                                       theme = 'light',
                                                    }) => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewerRef = useRef<SkinViewer | null>(null);
     const { skinUrl } = usePlayerSkin(username);
+    const [contextLost, setContextLost] = useState(false);
+
+    const { t } = useTranslation();
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const viewer = new SkinViewer({
-            canvas,
-            width,
-            height,
-            background: theme === 'dark' ? '#242424' : '#ffffff',
-        });
-        viewerRef.current = viewer;
+        const handleContextLost = (e: Event) => {
+            e.preventDefault();
+            console.log('WebGL context lost');
+            setContextLost(true);
 
-        if (skinUrl) {
-            viewer.loadSkin(skinUrl).catch(() => {});
+            if (viewerRef.current) {
+                try {
+                    viewerRef.current.dispose();
+                } catch (err) {
+                }
+                viewerRef.current = null;
+            }
+        };
+
+        const handleContextRestored = () => {
+            console.log('WebGL context restored');
+            setContextLost(false);
+        };
+
+        canvas.addEventListener('webglcontextlost', handleContextLost);
+        canvas.addEventListener('webglcontextrestored', handleContextRestored);
+
+        let viewer: SkinViewer | null = null;
+        try {
+            viewer = new SkinViewer({
+                canvas,
+                width,
+                height,
+                background: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--surface-elevated')
+                    .trim(),
+            });
+            viewerRef.current = viewer;
+
+            if (skinUrl) {
+                viewer.loadSkin(skinUrl).catch(() => {});
+            }
+
+            viewer.zoom = 0.9;
+        } catch (error) {
+            console.error('Failed to create SkinViewer:', error);
+            setContextLost(true);
+
+            canvas.removeEventListener('webglcontextlost', handleContextLost);
+            canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+            return;
         }
-
-        viewer.zoom = 0.9;
 
         const v: any = viewer as any;
         const playerObject: any = v.playerObject ?? v.player;
@@ -78,7 +113,9 @@ const PlayerSkin3D: React.FC<PlayerSkin3DProps> = ({
 
         const onWheel = (e: WheelEvent) => {
             const delta = Math.sign(e.deltaY);
-            viewer.zoom = Math.max(0.4, Math.min(2.0, viewer.zoom + delta * 0.05));
+            if (viewer) {
+                viewer.zoom = Math.max(0.4, Math.min(2.0, viewer.zoom + delta * 0.05));
+            }
         };
 
         let touchDragging = false;
@@ -131,14 +168,21 @@ const PlayerSkin3D: React.FC<PlayerSkin3DProps> = ({
             canvas.removeEventListener('touchstart', onTouchStart);
             canvas.removeEventListener('touchend', onTouchEnd);
             canvas.removeEventListener('touchmove', onTouchMove);
+            canvas.removeEventListener('webglcontextlost', handleContextLost);
+            canvas.removeEventListener('webglcontextrestored', handleContextRestored);
 
-            viewer.dispose();
+            if (viewer) {
+                try {
+                    viewer.dispose();
+                } catch (err) {
+                }
+            }
             viewerRef.current = null;
         };
-    }, [skinUrl, width, height, theme]);
+    }, [skinUrl, width, height]);
 
     return (
-        <div className={`rounded-xl overflow-hidden border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`rounded-xl overflow-hidden border border-surface-border`}>
             <canvas
                 ref={canvasRef}
                 width={width}
@@ -146,7 +190,12 @@ const PlayerSkin3D: React.FC<PlayerSkin3DProps> = ({
                 style={{ display: 'block', width, height }}
             />
             <div className="px-3 py-2 text-xs opacity-70 flex items-center justify-between">
-                <span>Drag to rotate • Scroll to zoom</span>
+                <span>
+                    {contextLost
+                        ? t("history.skin-preview.error")
+                        : t("history.skin-preview.controls")
+                    }
+                </span>
             </div>
         </div>
     );

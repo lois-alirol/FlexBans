@@ -1,6 +1,6 @@
 import React from 'react';
-import { useServerConfig } from '../../hooks/useServerConfig';
-import { useTheme } from '../../hooks/useTheme';
+
+import { useServerConfig } from '@hooks/useServerConfig';
 
 interface OAuthButtonsProps {
   action: 'login' | 'register';
@@ -8,42 +8,36 @@ interface OAuthButtonsProps {
 }
 
 export const OAuthButtons: React.FC<OAuthButtonsProps> = ({ action, onOAuthClick }) => {
-  const { enabledProviders } = useServerConfig();
-  const { currentTheme } = useTheme();
-  
-  const isDark = currentTheme === 'dark';
+    const { enabledProviders } = useServerConfig();
 
-  if (enabledProviders.length === 0) return null;
+    if (enabledProviders.length === 0) return null;
 
-  const dividerColorClass = isDark ? 'border-[#333333]' : 'border-[#e4e4e7]';
-  const textClass = isDark ? 'text-[#a1a1aa]' : 'text-[#71717a]';
+    return (
+        <div className="pt-4 space-y-4">
+            <div className="relative flex items-center">
+                <div className={`grow border-t border-surface-border`}></div>
+                    <span className="shrink mx-4 text-xs uppercase font-bold tracking-widest text-text-secondary">
+                      Or {action} with
+                    </span>
+                <div className={`grow border-t border-surface-border`}></div>
+            </div>
 
-  return (
-    <div className="pt-2 space-y-3">
-      <div className="relative flex items-center">
-        <div className={`grow border-t ${dividerColorClass}`}></div>
-        <span className={`shrink mx-4 text-xs uppercase font-medium ${textClass}`}>
-          or {action} with
-        </span>
-        <div className={`grow border-t ${dividerColorClass}`}></div>
-      </div>
-
-      <div className="flex justify-center space-x-4">
-        {enabledProviders.map(provider => (
-          <button
-            key={provider.service}
-            title={`${action} with ${provider.service}`}
-            type="button"
-            className="p-3 rounded-md text-white text-xl transition duration-300 transform hover:scale-110 active:scale-95 shadow-md"
-            style={{ backgroundColor: provider.color }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = provider.hoverColor)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = provider.color)}
-            onClick={() => onOAuthClick(provider.service)}
-          >
-            {provider.icon}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+            <div className="flex justify-center gap-4">
+                {enabledProviders.map(provider => (
+                    <button
+                        key={provider.service}
+                        type="button"
+                        className="p-4 rounded-xl text-text-primary text-xl transition duration-300 transform hover:-translate-y-1 active:scale-95"
+                        style={{
+                            backgroundColor: provider.color,
+                            boxShadow: `0 8px 20px ${provider.color}44`
+                        }}
+                        onClick={() => onOAuthClick(provider.service)}
+                    >
+                        {provider.icon}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 };

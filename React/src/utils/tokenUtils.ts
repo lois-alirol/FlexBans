@@ -8,10 +8,6 @@ export const setAuthToken = (_token: string, stayLoggedIn: boolean) => {
   localStorage.setItem('stayLoggedIn', stayLoggedIn.toString());
 };
 
-export const getAuthToken = (): string | null => {
-  return null;
-};
-
 export const setUserData = (user: object, _stayLoggedIn: boolean) => {
   const safeUserData = {
     username: (user as any).username,

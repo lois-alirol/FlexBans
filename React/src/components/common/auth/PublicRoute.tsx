@@ -1,7 +1,8 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
-import { useServerConfig } from '../../../hooks/useServerConfig';
+
+import { useAuth } from '@hooks/useAuth';
+import { useServerConfig } from '@hooks/useServerConfig';
 
 interface PublicRouteProps {
   children?: React.ReactNode;
@@ -11,7 +12,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { serverConfig } = useServerConfig();
   const { isAuthenticated, isLoading } = useAuth();
 
-  if (!serverConfig.isSecured) {
+  if (serverConfig && !serverConfig.isSecured) {
     return children ? <>{children}</> : <Outlet />;
   }
 

@@ -1,35 +1,32 @@
 import React from 'react';
 import { FaServer, FaNetworkWired } from 'react-icons/fa';
-import DetailCard from './DetailCard';
-import DetailItem from './DetailItem';
 
-type Theme = 'dark' | 'light';
+import DetailCard from '@/components/punishments/details/cards/DetailCard';
+import DetailItem from '@/components/punishments/details/cards/DetailItem';
+import {useTranslation} from "react-i18next";
 
 interface ServerContextCardProps {
     originServer: string;
     scopeServer: string;
     ipScope: boolean;
-    serverColor: string;
-    currentTheme: Theme;
 }
 
 const ServerContextCard: React.FC<ServerContextCardProps> = ({
                                                                  originServer,
                                                                  scopeServer,
                                                                  ipScope,
-                                                                 serverColor,
-                                                                 currentTheme
-                                                             }) => {
+                                                             }) =>
+{
+    const { t } = useTranslation();
+
     return (
-        <DetailCard title="Server & Context" accentColor={serverColor} currentTheme={currentTheme}>
-            <DetailItem icon={<FaServer />} label="Origin Server" value={originServer} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaServer />} label="Scope Server" value={scopeServer} accentColor={serverColor} currentTheme={currentTheme} />
+        <DetailCard title={t("details.server.title")} >
+            <DetailItem icon={<FaServer />} label={t("details.server.items-titles.origin")} value={originServer} />
+            <DetailItem icon={<FaServer />} label={t("details.server.items-titles.scope")} value={scopeServer} />
             <DetailItem
                 icon={<FaNetworkWired />}
-                label="IP Scope"
-                value={ipScope ? "Yes" : "No"}
-                accentColor={serverColor}
-                currentTheme={currentTheme}
+                label={t("details.server.items-titles.ip")}
+                value={ipScope ? t("yes") : t("no")}
             />
         </DetailCard>
     );

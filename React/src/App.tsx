@@ -1,23 +1,22 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import './styles/App.css'
+import '@styles/App.css'
 
-import ProtectedRoute from './components/common/auth/ProtectedRoute'; 
+import LoginPage from '@pages/auth/LoginPage';
+import RegisterPage from '@pages/auth/RegisterPage';
+import VerifyPage from '@pages/auth/VerifyPage';
 
-import PunishmentsPage from './pages/PunishmentsPage';
+import PunishmentsPage from '@pages/PunishmentsPage';
+import HistoryPage from '@pages/HistoryPage';
+import PunishmentDetailsPage from '@pages/PunishmentDetailsPage';
+import AdminPanelPage from '@pages/AdminPanelPage';
+import LogoutRoute from '@pages/auth/LogoutRoute';
+import Error404 from '@pages/errors/Error404';
 
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import VerifyPage from './pages/auth/VerifyPage';
-
-import Error404 from './pages/errors/Error404';
-import HistoryPage from './pages/HistoryPage';
-import PunishmentDetailsPage from './pages/PunishmentDetailsPage';
-import { AuthProvider } from './components/common/auth/AuthProvider';
-import LogoutRoute from './pages/auth/LogoutRoute';
-import PublicRoute from './components/common/auth/PublicRoute';
-import { ThemeProvider } from './components/common/ThemeContext';
-import AdminPanelPage from "./pages/AdminPanelPage.tsx";
+import ProtectedRoute from '@components/common/auth/ProtectedRoute';
+import PublicRoute from '@components/common/auth/PublicRoute';
+import { AuthProvider } from '@components/common/auth/AuthProvider';
+import { ThemeProvider } from '@components/common/ThemeContext';
 
 const App: React.FC = () => {
   

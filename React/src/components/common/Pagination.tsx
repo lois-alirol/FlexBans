@@ -1,28 +1,22 @@
 import React from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { useServerConfig } from '../../hooks/useServerConfig';
+import {useTranslation} from "react-i18next";
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  currentTheme: 'light' | 'dark';
 }
 
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
   onPageChange,
-  currentTheme,
 }) => {
-  const { serverConfig } = useServerConfig();
 
   if (totalPages <= 1) {
     return null;
   }
-
-  const isDark = currentTheme === 'dark';
-  const primaryColor = serverConfig.serverColor; 
 
   const getPageNumbers = () => {
     const pageNumbers: (number | '...')[] = [];
@@ -62,29 +56,27 @@ const Pagination: React.FC<PaginationProps> = ({
   
   const pageNumbers = getPageNumbers();
 
-  const baseStyle = `px-3 py-1 rounded-md text-sm font-medium transition duration-300 shadow-sm`;
-  
-  const defaultStyle = isDark 
-    ? `bg-[#2c2c2c] text-white hover:bg-[#383838]` 
-    : `bg-white text-gray-800 hover:bg-gray-100 border border-gray-300`;
-    
-  const activeStyle = `bg-[${primaryColor}] text-white shadow-lg`;
+  const { t } = useTranslation();
+
+  const baseStyle = `px-3 py-1 rounded-2xl text-sm font-medium transition duration-300 border`;
+  const defaultStyle = 'bg-surface text-text-primary hover:bg-surface-elevated border-surface-border'
+  const activeStyle = `text-text-primary border-transparent`;
 
   return (
-    <div className="flex justify-between items-center mt-6">
+    <div className="flex justify-between items-center mt-4">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className={`flex items-center gap-1 ${baseStyle} ${isDark ? 'text-gray-400 disabled:opacity-50' : 'text-gray-600 disabled:opacity-50'} ${defaultStyle}`}
+        className={`flex items-center gap-1 ${baseStyle} text-text-disabled disabled:opacity-50 ${defaultStyle}`}
       >
-        <FaChevronLeft className="h-3 w-3" /> Previous
+        <FaChevronLeft className="h-3 w-3" /> {t("pagination.previous")}
       </button>
 
       <div className="flex space-x-1">
         {pageNumbers.map((page, index) => {
           if (page === '...') {
             return (
-              <span key={`dots-${index}`} className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">
+              <span key={`dots-${index}`} className="px-3 py-1 text-sm text-text-secondary">
                 ...
               </span>
             );
@@ -108,9 +100,9 @@ const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className={`flex items-center gap-1 ${baseStyle} ${isDark ? 'text-white disabled:opacity-50' : 'text-gray-800 disabled:opacity-50'} ${defaultStyle}`}
+        className={`flex items-center gap-1 ${baseStyle} text-text-primary disabled:opacity-50 ${defaultStyle}`}
       >
-        Next <FaChevronRight className="h-3 w-3" />
+        {t("pagination.next")} <FaChevronRight className="h-3 w-3" />
       </button>
     </div>
   );

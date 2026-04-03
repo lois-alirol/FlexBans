@@ -1,16 +1,14 @@
 import React from 'react';
 import { FaFingerprint } from 'react-icons/fa';
-import StatusBadge from "../../common/StatusBadge.tsx";
 
-type Theme = 'dark' | 'light';
+import StatusBadge from '@components/common/StatusBadge';
+import {useTranslation} from "react-i18next";
 
 interface PunishmentHeaderProps {
     punishmentType: string;
     player: string;
     punishmentId: string;
     status: string | null;
-    serverColor: string;
-    currentTheme: Theme;
     isKickType: boolean;
 }
 
@@ -19,14 +17,21 @@ const PunishmentHeader: React.FC<PunishmentHeaderProps> = ({
                                                                player,
                                                                punishmentId,
                                                                status,
-                                                               serverColor,
-                                                               currentTheme,
                                                                isKickType
-                                                           }) => {
+                                                           }) =>
+
+{
+    const { t } = useTranslation();
+
     return (
         <>
-            <h1 className={`text-center text-3xl font-extrabold mb-4 ${currentTheme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
-                {punishmentType} on {player}
+            <h1 className={`text-center text-3xl font-extrabold mb-4 text-text-primary`}>
+                {t("details.title",
+                    {
+                        type: punishmentType[0].toUpperCase() + punishmentType.slice(1).toLowerCase(),
+                        player: player
+                    }
+                )}
             </h1>
 
             <div className="flex flex-wrap justify-center items-center space-x-4 mb-8">
@@ -37,11 +42,7 @@ const PunishmentHeader: React.FC<PunishmentHeaderProps> = ({
                     />
                 )}
                 <div
-                    className={`text-base font-bold py-2 px-4 inline-flex items-center rounded-full border ${currentTheme === 'dark' ? 'border-gray-600/30' : 'border-gray-300'}`}
-                    style={{
-                        color: serverColor,
-                        backgroundColor: currentTheme === 'dark' ? 'rgba(79, 70, 229, 0.1)' : 'rgba(79, 70, 229, 0.05)',
-                    }}
+                    className={`text-base font-bold py-2 px-4 inline-flex items-center rounded-full border border-surface-border bg-surface-elevated text-server-color`}
                 >
                     <FaFingerprint className="mr-2 text-base" />
                     <span className="tracking-wider">ID: {punishmentId}</span>

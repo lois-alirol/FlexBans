@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import type {Punishment} from "../../../types/punishments.tsx";
-import PlayerHead from "../../common/PlayerHead.tsx";
-import StatusBadge from "../../common/StatusBadge.tsx";
+
+import type { Punishment } from '@/types/punishments';
+
+import PlayerHead from '@components/common/PlayerHead';
+import StatusBadge from '@components/common/StatusBadge';
 
 interface TableRowProps {
     punishment: Punishment;
-    currentTheme: 'dark' | 'light';
     showExtendedInfo: boolean;
     onContextMenu: (e: React.MouseEvent, punishment: Punishment) => void;
     onRowClick: () => void;
@@ -14,19 +15,12 @@ interface TableRowProps {
 
 const TableRow: React.FC<TableRowProps> = ({
                                                punishment,
-                                               currentTheme,
                                                showExtendedInfo,
                                                onContextMenu,
                                                onRowClick
                                            }) => {
-    const isKick = punishment.type.toLowerCase().includes('kick');
-    const rowClasses = currentTheme === 'dark'
-        ? 'hover:bg-[#333333] transition cursor-pointer'
-        : 'hover:bg-[#f3f3f3] transition cursor-pointer';
-
-    // Added max-w-0 to the cell class to help with flex truncation in table-fixed layouts
-    const cell = 'px-6 py-4 text-sm align-middle whitespace-nowrap text-center';
-    const muted = 'text-gray-500 dark:text-gray-400';
+    const rowClasses = 'hover:bg-table-row-hover transition-all duration-200 cursor-pointer group'
+    const cell = 'px-4 py-4 text-sm align-middle whitespace-nowrap text-center';
     const stop = (e: React.MouseEvent) => e.stopPropagation();
 
     return (
@@ -35,19 +29,18 @@ const TableRow: React.FC<TableRowProps> = ({
             onClick={onRowClick}
             onContextMenu={(e) => onContextMenu(e, punishment)}
         >
-            <td className={`${cell} font-semibold`}>{punishment.database_id}</td>
+            <td className={`${cell} font-semibold opacity-80 group-hover:opacity-100`}>
+                {punishment.database_id}
+            </td>
 
-            {/* Player Column */}
             <td className={cell} onClick={stop}>
-                <div className="flex items-center justify-start gap-3 w-full max-w-full">
-                    {/* shrink-0 prevents the head from being cut off */}
-                    <div className="shrink-0">
+                <div className="flex items-center justify-start gap-3 w-full opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div className="shrink-0 transition-transform group-hover:scale-110 duration-300">
                         <PlayerHead username={punishment.player} size={32} />
                     </div>
-                    {/* truncate and min-w-0 allow the name to be cut off if needed */}
                     <Link
                         to={`/player/${punishment.player}`}
-                        className="hover:underline truncate min-w-0"
+                        className="hover:underline truncate font-medium"
                         title={punishment.player}
                     >
                         {punishment.player}
@@ -55,15 +48,14 @@ const TableRow: React.FC<TableRowProps> = ({
                 </div>
             </td>
 
-            {/* Moderator Column - Applied same logic for consistency */}
-            <td className={`${cell} ${muted} hidden sm:table-cell`} onClick={stop}>
-                <div className="flex items-center justify-start gap-3 w-full max-w-full">
+            <td className={cell} onClick={stop}>
+                <div className="flex items-center justify-start gap-3 w-full opacity-80 group-hover:opacity-100 transition-opacity">
                     <div className="shrink-0">
                         <PlayerHead username={punishment.moderator} size={32} />
                     </div>
                     <Link
                         to={`/moderator/${punishment.moderator}`}
-                        className="hover:underline truncate min-w-0"
+                        className="hover:underline truncate"
                         title={punishment.moderator}
                     >
                         {punishment.moderator}
@@ -71,28 +63,26 @@ const TableRow: React.FC<TableRowProps> = ({
                 </div>
             </td>
 
-            <td className={`${cell} truncate max-w-[150px]`} title={punishment.reason}>
+            <td className={`${cell} truncate opacity-80 group-hover:opacity-100 transition-opacity`} title={punishment.reason}>
                 {punishment.reason}
             </td>
 
-            <td className={cell}>{punishment.date}</td>
+            <td className={`${cell} text-xs opacity-70 group-hover:opacity-90 transition-opacity`}>
+                {punishment.date}
+            </td>
 
             {showExtendedInfo && (
                 <>
                     <td
-                        className={`${cell} hidden md:table-cell truncate max-w-[120px]`}
-                        title={isKick ? 'N/A' : punishment.duration || '-'}
+                        className={`${cell} truncate text-xs opacity-80 group-hover:opacity-100`}
+                        title={punishment.duration || '-'}
                     >
-                        {isKick ? 'N/A' : punishment.duration || '-'}
+                        {punishment.duration || '-'}
                     </td>
-                    <td className={`${cell} pr-12 hidden md:table-cell`}>
-                        {isKick ? (
-                            <span className="text-gray-500 text-xs">N/A</span>
-                        ) : (
-                            <div className="flex justify-center items-center">
-                                <StatusBadge status={punishment.status} className="text-xs font-medium px-2 py-0.5" />
-                            </div>
-                        )}
+                    <td className={`${cell} pr-6`}>
+                        <div className="flex justify-center items-center transform scale-90 transition-transform group-hover:scale-100">
+                            <StatusBadge status={punishment.status} className="text-xs font-medium px-2 py-0.5" />
+                        </div>
                     </td>
                 </>
             )}

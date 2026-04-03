@@ -1,36 +1,29 @@
 import React from 'react';
 import { FaShieldAlt, FaUserShield } from 'react-icons/fa';
-import BackButton from '../common/BackButton';
+
+import {useTitle} from "@hooks/useTitle";
+
+import BackButton from '@components/common/BackButton';
 
 interface EmptyProfileStateProps {
     type: 'console' | 'no-punishments';
-    currentTheme: 'light' | 'dark';
-    bgColor: string;
-    textColor: string;
-    cardBg: string;
-    borderColor: string;
 }
 
-const EmptyProfileState: React.FC<EmptyProfileStateProps> = ({
-                                                                 type,
-                                                                 currentTheme,
-                                                                 bgColor,
-                                                                 textColor,
-                                                                 cardBg,
-                                                                 borderColor
-                                                             }) => {
+const EmptyProfileState: React.FC<EmptyProfileStateProps> = ({ type }) => {
+    useTitle("Unaccessible Profile");
+
     const isConsole = type === 'console';
     const icon = isConsole ? <FaShieldAlt size={42} /> : <FaUserShield size={42} />;
-    const iconColor = isConsole ? 'bg-gray-500/10 text-gray-500' : 'bg-red-500/10 text-red-500';
-    const accentColor = isConsole ? 'bg-gray-500' : 'bg-red-500';
+    const iconColor = isConsole ? 'bg-text-secondary/10 text-text-secondary' : 'bg-error/10 text-error';
+    const accentColor = isConsole ? 'bg-text-secondary' : 'bg-error';
     const title = isConsole ? 'System Profile' : 'Staff Profile Inaccessible';
     const message = isConsole
         ? 'The Console is a system entity and does not have a player profile. You can view punishments issued by the Console in the staff section, but it cannot receive punishments.'
         : 'This moderator has not executed any punishments yet. Moderator profiles are only generated for active staff members with recorded history.';
 
     return (
-        <div className={`min-h-screen ${bgColor} ${textColor} flex items-center justify-center p-6`}>
-            <div className={`p-12 rounded-3xl text-center shadow-2xl ${cardBg} border ${borderColor} max-w-md w-full relative overflow-hidden`}>
+        <div className={`min-h-screen bg-background text-text-primary flex items-center justify-center p-6`}>
+            <div className={`p-12 rounded-3xl text-center bg-surface border border-surface-border max-w-md w-full relative overflow-hidden`}>
                 <div className={`absolute top-0 left-0 w-full h-1.5 ${accentColor} opacity-50`} />
                 <div className="flex justify-center mb-6">
                     <div className={`p-5 rounded-2xl ${iconColor}`}>
@@ -48,7 +41,7 @@ const EmptyProfileState: React.FC<EmptyProfileStateProps> = ({
                         message
                     )}
                 </p>
-                <BackButton currentTheme={currentTheme} />
+                <BackButton />
             </div>
         </div>
     );

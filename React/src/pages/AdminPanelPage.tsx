@@ -1,34 +1,41 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { FaUsersCog, FaCogs, FaChartBar, FaShieldAlt, FaTerminal } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import MyAccount from '../components/common/MyAccount';
-import { useAuth } from '../hooks/useAuth';
-import { useServerConfig } from '../hooks/useServerConfig';
-import { useTheme } from '../hooks/useTheme';
-import { usePunishmentsData } from '../hooks/usePunishmentsData';
-import LogsModal from '../components/admin/LogsModal';
 
-import MetricCard from '../components/admin/MetricCard';
-import CardSection from '../components/admin/CardSection';
-import UserManagement from '../components/admin/UserManagement';
-import BrandingMeta from '../components/admin/BrandingMeta';
-import PunishmentSettings from '../components/admin/PunishmentSettings';
-import DetailHistorySettings from '../components/admin/DetailHistorySettings';
-import Error403 from './errors/Error403';
+import type { BrandingForm } from '@/types/admin';
+import type { ServerConfig } from '@/types/config';
+import type { PunishmentType } from '@/types/punishments';
 
-import type { BrandingForm, Theme as UiTheme } from '../types/admin';
-import type { ServerConfig } from '../types/config';
-import type { PunishmentType } from '../types/punishments';
-import NewPunishmentModal from "../components/common/modals/NewPunishmentModal.tsx";
-import Sidebar from "../components/common/sidebar/Sidebar.tsx";
-import { useUsers } from "../hooks/useUsers.ts";
+import { useAuth } from '@hooks/useAuth';
+import { useServerConfig } from '@hooks/useServerConfig';
+import { usePunishmentsData } from '@hooks/usePunishmentsData';
+import { useUsers } from '@hooks/useUsers';
+import { useTitle } from "@hooks/useTitle.ts";
+
+import Error403 from '@pages/errors/Error403';
+
+import LogsModal from '@components/common/modals/LogsModal';
+import MyAccount from '@components/common/MyAccount';
+import MetricCard from '@components/admin/MetricCard';
+import CardSection from '@components/admin/CardSection';
+import UserManagement from '@components/admin/UserManagement';
+import BrandingMeta from '@components/admin/BrandingMeta';
+import PunishmentSettings from '@components/admin/PunishmentSettings';
+import DetailHistorySettings from '@components/admin/DetailHistorySettings';
+import NewPunishmentModal from '@components/common/modals/NewPunishmentModal';
+import Sidebar from '@components/common/sidebar/Sidebar';
+import {useTranslation} from "react-i18next";
+import Notification from "@components/common/Notification.tsx";
 
 type PunishmentKey = keyof ServerConfig['punishments'];
 
 const AdminPanelPage: React.FC = () => {
-    const { serverConfig } = useServerConfig();
+    const { t } = useTranslation();
+
+    useTitle(t("admin.title"));
+
+    const { serverConfig, isLoading: isConfigLoading } = useServerConfig();
     const { isAuthenticated, isLoading: isAuthLoading, user } = useAuth();
-    const { currentTheme } = useTheme();
     const navigate = useNavigate();
 
     const { isLoading: isUsersLoading } = useUsers();
@@ -36,15 +43,22 @@ const AdminPanelPage: React.FC = () => {
     const { punishmentsData } = usePunishmentsData();
     const { globalCounts } = punishmentsData;
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [sidebarWidth, setSidebarWidth] = useState(280);
+    const [showSuccessNotif, setShowSuccessNotif] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [isNewPunishmentModalOpen, setIsNewPunishmentModalOpen] = useState(false);
     const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+    const [minLoadingDone, setMinLoadingDone] = useState(false);
 
     const handleOpenNewPunishmentModal = useCallback(() => setIsNewPunishmentModalOpen(true), []);
     const handleCloseNewPunishmentModal = useCallback(() => setIsNewPunishmentModalOpen(false), []);
 
-    const isConfigLoading = serverConfig.serverName === 'Loading...';
+    const handleNewPunishmentSuccess = () => {
+        setIsNewPunishmentModalOpen(false);
+        setShowSuccessNotif(true);
+    };
+
     const [form, setForm] = useState<null | {
         branding: BrandingForm;
         features: { allowExecution: boolean; allowRevocation: boolean };
@@ -61,62 +75,67 @@ const AdminPanelPage: React.FC = () => {
 
         setForm({
             branding: {
-                serverName: serverConfig.serverName || '',
-                primaryColor: serverConfig.serverColor || '#4f46e5',
-                secondaryColor: serverConfig.serverColorHover || '#6366f1',
-                logo: serverConfig.serverLogo || '',
-                favicon: serverConfig.serverFavicon || '',
-                description: serverConfig.serverDescription || '',
+                serverName: serverConfig && serverConfig.serverName || '',
+                primaryColor: serverConfig && serverConfig.serverColor || '#4f46e5',
+                secondaryColor: serverConfig && serverConfig.serverColorHover || '#6366f1',
+                logo: serverConfig && serverConfig.serverLogo || '',
+                favicon: serverConfig && serverConfig.serverFavicon || '',
+                description: serverConfig && serverConfig.serverDescription || '',
             },
             features: {
-                allowExecution: serverConfig.punishmentExecution ?? true,
-                allowRevocation: serverConfig.punishmentRevocation ?? true,
+                allowExecution: (serverConfig && serverConfig.punishmentExecution) ?? true,
+                allowRevocation: (serverConfig && serverConfig.punishmentRevocation) ?? true,
             },
             punishments: {
                 bans: {
-                    enabled: serverConfig.punishments?.bans?.enabled ?? true,
-                    maxPerPage: serverConfig.punishments?.bans?.maxPerPage ?? 20,
+                    enabled: (serverConfig && serverConfig.punishments?.bans?.enabled) ?? true,
+                    maxPerPage: (serverConfig && serverConfig.punishments?.bans?.maxPerPage) ?? 20,
                 },
                 mutes: {
-                    enabled: serverConfig.punishments?.mutes?.enabled ?? true,
-                    maxPerPage: serverConfig.punishments?.mutes?.maxPerPage ?? 20,
+                    enabled: (serverConfig && serverConfig.punishments?.mutes?.enabled) ?? true,
+                    maxPerPage: (serverConfig && serverConfig.punishments?.mutes?.maxPerPage) ?? 20,
                 },
                 warnings: {
-                    enabled: serverConfig.punishments?.warnings?.enabled ?? true,
-                    maxPerPage: serverConfig.punishments?.warnings?.maxPerPage ?? 20,
+                    enabled: (serverConfig && serverConfig.punishments?.warnings?.enabled) ?? true,
+                    maxPerPage: (serverConfig && serverConfig.punishments?.warnings?.maxPerPage) ?? 20,
                 },
                 kicks: {
-                    enabled: serverConfig.punishments?.kicks?.enabled ?? true,
-                    maxPerPage: serverConfig.punishments?.kicks?.maxPerPage ?? 20,
+                    enabled: (serverConfig && serverConfig.punishments?.kicks?.enabled) ?? true,
+                    maxPerPage: (serverConfig && serverConfig.punishments?.kicks?.maxPerPage) ?? 20,
                 },
             },
             details: {
                 moderator: {
                     enabled: true,
-                    maxPerPage: serverConfig.histories?.moderatorMaxPerPage ?? 20,
+                    maxPerPage: (serverConfig && serverConfig.histories?.moderatorMaxPerPage) ?? 20,
                 },
                 player: {
                     enabled: true,
-                    maxPerPage: serverConfig.histories?.playerMaxPerPage ?? 20,
+                    maxPerPage: (serverConfig && serverConfig.histories?.playerMaxPerPage) ?? 20,
                 },
                 punishment: {
                     enabled: true,
-                    revokeButton: serverConfig.punishmentRevocation ?? true,
+                    revokeButton: (serverConfig && serverConfig.punishmentRevocation) ?? true,
                 },
             },
         });
     }, [isConfigLoading, serverConfig]);
 
-    const accent = serverConfig.serverColor || '#4f46e5';
-    const theme: UiTheme = currentTheme;
-
     const isAdmin = useMemo(() => !!user?.permissions?.includes('flexbans.web.admin'), [user]);
 
     useEffect(() => {
-        if (!isAuthLoading && serverConfig.isSecured && !isAuthenticated) {
+        if (!isAuthLoading && serverConfig && serverConfig.isSecured && !isAuthenticated) {
             navigate('/login');
         }
-    }, [isAuthenticated, isAuthLoading, serverConfig.isSecured, navigate]);
+    }, [isAuthenticated, isAuthLoading, serverConfig && serverConfig.isSecured, navigate]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setMinLoadingDone(true);
+        }, 200);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     const updateBranding = useCallback((key: keyof BrandingForm, value: string) => {
         setForm((prev) => (prev ? { ...prev, branding: { ...prev.branding, [key]: value } } : prev));
@@ -170,100 +189,97 @@ const AdminPanelPage: React.FC = () => {
         []
     );
 
-    if (isAuthLoading || isConfigLoading || isUsersLoading || !form) {
+    if (isAuthLoading || isConfigLoading || isUsersLoading || !form || !minLoadingDone) {
         return (
-            <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-[#1c1c1c] text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
-                <div className={`flex items-center space-x-3 p-8 rounded-xl ${theme === 'dark' ? 'bg-[#2c2c2c]' : 'bg-white'} shadow-xl`}>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: accent }} />
-                    <p className="text-xl font-semibold">Loading configuration...</p>
+            <div className="flex items-center justify-center min-h-screen bg-background text-text-primary">
+                <div className="flex items-center space-x-3 p-8 rounded-2xl bg-surface shadow-xl">
+                    <div
+                        className="animate-spin rounded-full h-8 w-8 border-b-2 border-server-color"
+                    />
+                    <p className="text-xl font-semibold">{t("loading")}</p>
                 </div>
             </div>
         );
     }
 
-    if (serverConfig.isSecured && (!isAuthenticated || !isAdmin)) {
+    if (serverConfig && serverConfig.isSecured && (!isAuthenticated || !isAdmin)) {
         return <Error403 />;
     }
 
     return (
-        <div className={`flex min-h-screen ${theme === 'dark' ? 'bg-[#1c1c1c] text-[#e0e0e0]' : 'bg-[#f4f4f4] text-[#333333]'}`}>
-            <title>{serverConfig.serverName} - Admin Panel</title>
+        <div className={`flex min-h-screen bg-background text-text-primary`}>
+            <Notification
+                message={t("create-modal.success.message")}
+                type={'success'}
+                visible={showSuccessNotif}
+                onClose={() => setShowSuccessNotif(false)}
+            />
 
             <Sidebar
-                serverConfig={serverConfig}
                 counts={globalCounts}
                 activeType={null}
                 setActiveType={handleSidebarSetActiveType}
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 onNewPunishmentClick={handleOpenNewPunishmentModal}
+                sidebarWidth={sidebarWidth}
+                setSidebarWidth={setSidebarWidth}
             />
 
-            <div className={`flex flex-col grow transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
-                <header className={`flex items-center justify-between p-4 ${theme === 'dark' ? 'bg-[#242424]' : 'bg-[#e4e4e4]'} lg:hidden shadow-md`}>
-                    <button onClick={() => setIsSidebarOpen(true)} aria-label="Open menu" className="text-xl">
-                        <FaUsersCog />
-                    </button>
-                    <img src={form.branding.logo || serverConfig.serverLogo} alt="Logo" className="h-6" />
-                </header>
-
-                <main className="p-4 sm:p-6 lg:p-8 space-y-8">
+            <div
+                className="flex flex-col grow min-w-0 pt-16 lg:pt-0"
+                style={{
+                    marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0px',
+                    transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+            >
+                <main className="p-4 sm:p-6 lg:p-8 space-y-8 flex-1 min-w-0">
                     <div className="flex items-start justify-between">
                         <div>
-                            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Admin Panel</h1>
-                            <p className="text-sm sm:text-base mt-2 text-gray-500 dark:text-gray-400">
-                                Manage users, branding, punishments, and detail settings.
+                            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">{t("admin.title")}</h1>
+                            <p className="text-sm sm:text-base mt-2 text-text-secondary">
+                                {t("admin.description")}
                             </p>
                         </div>
-                        {serverConfig.isSecured && isAuthenticated && (
+                        {serverConfig && serverConfig.isSecured && isAuthenticated && (
                             <div className="hidden lg:block mt-1">
-                                <MyAccount currentTheme={theme} />
+                                <MyAccount onPreferencesApply={() => {}}/>
                             </div>
                         )}
                     </div>
 
-                    {/* Metrics */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <MetricCard icon={<FaUsersCog />} label="Total Users" value="128" accent={accent} theme={theme} />
-                        <MetricCard icon={<FaShieldAlt />} label="Admins" value="6" accent={accent} theme={theme} />
-                        <MetricCard icon={<FaChartBar />} label="Active Sessions" value="42" accent={accent} theme={theme} />
-                        <MetricCard icon={<FaCogs />} label="Pending Actions" value="3" accent={accent} theme={theme} />
+                        <MetricCard icon={<FaUsersCog />} label={t("admin.sections.metrics.total")} value="128" />
+                        <MetricCard icon={<FaShieldAlt />} label={t("admin.sections.metrics.admins")} value="6" />
+                        <MetricCard icon={<FaChartBar />} label={t("admin.sections.metrics.sessions")} value="42" />
+                        <MetricCard icon={<FaCogs />} label={t("admin.sections.metrics.actions")} value="3" />
                     </div>
 
-                    {/* User Management */}
-                    <CardSection title="User Management" accent={accent} theme={theme} description="Manage panel users, their permissions, and access.">
-                        <UserManagement searchTerm={searchTerm} onSearch={setSearchTerm} accent={accent} theme={theme} />
+                    <CardSection title={t("admin.sections.user-management.title")} description={t("admin.sections.user-management.description")}>
+                        <UserManagement searchTerm={searchTerm} onSearch={setSearchTerm} />
                     </CardSection>
 
-                    {/* Branding */}
-                    <CardSection title="Branding & Meta" accent={accent} theme={theme} description="Control server name, colors, logo, favicon, and description.">
-                        <BrandingMeta branding={form.branding} theme={theme} accent={accent} onChange={updateBranding} />
+                    <CardSection title={t("admin.sections.branding-meta.title")} description={t("admin.sections.branding-meta.description")}>
+                        <BrandingMeta branding={form.branding} onChange={updateBranding} />
                     </CardSection>
 
-                    {/* Punishment Settings */}
-                    <CardSection title="Punishment Settings" accent={accent} theme={theme} description="Enable or disable categories and control pagination limits.">
+                    <CardSection title={t("admin.sections.punishment-settings.title")} description={t("admin.sections.punishment-settings.description")}>
                         <PunishmentSettings
                             punishments={form.punishments}
                             features={form.features}
-                            theme={theme}
-                            accent={accent}
                             onUpdatePunishment={updatePunishment}
                             onUpdateFeature={updateFeature}
                         />
                     </CardSection>
 
-                    {/* Detail / History Settings */}
-                    <CardSection title="Detail & History Settings" accent={accent} theme={theme} description="Control visibility and pagination for moderator/player detail pages.">
-                        <DetailHistorySettings details={form.details} theme={theme} accent={accent} onUpdateDetails={updateDetails} />
+                    <CardSection title={t("admin.sections.detail-history-settings.title")} description={t("admin.sections.detail-history-settings.description")}>
+                        <DetailHistorySettings details={form.details} onUpdateDetails={updateDetails} />
                     </CardSection>
 
-                    {/* Logs Card (separate, above actions) */}
                     <div
-                        className={`rounded-2xl border shadow-md px-5 py-4 flex items-center justify-between gap-4 ${
-                            theme === 'dark'
-                                ? 'bg-[#1f1f1f] border-gray-700 text-gray-100 hover:border-gray-500'
-                                : 'bg-white border-gray-200 text-gray-800 hover:border-gray-300'
-                        } transition hover:-translate-y-0.5 active:translate-y-0`}
+                        className={`rounded-2xl border shadow-md px-5 py-4 flex items-center justify-between gap-4 
+                                    bg-surface border-surface-border text-text-primary hover:border-border-active
+                                    transition hover:-translate-y-0.5 active:translate-y-0`}
                         role="button"
                         tabIndex={0}
                         onClick={() => setIsLogsModalOpen(true)}
@@ -271,57 +287,45 @@ const AdminPanelPage: React.FC = () => {
                     >
                         <div className="flex items-center gap-3">
                             <div
-                                className={`rounded-xl p-3 ${
-                                    theme === 'dark' ? 'bg-[#2b2b2b] text-[#8ef0a3]' : 'bg-[#eef9f0] text-[#1f7a3d]'
-                                }`}
+                                className={`rounded-xl p-3 border bg-surface-elevated border-surface-border text-[#8ef0a3]`}
                             >
                                 <FaTerminal className="text-lg" />
                             </div>
                             <div className="text-left">
-                                <p className="text-sm font-semibold">Check Logs</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">View recent system events</p>
+                                <p className="text-sm font-semibold">{t("admin.logs.title")}</p>
+                                <p className="text-xs text-text-secondary">{t("admin.logs.title")}</p>
                             </div>
                         </div>
-                        <span
-                            className="text-xs font-semibold px-2 py-1 rounded-full"
-                            style={{ backgroundColor: `${accent}20`, color: accent }}
-                        >
-                            Open
-                        </span>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-wrap justify-end gap-3">
-                        <button className={`px-4 py-2 rounded-xl text-sm font-semibold ${theme === 'dark' ? 'bg-[#2c2c2c] text-white' : 'bg-gray-200 text-gray-800'} shadow`}>
-                            Cancel
+                        <button className={`px-4 py-2 rounded-xl text-sm font-semibold bg-surface text-text-primary hover:bg-modal-surface-elevated transition duration-200 disabled:opacity-60`}>
+                            {t("admin.buttons.cancel")}
                         </button>
                         <button
-                            className="px-5 py-2 rounded-xl text-sm font-semibold text-white shadow-md hover:scale-[1.01] active:scale-[0.99] transition"
-                            style={{ backgroundColor: accent }}
+                            className="bg-server-color px-5 py-2 rounded-xl text-sm font-semibold text-text-primary shadow-md hover:scale-[1.01] active:scale-[0.99] transition"
                             onClick={() => {
                                 alert('Settings saved (mock). Wire to your API/mutation here.');
                             }}
                         >
-                            Save Changes
+                            {t("admin.buttons.save")}
                         </button>
                     </div>
                 </main>
             </div>
 
-            {serverConfig.isSecured && user && isAuthenticated && (
+            {serverConfig && serverConfig.isSecured && user && isAuthenticated && (
                 <NewPunishmentModal
                     isOpen={isNewPunishmentModalOpen}
                     onClose={handleCloseNewPunishmentModal}
+                    onSuccess={handleNewPunishmentSuccess}
                     executorName={user.username}
-                    currentTheme={theme}
                 />
             )}
 
             <LogsModal
                 isOpen={isLogsModalOpen}
                 onClose={() => setIsLogsModalOpen(false)}
-                accent={accent}
-                theme={theme}
                 logs={mockLogs}
             />
         </div>

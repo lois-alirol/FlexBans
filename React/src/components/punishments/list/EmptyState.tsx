@@ -1,85 +1,83 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
-interface EmptyStateProps {
-    type: 'no-punishments' | 'config-error' | 'loading' | 'error' | 'checking-access';
-    currentTheme: 'dark' | 'light';
-    serverColor?: string;
+interface Props {
+    type:
+        | 'checking-access'
+        | 'loading'
+        | 'error'
+        | 'config-error'
+        | 'no-punishments';
     errorMessage?: string;
     punishmentTypeDisplay?: string;
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({
-                                                   type,
-                                                   currentTheme,
-                                                   serverColor,
-                                                   errorMessage,
-                                                   punishmentTypeDisplay
-                                               }) => {
-    const baseClasses = `p-10 rounded-xl text-center border border-dashed ${
-        currentTheme === 'dark' ? 'border-gray-700 bg-[#242424]' : 'border-gray-300 bg-white'
-    }`;
+const EmptyState: React.FC<Props> = ({
+                                         type,
+                                         errorMessage,
+                                         punishmentTypeDisplay
+                                     }) => {
+    const { t } = useTranslation();
 
-    const errorClasses = `p-10 rounded-xl text-center border border-dashed ${
-        currentTheme === 'dark' ? 'border-red-700 bg-[#242424]' : 'border-red-300 bg-white'
-    }`;
+    const titleKey = `empty-state.${type}.title`;
+    const descriptionKey = `empty-state.${type}.description`;
+
+    const baseClasses =
+        "flex flex-col items-center justify-center text-center p-8 rounded-2xl bg-surface border border-surface-border";
+
+    const titleClasses =
+        "text-lg sm:text-xl font-semibold text-text-primary mb-2";
+
+    const bodyClasses =
+        "text-sm sm:text-base text-text-secondary max-w-md";
 
     const renderSpinner = () => (
-        <div className="mt-4 flex justify-center">
-            <div
-                className="animate-spin rounded-full h-8 w-8 border-b-2"
-                style={{ borderColor: serverColor }}
-            />
-        </div>
+        <div
+            className="animate-spin rounded-full h-8 w-8 border-b-2 mt-4"
+            style={{ borderColor: "var(--accent)" }}
+        />
     );
 
-    switch (type) {
-        case 'checking-access':
-            return (
-                <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm z-50">
-                    <div className={baseClasses}>
-                        <h3 className="text-xl font-semibold mb-2">Checking Access...</h3>
-                        <p className="text-gray-500">Determining server security requirements.</p>
-                        {renderSpinner()}
-                    </div>
-                </div>
-            );
+    const description =
+        type === "error"
+            ? errorMessage || t(descriptionKey)
+            : t(descriptionKey, {
+                type: punishmentTypeDisplay
+                    ? punishmentTypeDisplay.toLowerCase()
+                    : "punishments"
+            });
 
-        case 'loading':
-            return (
-                <div className={baseClasses}>
-                    <h3 className="text-xl font-semibold mb-2">Loading Punishments...</h3>
-                    <p className="text-gray-500">Please wait while we fetch the latest data.</p>
-                    {renderSpinner()}
-                </div>
-            );
+    const showSpinner = type === "checking-access" || type === "loading";
 
-        case 'error':
-            return (
-                <div className={errorClasses}>
-                    <h3 className="text-xl font-semibold mb-2 text-red-500">Error Fetching Data</h3>
-                    <p className="text-gray-500">Could not load punishments from the API: {errorMessage}</p>
-                </div>
-            );
+    const titleClass =
+        type === "error"
+            ? `${titleClasses} text-red-500 opacity-100`
+            : titleClasses;
 
-        case 'config-error':
-            return (
-                <div className={baseClasses}>
-                    <h3 className="text-xl font-semibold mb-2">Seems like a config issue :/</h3>
-                    <p className="text-gray-500">No punishment types are enabled in the server configuration.</p>
-                </div>
-            );
+    const Content = (
+        <>
+            <h3 className={titleClass}>{t(titleKey)}</h3>
+            <p className={bodyClasses}>{description}</p>
+            {showSpinner && renderSpinner()}
+        </>
+    );
 
-        case 'no-punishments':
-            return (
-                <div className={baseClasses}>
-                    <h3 className="text-xl font-semibold mb-2">No {punishmentTypeDisplay} Found</h3>
-                    <p className="text-gray-500">Try adjusting your search or filter settings.</p>
-                </div>
-            );
-
-        default:
-            return null;
+    if (type === "checking-access") {
+        return (
+            <div
+                className="fixed inset-0 flex items-center justify-center
+                           backdrop-blur-md z-200 animate-in fade-in duration-500"
+            >
+                <div className={`${baseClasses} scale-110`}>{Content}</div>
+            </div>
+        );
     }
+
+    return (
+        <div className="py-20 flex justify-center items-center w-full animate-in fade-in zoom-in-95 duration-700">
+            <div className={baseClasses}>{Content}</div>
+        </div>
+    );
 };
 
 export default EmptyState;

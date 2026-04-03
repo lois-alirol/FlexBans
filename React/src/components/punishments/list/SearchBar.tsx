@@ -6,8 +6,6 @@ interface SearchBarProps {
     onSearchChange: (value: string) => void;
     onFilterClick: () => void;
     placeholder: string;
-    currentTheme: 'dark' | 'light';
-    serverColor: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -15,36 +13,41 @@ const SearchBar: React.FC<SearchBarProps> = ({
                                                  onSearchChange,
                                                  onFilterClick,
                                                  placeholder,
-                                                 currentTheme,
-                                                 serverColor
                                              }) => {
+
+    const containerClasses = 'bg-surface border-surface-border text-text-primary placeholder-text-disabled'
+    const buttonClasses = 'bg-surface border-surface-border text-text-primary hover:bg-surface-elevated'
+
     return (
-        <div className="search mb-8 flex items-center gap-2">
-            <div className="relative grow">
+        <div className="search mb-4 flex items-center gap-3">
+            <div className="relative grow group">
                 <input
                     type="text"
                     placeholder={placeholder}
                     value={searchTerm}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className={`w-full p-3.5 pl-12 rounded-xl shadow-lg focus:outline-none focus:ring-2 transition-all duration-300 ${
-                        currentTheme === 'dark'
-                            ? `bg-[#2c2c2c] border border-gray-700 text-white`
-                            : `bg-white border border-gray-300 text-gray-800`
-                    }`}
-                    style={{
-                        '--tw-ring-color': `${serverColor}66`
-                    } as React.CSSProperties}
+                    className={`
+                        w-full p-3.5 pl-12 rounded-xl backdrop-blur-md border outline-none
+                        transition-all duration-300 transform focus:-translate-y-px focus:ring-2 focus:ring-server-color/30
+                        ${containerClasses}
+                    `}
                 />
-                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <FaSearch className={`
+                    absolute left-4 top-1/2 transform -translate-y-1/2 transition-colors duration-300
+                    text-text-secondary group-focus-within:text-text-primary
+                `} />
             </div>
+
             <button
                 onClick={onFilterClick}
-                className={`p-3.5 rounded-xl text-lg shadow-lg transition duration-300 transform hover:scale-[1.05] ${
-                    currentTheme === 'dark' ? 'bg-[#2c2c2c] text-white hover:bg-[#383838]' : 'bg-white text-gray-800 hover:bg-gray-100'
-                }`}
+                className={`
+                    p-4 rounded-xl text-lg backdrop-blur-md border
+                    transition-all duration-300 transform hover:-translate-y-1 active:scale-95
+                    ${buttonClasses}
+                `}
                 aria-label="Filter punishments"
             >
-                <FaFilter />
+                <FaFilter className="text-text-secondary" />
             </button>
         </div>
     );

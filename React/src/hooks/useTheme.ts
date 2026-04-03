@@ -1,9 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react';
 
 interface ThemeContextType {
-  isDarkMode: boolean;
-  setIsDarkMode: (isDark: boolean) => void;
-  currentTheme: 'dark' | 'light';
+  theme: string;
+  setTheme: (theme: string) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -15,4 +14,3 @@ export const useTheme = () => {
   }
   return context;
 };
-

@@ -1,16 +1,14 @@
-import React, { useEffect, useState } from "react";
-import { FaTimes } from "react-icons/fa";
-import { usePunishmentRevocation } from "../../../hooks/usePunishmentRevocation.ts";
-import { useServerConfig } from "../../../hooks/useServerConfig.ts";
+import React, { useEffect, useState } from 'react';
+import { FaTimes } from 'react-icons/fa';
+import { useTranslation } from "react-i18next";
 
-type Theme = "dark" | "light";
+import { usePunishmentRevocation } from '@hooks/usePunishmentRevocation';
 
 interface RevokeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   removerName: string;
-  currentTheme: Theme;
   punishmentId: number;
   punishmentType: string;
 }
@@ -20,14 +18,14 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
                                                    onClose,
                                                    onSuccess,
                                                    removerName,
-                                                   currentTheme,
                                                    punishmentId,
                                                    punishmentType,
                                                  }) => {
   const [removalReason, setRemovalReason] = useState("");
   const [silent, setSilent] = useState(false);
-  const { serverConfig } = useServerConfig();
+
   const { revokePunishment, isRevoking, error } = usePunishmentRevocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen) {
@@ -61,33 +59,22 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isDark = currentTheme === "dark";
-  const modalClasses = isDark
-      ? "bg-[#151515e6] text-white border border-white/10"
-      : "bg-white/90 text-gray-900 border border-black/5";
-  const inputClasses = isDark
-      ? "bg-white/5 border border-white/10 text-white placeholder-white/60 focus:ring-2 focus:ring-red-500/70"
-      : "bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-red-500/70";
-  const readOnlyClasses =
-      "bg-white/10 dark:bg-white/5 border border-transparent cursor-not-allowed text-white/80 dark:text-white/80";
+  const modalClasses = "bg-modal-background text-modal-text-primary border border-border-c";
+  const inputClasses = "bg-modal-surface border border-surface-border text-modal-text-primary placeholder-modal-text-disabled focus:outline-none focus:ring-2 focus:ring-status-removed/70"
+  const readOnlyClasses = "bg-modal-surface border border-transparent cursor-not-allowed text-text-disabled";
 
   return (
       <div
-          className="fixed inset-0 backdrop-filter backdrop-blur-sm bg-black/40 flex items-center justify-center z-[200] p-4"
+          className="fixed inset-0 backdrop-filter backdrop-blur-sm bg-modal-background/40 flex items-center justify-center z-200 p-4"
           onClick={onClose}
       >
         <div
-            className={`relative w-full max-w-md max-h-[90vh] rounded-2xl shadow-[0_18px_55px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col ${modalClasses}`}
-            style={{
-              backgroundImage: isDark
-                  ? "linear-gradient(160deg, rgba(28,28,28,0.95), rgba(18,18,18,0.9))"
-                  : "linear-gradient(160deg, rgba(255,255,255,0.95), rgba(245,245,245,0.9))",
-            }}
+            className={`relative w-full max-w-md max-h-[90vh] rounded-2xl overflow-hidden flex flex-col ${modalClasses}`}
             onClick={(e) => e.stopPropagation()}
         >
           <button
               onClick={onClose}
-              className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-white/6 text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition duration-200 backdrop-blur"
+              className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-modal-surface text-modal-text-secondary hover:text-red-400 hover:bg-red-400/10 transition duration-200 backdrop-blur"
               disabled={isRevoking}
               aria-label="Close modal"
           >
@@ -95,23 +82,26 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
           </button>
 
           <div className="p-6 pb-3 flex items-center justify-between gap-4 pr-14">
-            <h2 className="text-2xl font-bold leading-tight">Revoke Punishment</h2>
-            <span className="px-3 py-1 text-xs font-semibold rounded-full tracking-wide uppercase bg-red-500/15 border border-red-500/30 text-red-300">
-            REVOKE
+            <h2 className="text-2xl font-bold leading-tight">
+              {t("revoke-modal.title")}
+            </h2>
+            <span className="px-3 py-1 text-xs font-semibold rounded-full tracking-wide uppercase bg-status-removed/15 border border-status-removed/30 text-status-removed/90">
+            {t("revoke-modal.badge")}
           </span>
           </div>
 
           <div className="px-6 pb-6 flex-1 overflow-y-auto">
             <form onSubmit={handleSubmit} className="space-y-5">
+
               {error && (
-                  <div className="p-3 text-sm bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg">
+                  <div className="p-3 text-sm bg-modal-error border border-modal-error-border text-modal-text-error rounded-lg">
                     {error}
                   </div>
               )}
 
               <div className="space-y-2">
-                <label htmlFor="identity" className="block text-sm font-semibold uppercase tracking-wide text-gray-400">
-                  Who are you?
+                <label htmlFor="identity" className="block text-sm font-semibold uppercase tracking-wide text-modal-text-secondary">
+                  {t("revoke-modal.identity.label")}
                 </label>
                 <input
                     type="text"
@@ -126,9 +116,9 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
               <div className="space-y-2">
                 <label
                     htmlFor="removal-reason"
-                    className="block text-sm font-semibold uppercase tracking-wide text-gray-400"
+                    className="block text-sm font-semibold uppercase tracking-wide text-modal-text-secondary"
                 >
-                  Reason for Removal
+                  {t("revoke-modal.reason.label")}
                 </label>
                 <textarea
                     id="removal-reason"
@@ -138,14 +128,18 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
                     onChange={(e) => setRemovalReason(e.target.value)}
                     required
                     disabled={isRevoking}
-                    placeholder="Provide a concise reason…"
+                    placeholder={t("revoke-modal.reason.placeholder")}
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/6 px-3 py-3 backdrop-blur">
+              <div className="flex items-center justify-between rounded-xl border border-surface-border bg-modal-surface px-3 py-3 backdrop-blur">
                 <div>
-                  <p className="text-sm font-semibold text-gray-200">Silent Mode</p>
-                  <p className="text-xs text-gray-400">Don't notify everyone of revocation</p>
+                  <p className="text-sm font-semibold text-modal-text-primary">
+                    {t("revoke-modal.silent.title")}
+                  </p>
+                  <p className="text-xs text-modal-text-secondary">
+                    {t("revoke-modal.silent.description")}
+                  </p>
                 </div>
                 <label className="inline-flex items-center gap-2 text-sm font-medium">
                   <input
@@ -153,8 +147,7 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
                       name="silent"
                       checked={silent}
                       onChange={(e) => setSilent(e.target.checked)}
-                      className="h-4 w-4"
-                      style={{ accentColor: serverConfig.serverColor }}
+                      className="accent-server-color h-4 w-4"
                       disabled={isRevoking}
                   />
                 </label>
@@ -164,23 +157,23 @@ const RevokeModal: React.FC<RevokeModalProps> = ({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 py-2 rounded-xl bg-white/10 text-gray-200 hover:bg-white/15 transition duration-200 disabled:opacity-60"
+                    className="px-4 py-2 rounded-xl bg-modal-surface text-text-primary hover:bg-modal-surface-elevated transition duration-200 disabled:opacity-60"
                     disabled={isRevoking}
                 >
-                  Cancel
+                  {t("revoke-modal.buttons.cancel")}
                 </button>
+
                 <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl text-white font-semibold transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{
-                      backgroundColor: "#ef4444",
-                      boxShadow: "0 10px 25px rgba(239,68,68,0.35)",
-                    }}
+                    className="px-4 py-2 rounded-xl text-modal-text-primary font-semibold transition-colors duration-200 bg-status-removed hover:bg-status-removed/80 disabled:opacity-60 disabled:cursor-not-allowed"
                     disabled={isRevoking || !removalReason.trim()}
                 >
-                  {isRevoking ? "Submitting..." : "Submit"}
+                  {isRevoking
+                      ? t("revoke-modal.buttons.submit.submitting")
+                      : t("revoke-modal.buttons.submit.submit")}
                 </button>
               </div>
+
             </form>
           </div>
         </div>

@@ -1,23 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export interface PunishmentDetailData {
-    database_id: number;
-    punishment_id: string;
-    punishment_type: string;
-    player: string;
-    executor: string;
-    reason: string;
-    execution_date: string;
-    expiration_date: string;
-    duration: string | null;
-    origin_server: string;
-    scope_server: string;
-    ip_scope: boolean;
-    remover_name?: string | null;
-    removal_reason?: string | null;
-    status: 'Active' | 'Removed' | 'Expired' | null;
-}
-
+import type {PunishmentDetailData} from '@/types/punishments';
 
 const BASE_API_URL = import.meta.env.VITE_APP_API_URL;
 const PUNISHMENT_DETAIL_API_URL = `${BASE_API_URL}/punishments`;

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import authService from "../services/authService.ts";
+
+import authService from '@services/authService';
 
 const BASE_API_URL = import.meta.env.VITE_APP_API_URL;
 const REVOKE_API_URL = `${BASE_API_URL}/punishments/revoke`;

@@ -1,16 +1,14 @@
 import React from 'react';
 import { FaCalendarAlt, FaClock } from 'react-icons/fa';
-import DetailCard from './DetailCard';
-import DetailItem from './DetailItem';
 
-type Theme = 'dark' | 'light';
+import DetailCard from '@/components/punishments/details/cards/DetailCard';
+import DetailItem from '@/components/punishments/details/cards/DetailItem';
+import {useTranslation} from "react-i18next";
 
 interface TimeInformationCardProps {
     executionDate: string;
     duration?: string | null;
     expirationDate?: string | null;
-    serverColor: string;
-    currentTheme: Theme;
     isKickType: boolean;
 }
 
@@ -18,23 +16,24 @@ const TimeInformationCard: React.FC<TimeInformationCardProps> = ({
                                                                      executionDate,
                                                                      duration,
                                                                      expirationDate,
-                                                                     serverColor,
-                                                                     currentTheme,
                                                                      isKickType
-                                                                 }) => {
+                                                                 }) =>
+{
+    const { t } = useTranslation();
+
     if (isKickType) {
         return (
-            <DetailCard title="Execution Time" accentColor={serverColor} currentTheme={currentTheme}>
-                <DetailItem icon={<FaCalendarAlt />} label="Execution Date" value={executionDate} accentColor={serverColor} currentTheme={currentTheme} />
+            <DetailCard title={t("details.time.title")}>
+                <DetailItem icon={<FaCalendarAlt />} label={t("details.time.items-titles.execution")} value={executionDate} />
             </DetailCard>
         );
     }
 
     return (
-        <DetailCard title="Time & Duration" accentColor={serverColor} currentTheme={currentTheme}>
-            <DetailItem icon={<FaCalendarAlt />} label="Execution Date" value={executionDate} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaClock />} label="Duration" value={duration || null} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaCalendarAlt />} label="Expiration Date" value={expirationDate || null} accentColor={serverColor} currentTheme={currentTheme} />
+        <DetailCard title={t("details.time.title")} >
+            <DetailItem icon={<FaCalendarAlt />} label={t("details.time.items-titles.execution")} value={executionDate} />
+            <DetailItem icon={<FaClock />} label={t("details.time.items-titles.duration")} value={duration || null} />
+            <DetailItem icon={<FaCalendarAlt />} label={t("details.time.items-titles.expiration")} value={expirationDate || null} />
         </DetailCard>
     );
 };

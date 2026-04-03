@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import authService from "../services/authService.ts";
+import { useEffect, useMemo, useState } from 'react';
+
+import authService from '@services/authService';
 
 type ApiResponse<T> = { code: number; message?: string; data: T };
 

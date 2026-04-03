@@ -1,17 +1,15 @@
 import React from 'react';
 import { FaUser, FaUserShield, FaListAlt, FaFingerprint } from 'react-icons/fa';
-import DetailCard from './DetailCard';
-import DetailItem from './DetailItem';
 
-type Theme = 'dark' | 'light';
+import DetailCard from '@/components/punishments/details/cards/DetailCard';
+import DetailItem from '@/components/punishments/details/cards/DetailItem';
+import {useTranslation} from "react-i18next";
 
 interface CoreInformationCardProps {
     player: string;
     executor: string;
     punishmentType: string;
     databaseId: number;
-    serverColor: string;
-    currentTheme: Theme;
 }
 
 const CoreInformationCard: React.FC<CoreInformationCardProps> = ({
@@ -19,15 +17,17 @@ const CoreInformationCard: React.FC<CoreInformationCardProps> = ({
                                                                      executor,
                                                                      punishmentType,
                                                                      databaseId,
-                                                                     serverColor,
-                                                                     currentTheme
-                                                                 }) => {
+                                                                 }) =>
+
+{
+    const { t } = useTranslation();
+
     return (
-        <DetailCard title="Core Information" accentColor={serverColor} currentTheme={currentTheme}>
-            <DetailItem icon={<FaUser />} label="Player" value={player} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaUserShield />} label="Executor" value={executor} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaListAlt />} label="Type" value={punishmentType} accentColor={serverColor} currentTheme={currentTheme} />
-            <DetailItem icon={<FaFingerprint />} label="Database ID" value={databaseId.toString()} accentColor={serverColor} currentTheme={currentTheme} />
+        <DetailCard title={t("details.core.title")}>
+            <DetailItem icon={<FaUser />} label={t("details.core.items-titles.player")} value={player} />
+            <DetailItem icon={<FaUserShield />} label={t("details.core.items-titles.executor")} value={executor} />
+            <DetailItem icon={<FaListAlt />} label={t("details.core.items-titles.type")} value={punishmentType} />
+            <DetailItem icon={<FaFingerprint />} label={t("details.core.items-titles.database-id")} value={databaseId.toString()} />
         </DetailCard>
     );
 };

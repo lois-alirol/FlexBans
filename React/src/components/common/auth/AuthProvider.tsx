@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {AuthContext, type AuthContextType, type UserContext} from './AuthContext';
-import { getUserData, clearAuthData, setUserData } from '../../../utils/tokenUtils';
-import authService from '../../../services/authService';
+
+import {
+    AuthContext,
+    type AuthContextType,
+    type UserContext
+} from '@components/common/auth/AuthContext';
+
+import { getUserData, clearAuthData, setUserData } from '@utils/tokenUtils';
+import authService from '@services/authService';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserContext | null>(null);

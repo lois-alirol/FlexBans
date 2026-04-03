@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
-import { parsePrefixColors, parsePrefixLabel } from '../../utils/prefixUtils';
+
+import { parsePrefixColors, parsePrefixLabel } from '@utils/prefixUtils';
+import { useTranslation } from "react-i18next";
 
 interface PrefixBadgeProps {
     prefix?: string;
@@ -16,24 +18,28 @@ const PrefixBadge: React.FC<PrefixBadgeProps> = ({
                                                      size = 'md',
                                                      className = ''
                                                  }) => {
+    const { t } = useTranslation();
+
     const isConsole = username.toLowerCase() === 'console';
     const prefixColors = parsePrefixColors(prefix);
     const prefixLabel = parsePrefixLabel(prefix);
 
-    let badgeText = isConsole ? 'SYSTEM' : prefixLabel.toUpperCase();
+    let badgeText = isConsole ? t("history.badges.short.console").toUpperCase() : prefixLabel.toUpperCase();
     if (badgeText === "") {
-        badgeText = "PLAYER";
+        badgeText = t("history.badges.short.player").toUpperCase();
     }
 
     const hasPrefixColors = prefixColors && prefixColors.length > 0;
 
-    // Logic for the clipped text gradient
     const textGradientStyle = useMemo(() => {
         if (hasPrefixColors) {
-            const gradient = prefixColors.length === 1
-                ? prefixColors[0]
-                : `linear-gradient(135deg, ${prefixColors.join(', ')})`;
-
+            if (prefixColors.length === 1) {
+                return {
+                    color: prefixColors[0],
+                    display: 'inline-block'
+                };
+            }
+            const gradient = `linear-gradient(135deg, ${prefixColors.join(', ')})`;
             return {
                 backgroundImage: gradient,
                 WebkitBackgroundClip: 'text',
@@ -45,10 +51,8 @@ const PrefixBadge: React.FC<PrefixBadgeProps> = ({
         return {};
     }, [prefixColors, hasPrefixColors]);
 
-    // Logic for the semi-transparent background container
     const containerStyle = useMemo(() => {
         if (hasPrefixColors) {
-            // Using '40' for 25% opacity - much clearer than the previous 10%
             const transparentColors = prefixColors.map(color =>
                 color.startsWith('#') ? `${color}40` : color
             );
@@ -59,16 +63,17 @@ const PrefixBadge: React.FC<PrefixBadgeProps> = ({
 
             return {
                 background: bgGradient,
-                // Using '66' for 40% opacity on the border to define the shape
                 border: `1px solid ${prefixColors[0]}66`,
             };
         }
         return {};
     }, [prefixColors, hasPrefixColors]);
 
-    const fallbackBadgeClasses = isPlayerContext
-        ? 'bg-blue-500/20 text-blue-500 border border-blue-500/40'
-        : (isConsole ? 'bg-gray-500/20 text-gray-500 border border-gray-500/40' : 'bg-purple-500/20 text-purple-500 border border-purple-500/40');
+    const fallbackBadgeClasses = isConsole
+        ? 'bg-gray-500/10 text-gray-500 border border-gray-500'
+        : isPlayerContext
+            ? 'bg-blue-500/20 text-blue-500 border border-blue-500/40'
+            : 'bg-purple-500/20 text-purple-500 border border-purple-500/40';
 
     const sizeClasses = {
         sm: 'px-2 py-0.5 text-[8px] tracking-[0.15em]',

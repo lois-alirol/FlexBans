@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+
+import { useAuth } from '@hooks/useAuth';
 
 const LogoutRoute: React.FC = () => {
   const { logout } = useAuth();

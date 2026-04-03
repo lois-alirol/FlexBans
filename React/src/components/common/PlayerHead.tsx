@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import {usePlayerHead} from "../../hooks/usePlayerHead.ts";
+
+import {usePlayerHead} from '@hooks/usePlayerHead';
 
 interface PlayerHeadProps {
     username: string;

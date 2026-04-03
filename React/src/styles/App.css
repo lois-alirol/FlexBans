@@ -1,8 +1,266 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
+:root {
+  --status-active: #22c55e;
+  --status-expired: #eab308;
+  --status-removed: #ef4444;
+  --status-unknown: #6b7280;
+
+  --badge-type-background: rgba(43, 127, 255, 0.1);
+  --badge-type-text: rgb(43, 127, 255);
+
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-disabled: #9ca3af;
+
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  --surface-border: #e5e7eb;
+
+  --border-c: #e5e7eb;
+  --border-active: #9ca3af;
+
+  --success: #22c55e;
+  --success-border: #16a34a;
+  --text-success: #ffffff;
+  --error: #ef4444;
+  --error-border: #dc2626;
+  --text-error: #ffffff;
+
+  --table-row-background: #ffffff;
+  --table-row-hover: #f3f4f6;
+
+  --sidebar-background: #f9fafb;
+  --sidebar-surface: #ffffff;
+  --sidebar-surface-elevated: #f3f4f6;
+  --sidebar-surface-elevated-active: #e5e7eb;
+  --sidebar-text-primary: #111827;
+  --sidebar-text-secondary: #4b5563;
+  --sidebar-text-disabled: #9ca3af;
+  --sidebar-text-active: #111827;
+
+  --modal-background: #ffffff;
+  --modal-surface: #f9fafb;
+  --modal-surface-hover: #f3f4f6;
+  --modal-surface-elevated: #ffffff;
+  --modal-text-primary: #111827;
+  --modal-text-secondary: #4b5563;
+  --modal-text-error: #dc2626;
+  --modal-error: #fee2e2;
+  --modal-error-border: #fecaca;
+}
+
+.dark {
+  --background: #1c1c1c;
+  --surface: #282828;
+  --surface-elevated: #303030;
+  --border-c: #2c2c2c;
+  --surface-border: #3d3d3d;
+  --border-active: #4d4d4d;
+
+  --success: #59dc18;
+  --success-border: #18bc0a;
+  --text-success: #ffffff;
+  --error: #e63027;
+  --error-border: #d61d18;
+  --text-error: #ffffff;
+
+  --table-row-background: #212121;
+  --table-row-hover: #2c2c2c;
+
+  --badge-type-background: rgba(43, 127, 255, 0.1);
+  --badge-type-text: rgb(43, 127, 255);
+
+  --text-primary: #ffffff;
+  --text-secondary: #9ba1ad;
+  --text-disabled: #5a5a5a;
+
+  --sidebar-background: #151515;
+  --sidebar-surface: #212121;
+  --sidebar-surface-elevated: #2c2c2c;
+  --sidebar-surface-elevated-active: rgba(44, 44, 44, 0.2);
+  --sidebar-text-primary: #ffffff;
+  --sidebar-text-secondary: #6b7281;
+  --sidebar-text-disabled: #9ba1ad;
+  --sidebar-text-active: #ffffff;
+
+  --modal-background: #151515;
+  --modal-error: #2a1a19;
+  --modal-error-border: #4F2221;
+  --modal-text-primary: #ffffff;
+  --modal-text-secondary: #6b7281;
+  --modal-text-error: #ee6e6c;
+  --modal-surface: #212121;
+  --modal-surface-hover: #1b1b1b;
+  --modal-surface-elevated: #2c2c2c;
+}
+
+.quartz {
+  --status-active: #10b981;
+  --status-expired: #f59e0b;
+  --status-removed: #ef4444;
+  --status-unknown: #94a3b8;
+
+  --badge-type-background: rgba(99, 102, 241, 0.1);
+  --badge-type-text: #6366f1;
+
+  --text-primary: #4338ca;
+  --text-secondary: #857474;
+  --text-disabled: #c3b4b4;
+
+  --background: #fffbfb;
+  --surface: #fdf2f2;
+  --surface-elevated: #ffffff;
+  --surface-border: #f1e4e4;
+
+  --border-c: #eee0e0;
+  --border-active: #d946ef;
+
+  --success: #10b981;
+  --success-border: #059669;
+  --text-success: #ffffff;
+  --error: #ef4444;
+  --error-border: #b91c1c;
+  --text-error: #ffffff;
+
+  --table-row-background: #ffffff;
+  --table-row-hover: #fdf2f2;
+
+  --sidebar-background: #fdf2f2;
+  --sidebar-surface: #ffffff;
+  --sidebar-surface-elevated: #fce7f3;
+  --sidebar-surface-elevated-active: #fbcfe8;
+  --sidebar-text-primary: #4338ca;
+  --sidebar-text-secondary: #9d8080;
+  --sidebar-text-disabled: #d1b9b9;
+  --sidebar-text-active: #db2777;
+
+  --modal-background: #ffffff;
+  --modal-surface: #fdf2f2;
+  --modal-surface-hover: #f9e1e1;
+  --modal-surface-elevated: #ffffff;
+  --modal-text-primary: #4338ca;
+  --modal-text-secondary: #857474;
+  --modal-text-error: #e11d48;
+  --modal-error: #fff1f2;
+  --modal-error-border: #fecdd3;
+}
+
+.midnight {
+  --status-active: #34d399;
+  --status-expired: #fbbf24;
+  --status-removed: #f87171;
+  --status-unknown: #94a3b8;
+
+  --badge-type-background: rgba(56, 189, 248, 0.12);
+  --badge-type-text: #38bdf8;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-disabled: #475569;
+
+  --background: #020617;
+  --surface: #0f172a;
+  --surface-elevated: #1e293b;
+  --surface-border: #334155;
+
+  --border-c: #1e293b;
+  --border-active: #38bdf8;
+
+  --success: #34d399;
+  --success-border: #10b981;
+  --text-success: #022c22;
+  --error: #f87171;
+  --error-border: #ef4444;
+  --text-error: #450a0a;
+
+  --table-row-background: #0f172a;
+  --table-row-hover: #1e293b;
+
+  --sidebar-background: #02040a;
+  --sidebar-surface: #0f172a;
+  --sidebar-surface-elevated: #1e293b;
+  --sidebar-surface-elevated-active: rgba(56, 189, 248, 0.1);
+  --sidebar-text-primary: #f1f5f9;
+  --sidebar-text-secondary: #64748b;
+  --sidebar-text-disabled: #334155;
+  --sidebar-text-active: #38bdf8;
+
+  --modal-background: #0b0f1a;
+  --modal-surface: #1e293b;
+  --modal-surface-hover: #0f172a;
+  --modal-surface-elevated: #334155;
+  --modal-text-primary: #ffffff;
+  --modal-text-secondary: #94a3b8;
+  --modal-text-error: #fca5a5;
+  --modal-error: #2d1616;
+  --modal-error-border: #7f1d1d;
+}
+
 @theme {
-  --font-montserrat: "Montserrat", sans-serif; 
+  --color-server-color: #ffffff;
+  --color-server-color-hover: #ffffff;
+
+  --font-sans: "Poppins", sans-serif;
+
+  --color-status-active: var(--status-active);
+  --color-status-expired: var(--status-expired);
+  --color-status-removed: var(--status-removed);
+  --color-status-unknown: var(--status-unknown);
+
+  --color-badge-type-background: var(--badge-type-background);
+  --color-badge-type-text: var(--badge-type-text);
+
+  --color-logout: #fb2c36;
+  --color-logout-hover: #fb2c361a;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border-c: var(--border-c);
+  --color-surface-border: var(--surface-border);
+  --color-border-active: var(--border-active);
+
+  --color-error: var(--error);
+  --color-error-border: var(--error-border);
+  --color-text-error: var(--text-error);
+  --color-success: var(--success);
+  --color-success-border: var(--success-border);
+  --color-text-success: var(--text-success);
+
+  --color-table-row-background: var(--table-row-background);
+  --color-table-row-hover: var(--table-row-hover);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-disabled: var(--text-disabled);
+
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-surface: var(--sidebar-surface);
+  --color-sidebar-surface-elevated: var(--sidebar-surface-elevated);
+  --color-sidebar-surface-elevated-active: var(--sidebar-surface-elevated-active);
+  --color-sidebar-text-primary: var(--sidebar-text-primary);
+  --color-sidebar-text-secondary: var(--sidebar-text-secondary);
+  --color-sidebar-text-disabled: var(--sidebar-text-disabled);
+  --color-sidebar-text-active: var(--sidebar-text-active);
+
+  --color-modal-background: var(--modal-background);
+  --color-modal-text-primary: var(--modal-text-primary);
+  --color-modal-text-secondary: var(--modal-text-secondary);
+  --color-modal-surface: var(--modal-surface);
+  --color-modal-surface-hover: var(--modal-surface-hover);
+  --color-modal-surface-elevated: var(--modal-surface-elevated);
+  --color-modal-error: var(--modal-error);
+  --color-modal-error-border: var(--modal-error-border);
+  --color-modal-text-error: var(--modal-text-error);
+
+  @keyframes wiggle-soft {
+    0% { transform: rotate(-0.5deg) translateX(-0.5px); }
+    50% { transform: rotate(0.5deg) translateY(0.5px); }
+    100% { transform: rotate(-0.5deg) translateX(-0.5px); }
+  }
 
   @keyframes dot-pulse {
     0% {
@@ -17,7 +275,7 @@
   }
   
   --animate-dot-pulse: dot-pulse 1.4s infinite;
-
+  --animate-wiggle-soft: wiggle-soft 0.35s ease-in-out infinite;
 }
 
 @layer utilities {
@@ -27,5 +285,5 @@
 }
 
 html, body {
-  @apply bg-[#1c1c1c];
+  @apply bg-background;
 }

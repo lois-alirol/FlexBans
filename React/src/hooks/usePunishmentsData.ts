@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PunishmentsData, PunishmentType } from '../types/punishments';
+
+import type { PunishmentsData, PunishmentType } from '@/types/punishments';
 
 const DEFAULT_PUNISHMENTS_DATA: PunishmentsData = {
     recentPunishments: [],
@@ -182,7 +183,16 @@ export const usePunishmentsData = (
                 });
             } catch (e: any) {
                 console.error('Failed to fetch punishments data:', e);
-                setError(e instanceof Error ? e.message : 'An unknown error occurred while fetching punishments.');
+
+                const friendly = [
+                    `URL: ${url}`,
+                    `Page: ${page}`,
+                    `Type: ${type || 'none'}`,
+                    `Details: ${e instanceof Error ? e.message : 'Unknown error'}`
+                ].join('\n');
+
+                setError(friendly);
+
                 setPunishmentsData(DEFAULT_PUNISHMENTS_DATA);
                 setPagination({ page: 1, perPage: 20, totalItems: 0, totalPages: 1 });
             } finally {
@@ -193,7 +203,6 @@ export const usePunishmentsData = (
         };
 
         run();
-        console.debug('[usePunishmentsData] requestId:', myRequestId, 'page:', page, 'type:', type, 'url:', url);
     }, [url, apiUrl, page, type]);
 
     return {

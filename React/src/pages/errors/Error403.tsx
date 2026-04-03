@@ -1,14 +1,16 @@
 import React from 'react';
-import ErrorPageLayout from '../../components/errors/ErrorPageLayout';
+
+import ErrorPageLayout from '@components/errors/ErrorPageLayout';
+import {useTranslation} from "react-i18next";
 
 const Error403: React.FC = () => {
+    const { t } = useTranslation();
+
     return (
         <ErrorPageLayout
             statusCode={403}
-            title="Forbidden"
-            description="You don’t have permission to access this page."
-            actionText="Return to Homepage"
-            iconClass="fa-solid fa-home"
+            title={t("errors.403.title")}
+            description={t("errors.403.description")}
         />
     );
 };

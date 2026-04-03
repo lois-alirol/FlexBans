@@ -1,15 +1,19 @@
 import React from 'react';
-import ErrorPageLayout from '../../components/errors/ErrorPageLayout';
+
+import ErrorPageLayout from '@components/errors/ErrorPageLayout';
+import {useTranslation} from "react-i18next";
 
 interface Error500Props {
     stackTrace: string;
 }
 
 const Error500: React.FC<Error500Props> = ({ stackTrace }) => {
+    const { t } = useTranslation();
+
     const stackTraceElement = (
-        <div className="bg-[#1a1a1a] text-left p-4 rounded-md overflow-auto max-h-60 text-s">
-            <pre className="text-[#d1d5db]">
-                <code>{stackTrace}</code>
+        <div className="bg-modal-surface-elevated text-left p-4 rounded-md overflow-auto max-h-60 text-s">
+            <pre className="text-text-primary">
+                <code>{ stackTrace }</code>
             </pre>
         </div>
     );
@@ -17,10 +21,8 @@ const Error500: React.FC<Error500Props> = ({ stackTrace }) => {
     return (
         <ErrorPageLayout
             statusCode={500}
-            title="Internal Error"
-            description="Something went wrong on our end. Please try again later."
-            actionText="Return to Homepage"
-            iconClass="fa-solid fa-home"
+            title={t("errors.500.title")}
+            description={t("errors.500.description")}
             details={stackTraceElement}
         />
     );

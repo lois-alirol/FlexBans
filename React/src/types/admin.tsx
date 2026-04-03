@@ -1,5 +1,3 @@
-export type Theme = 'dark' | 'light';
-
 export interface BrandingForm {
     serverName: string;
     primaryColor: string;

@@ -1,43 +1,40 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ThemeContext } from '../../hooks/useTheme';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ThemeContext } from '@hooks/useTheme';
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const getInitialTheme = (): boolean => {
-    const storedTheme = localStorage.getItem('isDarkMode');
-    if (storedTheme !== null) {
-      return storedTheme === 'true';
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+export const ThemeProvider: React.FC<{
+  children: React.ReactNode;
+  defaultTheme?: string
+}> = ({ children, defaultTheme = 'light' }) => {
+
+  const getInitialTheme = (): string => {
+    const storedTheme = localStorage.getItem('app-theme');
+    if (storedTheme) return storedTheme;
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : defaultTheme;
   };
 
-  const [isDarkMode, setInternalIsDarkMode] = useState<boolean>(getInitialTheme);
-  const currentTheme: 'dark' | 'light' = isDarkMode ? 'dark' : 'light';
+  const [theme, setTheme] = useState<string>(getInitialTheme);
+  const previousTheme = useRef<string>(theme);
 
   useEffect(() => {
-    localStorage.setItem('isDarkMode', String(isDarkMode));
+    const root = window.document.documentElement;
 
-    if (isDarkMode) {
-      document.body.classList.add('dark');
-    } else {
-      document.body.classList.remove('dark');
-    }
-    
-    return () => {};
-  }, [isDarkMode]);
+    root.classList.remove(previousTheme.current);
+    root.classList.add(theme);
+    root.setAttribute('data-theme', theme);
 
-  const setIsDarkMode = (isDark: boolean) => {
-    setInternalIsDarkMode(isDark);
-  };
-  
+    localStorage.setItem('app-theme', theme);
+    previousTheme.current = theme;
+  }, [theme]);
+
   const contextValue = useMemo(() => ({
-    isDarkMode,
-    setIsDarkMode,
-    currentTheme,
-  }), [isDarkMode, currentTheme]);
+    theme,
+    setTheme,
+  }), [theme]);
 
   return (
-    <ThemeContext.Provider value={contextValue}>
-      {children}
-    </ThemeContext.Provider>
+      <ThemeContext.Provider value={contextValue}>
+        {children}
+      </ThemeContext.Provider>
   );
 };

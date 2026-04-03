@@ -1,14 +1,16 @@
 import React from 'react';
-import ErrorPageLayout from '../../components/errors/ErrorPageLayout';
+
+import ErrorPageLayout from '@components/errors/ErrorPageLayout';
+import {useTranslation} from "react-i18next";
 
 const Error404: React.FC = () => {
+    const { t } = useTranslation();
+
     return (
         <ErrorPageLayout
             statusCode={404}
-            title="Not Found"
-            description="Oops! The page you’re looking for doesn’t exist."
-            actionText="Return to Homepage"
-            iconClass="fa-solid fa-arrow-left"
+            title={t("errors.404.title")}
+            description={t("errors.404.description")}
         />
     );
 };

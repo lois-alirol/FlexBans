@@ -1,17 +1,10 @@
 import React from 'react';
 
-type Theme = 'dark' | 'light';
-
-interface LoadingSpinnerProps {
-    currentTheme: Theme;
-    serverColor: string;
-}
-
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ currentTheme, serverColor }) => {
+const LoadingSpinner: React.FC = () => {
     return (
-        <div className={`flex items-center justify-center min-h-screen ${currentTheme === 'dark' ? 'bg-[#1c1c1c] text-gray-100' : 'bg-gray-50 text-gray-800'}`}>
-            <div className={`flex items-center space-x-3 p-8 rounded-xl ${currentTheme === 'dark' ? 'bg-[#2c2c2c]' : 'bg-white'} shadow-xl`}>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: serverColor }}></div>
+        <div className={`flex items-center justify-center min-h-screen bg-background text-text-primary`}>
+            <div className={`flex items-center space-x-3 p-8 rounded-xl bg-surface border border-surface-border`}>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-server-color"></div>
                 <p className="text-xl font-semibold">Loading Punishment Details...</p>
             </div>
         </div>

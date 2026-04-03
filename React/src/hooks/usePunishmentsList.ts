@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import {useState, useEffect, useMemo, useCallback, useRef} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { PunishmentType } from '../types/punishments';
-import { useServerConfig } from './useServerConfig';
-import { useAuth } from './useAuth';
-import { usePunishmentsData } from './usePunishmentsData';
+
+import type { PunishmentType } from '@/types/punishments';
+
+import { useServerConfig } from '@hooks/useServerConfig';
+import { useAuth } from '@hooks/useAuth';
+import { usePunishmentsData } from '@hooks/usePunishmentsData';
 
 interface PunishmentSetting {
     enabled: boolean;
@@ -25,7 +27,7 @@ const scrollToTop = () => {
 };
 
 export const usePunishmentList = () => {
-    const { serverConfig } = useServerConfig();
+    const { serverConfig, isLoading: isConfigLoading } = useServerConfig();
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -33,7 +35,7 @@ export const usePunishmentList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeType, setActiveType] = useState<PunishmentType | null>(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [filters, setFilters] = useState<FilterOptions>({
         executor: '',
         status: '',
@@ -53,13 +55,13 @@ export const usePunishmentList = () => {
     }, [location.state, navigate]);
 
     useEffect(() => {
-        if (isAuthLoading || serverConfig.serverName === 'Loading...') {
+        if (isAuthLoading || isConfigLoading) {
             return;
         }
-        if (serverConfig.isSecured && !isAuthenticated && !isAuthLoading) {
+        if (serverConfig && serverConfig.isSecured && !isAuthenticated && !isAuthLoading) {
             navigate('/login');
         }
-    }, [serverConfig.isSecured, isAuthenticated, isAuthLoading, serverConfig.serverName, navigate]);
+    }, [serverConfig && serverConfig.isSecured, isAuthenticated, isAuthLoading, serverConfig && serverConfig.serverName, navigate]);
 
     const handlePageChange = useCallback((page: number) => {
         setCurrentPage(page);
@@ -70,17 +72,24 @@ export const usePunishmentList = () => {
         setCurrentPage(1);
     }, []);
 
+    const lastScrolledPage = useRef<number | null>(null);
+
     useEffect(() => {
-        if (currentPage >= 1) {
+        if (isLoading || isAuthLoading || isConfigLoading) return;
+
+        if (lastScrolledPage.current === currentPage) return;
+
+        lastScrolledPage.current = currentPage;
+
+        setTimeout(() => {
             scrollToTop();
-        }
-    }, [currentPage]);
+        }, 100);
+    }, [currentPage, isLoading, isAuthLoading, isConfigLoading]);
 
     useEffect(() => {
         setCurrentPage(1);
     }, [activeType, searchTerm, filters]);
 
-// inside usePunishmentList.ts
 
     useEffect(() => {
         // 1. Guard: Wait until the server config is actually loaded
@@ -109,15 +118,14 @@ export const usePunishmentList = () => {
                 setActiveType(singular.toUpperCase() as PunishmentType);
             }
         }
-    }, [serverConfig, activeType]); // Removed setActiveType to avoid unnecessary re-runs
+    }, [serverConfig, activeType]);
 
-    // Vérifier si des filtres sont actifs (hors recherche de base)
     const hasActiveFilters = filters.executor || filters.status || filters.dateFilterType !== 'none';
 
     const { paginatedPunishments, totalPages } = useMemo(() => {
         const serverTotalPages = pagination?.totalPages ?? 1;
 
-        if (isAuthLoading || serverConfig.serverName === 'Loading...') {
+        if (isAuthLoading || isConfigLoading) {
             return { paginatedPunishments: [], totalPages: serverTotalPages };
         }
         if (isLoading) {
@@ -180,16 +188,14 @@ export const usePunishmentList = () => {
             });
         }
 
-        // Pour les filtres côté client, pas de pagination (montrer tous les résultats filtrés)
-        // ou implémenter une pagination client si trop de résultats
         return {
             paginatedPunishments: punishments,
-            totalPages: 1 // Une seule page pour les résultats filtrés
+            totalPages: 1
         };
     }, [searchTerm, filters, hasActiveFilters, serverConfig, recentPunishments, isLoading, isAuthLoading, pagination]);
 
     useEffect(() => {
-        if (isLoading || isAuthLoading || serverConfig.serverName === 'Loading...') return;
+        if (isLoading || isAuthLoading || isConfigLoading) return;
 
         let newPage = currentPage;
 
@@ -202,7 +208,7 @@ export const usePunishmentList = () => {
         if (newPage !== currentPage) {
             setCurrentPage(newPage);
         }
-    }, [currentPage, totalPages, isLoading, isAuthLoading, serverConfig.serverName]);
+    }, [currentPage, totalPages, isLoading, isAuthLoading, serverConfig && serverConfig.serverName]);
 
     return {
         currentPage,

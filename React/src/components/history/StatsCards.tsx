@@ -1,5 +1,6 @@
 import React from 'react';
-import MetricChip from '../common/MetricChip';
+
+import MetricChip from '@components/common/MetricChip';
 
 interface ChipData {
     title: string;
@@ -10,10 +11,9 @@ interface ChipData {
 
 interface StatsCardsProps {
     chips: ChipData[];
-    currentTheme: 'light' | 'dark';
 }
 
-const StatsCards: React.FC<StatsCardsProps> = ({ chips, currentTheme }) => {
+const StatsCards: React.FC<StatsCardsProps> = ({ chips }) => {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {chips.map((chip) => (
@@ -22,7 +22,6 @@ const StatsCards: React.FC<StatsCardsProps> = ({ chips, currentTheme }) => {
                     title={chip.title}
                     value={chip.value}
                     icon={chip.icon}
-                    currentTheme={currentTheme}
                     accentClass={chip.accent}
                 />
             ))}

@@ -1,186 +1,208 @@
-import {useServerConfig} from "../hooks/useServerConfig.ts";
-import {useAuth} from "../hooks/useAuth.ts";
-import {useTheme} from "../hooks/useTheme.ts";
-import {usePunishmentList} from "../hooks/usePunishmentsList.ts";
-import React, {useState} from "react";
-import EmptyState from "../components/punishments/list/EmptyState.tsx";
-import Sidebar from "../components/common/sidebar/Sidebar.tsx";
-import MobileHeader from "../components/common/sidebar/MobileHeader.tsx";
-import PageHeader from "../components/punishments/PageHeader.tsx";
-import SearchBar from "../components/punishments/list/SearchBar.tsx";
-import PunishmentTable from "../components/punishments/list/PunishmentTable.tsx";
-import Pagination from "../components/common/Pagination.tsx";
-import NewPunishmentModal from "../components/common/modals/NewPunishmentModal.tsx";
-import FilterModal from "../components/common/modals/FilterModal.tsx";
+import React, {useState} from 'react';
+
+import {useServerConfig} from '@hooks/useServerConfig';
+import {useAuth} from '@hooks/useAuth';
+import {usePunishmentList} from '@hooks/usePunishmentsList';
+import {useTitle} from "@hooks/useTitle";
+
+import EmptyState from '@components/punishments/list/EmptyState';
+import Sidebar from '@components/common/sidebar/Sidebar';
+import PageHeader from '@components/punishments/PageHeader';
+import SearchBar from '@components/punishments/list/SearchBar';
+import PunishmentTable from '@components/punishments/list/PunishmentTable';
+import Pagination from '@components/common/Pagination';
+import NewPunishmentModal from '@components/common/modals/NewPunishmentModal';
+import FilterModal from '@components/common/modals/FilterModal';
+import Notification from "@components/common/Notification";
+
+import {useTranslation} from "react-i18next";
+import Error500 from "@pages/errors/Error500.tsx";
 
 interface PunishmentSetting {
-  enabled: boolean;
-  maxPerPage: number;
+    enabled: boolean;
+    maxPerPage: number;
 }
 
 const PunishmentsPage: React.FC = () => {
-  const { serverConfig } = useServerConfig();
-  const { isAuthenticated, user } = useAuth();
-  const { isDarkMode } = useTheme();
-  const {
-    currentPage,
-    searchTerm,
-    activeType,
-    isSidebarOpen,
-    paginatedPunishments,
-    globalCounts,
-    totalPages,
-    isLoading,
-    error,
-    isAuthLoading,
-    setSearchTerm,
-    setActiveType,
-    setIsSidebarOpen,
-    handlePageChange,
-    handleApplyFilters,
-  } = usePunishmentList();
+    const { serverConfig, isLoading: isConfigLoading } = useServerConfig();
+    const { isAuthenticated, user } = useAuth();
+    const {
+        currentPage,
+        searchTerm,
+        activeType,
+        isSidebarOpen,
+        paginatedPunishments,
+        globalCounts,
+        totalPages,
+        isLoading,
+        error,
+        isAuthLoading,
+        setSearchTerm,
+        setActiveType,
+        setIsSidebarOpen,
+        handlePageChange,
+        handleApplyFilters,
+    } = usePunishmentList();
 
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [isNewPunishmentModalOpen, setIsNewPunishmentModalOpen] = useState(false);
+    useTitle(
+        `${(activeType
+                ? activeType[0].toUpperCase() + activeType.slice(1).toLowerCase()
+                : ""
+        )}s`
+    );
 
-  const currentTheme = isDarkMode ? 'dark' : 'light';
-  const typeDisplay = activeType ? `${activeType}S` : 'All Punishments';
-  const searchPlaceholder = activeType ? `Search Player for ${activeType}...` : 'Search Player...';
-  const titleActiveType = activeType || 'Overview';
+    const { t } = useTranslation();
 
-  const isAnyPunishmentEnabled = (Object.values(serverConfig.punishments) as PunishmentSetting[]).some(p => p.enabled);
+    const [sidebarWidth, setSidebarWidth] = useState(280);
+    const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  const handleFilterApply = (filters: any) => {
-    handleApplyFilters(filters);
-    setIsFilterModalOpen(false);
-  };
+    const [isNewPunishmentModalOpen, setIsNewPunishmentModalOpen] = useState(false);
+    const [notification, setNotification] = useState<{
+        visible: boolean;
+        message: string;
+        type: 'success' | 'error' | 'info';
+    }>({
+        visible: false,
+        message: '',
+        type: 'info',
+    });
 
-  const renderMainContent = () => {
-    if (isAuthLoading || serverConfig.serverName === 'Loading...') {
-      return (
-          <EmptyState
-              type="checking-access"
-              currentTheme={currentTheme}
-              serverColor={serverConfig.serverColor}
-          />
-      );
+    const typeDisplay = activeType ? `${activeType}S` : '';
+    const searchPlaceholder = t("home.search-placeholder");
+
+    const isAnyPunishmentEnabled = serverConfig && (Object.values(serverConfig.punishments) as PunishmentSetting[]).some(p => p.enabled);
+
+    const triggerNotif = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setNotification({ visible: true, message, type });
+    };
+
+    const handleFilterApply = (filters: any) => {
+        handleApplyFilters(filters);
+        setIsFilterModalOpen(false);
+        triggerNotif(t("filter-modal.apply-notification"), 'info');
+    };
+
+    const handleNewPunishmentSuccess = () => {
+        setIsNewPunishmentModalOpen(false);
+        triggerNotif(t("create-modal.success.message"), 'success');
+    };
+
+    const handleRevokeSuccess = () => {
+        triggerNotif(t("revoke-modal.success.message"), 'success');
+    };
+
+    const handleEditSuccess = () => {
+        triggerNotif(t("edition-modal.success.message"), 'success');
+    };
+
+    const handlePreferencesApply = () => {
+        triggerNotif(t("preferences-modal.success.message"), 'success');
+    };
+
+    if (isAuthLoading || isConfigLoading) {
+        return (
+            <EmptyState
+                type="checking-access"
+            />
+        );
     }
 
     if (error) {
-      return (
-          <EmptyState
-              type="error"
-              currentTheme={currentTheme}
-              errorMessage={error}
-          />
-      );
+        return (
+            <Error500 stackTrace={error}/>
+        );
     }
 
     if (isLoading) {
-      return (
-          <EmptyState
-              type="loading"
-              currentTheme={currentTheme}
-              serverColor={serverConfig.serverColor}
-          />
-      );
+        return (
+            <EmptyState
+                type="loading"
+            />
+        );
     }
 
-    return null;
-  };
-
-  if (isAuthLoading || (serverConfig.isSecured && !isAuthenticated)) {
     return (
-        <div className={`flex min-h-screen items-center justify-center ${currentTheme === 'dark' ? 'bg-[#1c1c1c] text-[#e0e0e0]' : 'bg-[#f4f4f4] text-[#333333]'}`}>
-          {renderMainContent()}
-        </div>
-    );
-  }
-
-  return (
-      <div className={`flex min-h-screen ${currentTheme === 'dark' ? 'bg-[#1c1c1c] text-[#e0e0e0]' : 'bg-[#f4f4f4] text-[#333333]'}`}>
-        <title>{serverConfig.serverName} Punishments - {titleActiveType}</title>
-
-        <Sidebar
-            serverConfig={serverConfig}
-            counts={globalCounts}
-            activeType={activeType}
-            setActiveType={setActiveType}
-            isSidebarOpen={isSidebarOpen}
-            setIsSidebarOpen={setIsSidebarOpen}
-            onNewPunishmentClick={() => setIsNewPunishmentModalOpen(true)}
-        />
-
-        <div className={`flex flex-col grow transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
-          <MobileHeader
-              onMenuClick={() => setIsSidebarOpen(true)}
-              serverLogo={serverConfig.serverLogo}
-              currentTheme={currentTheme}
-          />
-
-          <main className="p-4 sm:p-6 lg:p-8 flex-1 min-w-0">
-            <PageHeader
-                serverName={serverConfig.serverName}
-                typeDisplay={typeDisplay}
-                isAuthenticated={isAuthenticated}
-                isSecured={serverConfig.isSecured}
-                currentTheme={currentTheme}
+        <div className={`flex min-h-screen bg-background text-text-primary`}>
+            <Notification
+                message={notification.message}
+                type={notification.type}
+                visible={notification.visible}
+                onClose={() => setNotification(prev => ({ ...prev, visible: false }))}
             />
 
-            <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onFilterClick={() => setIsFilterModalOpen(true)}
-                placeholder={searchPlaceholder}
-                currentTheme={currentTheme}
-                serverColor={serverConfig.serverColor}
+            <Sidebar
+                counts={globalCounts}
+                activeType={activeType}
+                setActiveType={setActiveType}
+                isSidebarOpen={isSidebarOpen}
+                setIsSidebarOpen={setIsSidebarOpen}
+                onNewPunishmentClick={() => setIsNewPunishmentModalOpen(true)}
+                sidebarWidth={sidebarWidth}
+                setSidebarWidth={setSidebarWidth}
             />
 
-            <div className="overflow-x-auto shadow-xl rounded-lg">
-              {isAnyPunishmentEnabled ? (
-                  <PunishmentTable
-                      punishments={paginatedPunishments}
-                      activeType={activeType}
-                      serverColor={serverConfig.serverColor}
-                      currentTheme={currentTheme}
-                  />
-              ) : (
-                  <EmptyState
-                      type="config-error"
-                      currentTheme={currentTheme}
-                  />
-              )}
+            <div
+                className="flex flex-col grow min-w-0 pt-16 lg:pt-0"
+                style={{
+                    marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0px',
+                    transition: 'margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+            >
+                <main className="p-4 sm:p-6 lg:p-8 flex-1 min-w-0">
+                    <PageHeader
+                        serverName={serverConfig ? serverConfig.serverName : ''}
+                        typeDisplay={typeDisplay}
+                        isAuthenticated={isAuthenticated}
+                        isSecured={serverConfig ? serverConfig.isSecured : false}
+                        onPreferencesApply={handlePreferencesApply}
+                    />
+
+                    <SearchBar
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        onFilterClick={() => setIsFilterModalOpen(true)}
+                        placeholder={searchPlaceholder}
+                    />
+
+                    <div className="overflow-x-auto rounded-lg">
+                        {isAnyPunishmentEnabled ? (
+                            <PunishmentTable
+                                punishments={paginatedPunishments}
+                                activeType={activeType}
+                                onRevokeSuccess={handleRevokeSuccess}
+                                onEditSuccess={handleEditSuccess}
+                            />
+                        ) : (
+                            <EmptyState
+                                type="config-error"
+                            />
+                        )}
+                    </div>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                    />
+                </main>
             </div>
 
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-                currentTheme={currentTheme}
+            <FilterModal
+                isOpen={isFilterModalOpen}
+                onClose={() => setIsFilterModalOpen(false)}
+                onApply={handleFilterApply}
             />
 
-            {(error || isLoading) && renderMainContent()}
-          </main>
+            {serverConfig && !isConfigLoading && serverConfig.isSecured && user && isAuthenticated && (
+                <NewPunishmentModal
+                    isOpen={isNewPunishmentModalOpen}
+                    onClose={() => setIsNewPunishmentModalOpen(false)}
+                    onSuccess={handleNewPunishmentSuccess}
+                    executorName={user.username}
+                />
+            )}
         </div>
-
-        <FilterModal
-            isOpen={isFilterModalOpen}
-            onClose={() => setIsFilterModalOpen(false)}
-            onApply={handleFilterApply}
-            serverColor={serverConfig.serverColor}
-            currentTheme={currentTheme}
-        />
-
-        {serverConfig.isSecured && user && isAuthenticated && (
-            <NewPunishmentModal
-                isOpen={isNewPunishmentModalOpen}
-                onClose={() => setIsNewPunishmentModalOpen(false)}
-                executorName={user.username}
-                currentTheme={currentTheme}
-            />
-        )}
-      </div>
-  );
+    );
 };
 
 export default PunishmentsPage;

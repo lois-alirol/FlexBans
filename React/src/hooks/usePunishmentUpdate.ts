@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import authService from "../services/authService.ts";
+import authService from '@services/authService';
 
 const BASE_API_URL = import.meta.env.VITE_APP_API_URL;
 const EDIT_API_URL = `${BASE_API_URL}/punishments/edit`;
@@ -7,7 +7,7 @@ const EDIT_API_URL = `${BASE_API_URL}/punishments/edit`;
 interface UpdatePayload {
     punishmentId: number;
     reason: string;
-    duration: number; // The calculated relative time in milliseconds
+    duration: number;
 }
 
 export const usePunishmentUpdate = () => {

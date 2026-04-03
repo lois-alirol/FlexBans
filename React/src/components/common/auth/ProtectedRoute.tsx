@@ -1,7 +1,8 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
-import { useServerConfig } from '../../../hooks/useServerConfig';
+
+import { useAuth } from '@hooks/useAuth';
+import { useServerConfig } from '@hooks/useServerConfig';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -12,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isVerified, isLoading } = useAuth();
   const location = useLocation();
 
-  if (!serverConfig.isSecured) {
+  if (serverConfig && !serverConfig.isSecured) {
     return children ? <>{children}</> : <Outlet />;
   }
 
